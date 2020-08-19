@@ -24,12 +24,12 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/ethereum/go-ethereum/statediff"
+	"github.com/sirupsen/logrus"
 )
 
 // lvlDBReader are the db interfaces required by the statediffing service
@@ -95,7 +95,7 @@ func (sds *Service) Loop(wg *sync.WaitGroup) {
 	for {
 		select {
 		case <-sds.QuitChan:
-			log.Info("closing the statediff service loop")
+			logrus.Info("closing the statediff service loop")
 			wg.Done()
 			return
 		}
@@ -109,7 +109,7 @@ func (sds *Service) StateDiffAt(blockNumber uint64, params statediff.Params) (*s
 	if err != nil {
 		return nil, err
 	}
-	log.Info(fmt.Sprintf("sending state diff at block %d", blockNumber))
+	logrus.Info(fmt.Sprintf("sending state diff at block %d", blockNumber))
 	if blockNumber == 0 {
 		return sds.processStateDiff(currentBlock, common.Hash{}, params)
 	}
@@ -177,7 +177,7 @@ func (sds *Service) StateTrieAt(blockNumber uint64, params statediff.Params) (*s
 	if err != nil {
 		return nil, err
 	}
-	log.Info(fmt.Sprintf("sending state trie at block %d", blockNumber))
+	logrus.Info(fmt.Sprintf("sending state trie at block %d", blockNumber))
 	return sds.processStateTrie(currentBlock, params)
 }
 
@@ -195,14 +195,14 @@ func (sds *Service) processStateTrie(block *types.Block, params statediff.Params
 
 // Start is used to begin the service
 func (sds *Service) Start(*p2p.Server) error {
-	log.Info("starting statediff service")
+	logrus.Info("starting statediff service")
 	go sds.Loop(new(sync.WaitGroup))
 	return nil
 }
 
 // Stop is used to close down the service
 func (sds *Service) Stop() error {
-	log.Info("stopping statediff service")
+	logrus.Info("stopping statediff service")
 	close(sds.QuitChan)
 	return nil
 }

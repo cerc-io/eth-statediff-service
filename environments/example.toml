@@ -1,14 +1,14 @@
 [leveldb]
-    path = ""
-    ancient = ""
+    path = "/Users/user/Library/Ethereum/geth/chaindata"
+    ancient = "/Users/user/Library/Ethereum/geth/chaindata/ancient"
 
 [server]
-    ipcPath = ""
-    httpPath = ""
+    ipcPath = ".ipc"
+    httpPath = "127.0.0.1:8545"
 
 [log]
     file = ""
-    level = ""
+    level = "info"
 
 [eth]
     chainID = 1
