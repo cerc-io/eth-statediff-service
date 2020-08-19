@@ -135,6 +135,7 @@ func (sds *Service) processStateDiff(currentBlock *types.Block, parentRoot commo
 	if err != nil {
 		return nil, err
 	}
+	logrus.Infof("state diff object at block %d is %d bytes in length", currentBlock.Number().Uint64(), len(stateDiffRlp))
 	return sds.newPayload(stateDiffRlp, currentBlock, params)
 }
 
@@ -190,6 +191,7 @@ func (sds *Service) processStateTrie(block *types.Block, params statediff.Params
 	if err != nil {
 		return nil, err
 	}
+	logrus.Infof("state trie object at block %d is %d bytes in length", block.Number().Uint64(), len(stateTrieRlp))
 	return sds.newPayload(stateTrieRlp, block, params)
 }
 
