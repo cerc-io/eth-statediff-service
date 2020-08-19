@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"fmt"
 	"math/big"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
@@ -45,7 +46,7 @@ type IService interface {
 	// APIs(), Protocols(), Start() and Stop()
 	node.Service
 	// Main event loop for processing state diffs
-	Loop()
+	Loop(wg *sync.WaitGroup)
 	// Method to get state diff object at specific block
 	StateDiffAt(blockNumber uint64, params statediff.Params) (*statediff.Payload, error)
 	// Method to get state trie object at specific block
@@ -65,9 +66,9 @@ type Service struct {
 // NewStateDiffService creates a new statediff.Service
 func NewStateDiffService(lvlDBReader lvlDBReader) (*Service, error) {
 	return &Service{
-		lvlDBReader:       lvlDBReader,
-		Builder:           statediff.NewBuilder(lvlDBReader.StateDB()),
-		QuitChan:          make(chan bool),
+		lvlDBReader: lvlDBReader,
+		Builder:     statediff.NewBuilder(lvlDBReader.StateDB()),
+		QuitChan:    make(chan bool),
 	}, nil
 }
 
@@ -89,11 +90,13 @@ func (sds *Service) APIs() []rpc.API {
 }
 
 // Loop is an empty service loop for awaiting rpc requests
-func (sds *Service) Loop() {
+func (sds *Service) Loop(wg *sync.WaitGroup) {
+	wg.Add(1)
 	for {
 		select {
 		case <-sds.QuitChan:
-			log.Info("Closing the statediff service")
+			log.Info("closing the statediff service loop")
+			wg.Done()
 			return
 		}
 	}
@@ -148,7 +151,7 @@ func (sds *Service) newPayload(stateObject []byte, block *types.Block, params st
 	}
 	if params.IncludeTD {
 		var err error
-		payload.TotalDifficulty , err = sds.lvlDBReader.GetTdByHash(block.Hash())
+		payload.TotalDifficulty, err = sds.lvlDBReader.GetTdByHash(block.Hash())
 		if err != nil {
 			return nil, err
 		}
@@ -192,14 +195,14 @@ func (sds *Service) processStateTrie(block *types.Block, params statediff.Params
 
 // Start is used to begin the service
 func (sds *Service) Start(*p2p.Server) error {
-	log.Info("Starting statediff service")
-	go sds.Loop()
+	log.Info("starting statediff service")
+	go sds.Loop(new(sync.WaitGroup))
 	return nil
 }
 
 // Stop is used to close down the service
 func (sds *Service) Stop() error {
-	log.Info("Stopping statediff service")
+	log.Info("stopping statediff service")
 	close(sds.QuitChan)
 	return nil
 }

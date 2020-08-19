@@ -29,9 +29,9 @@ import (
 
 // LvlDBReader exposes the necessary read functions on lvldb
 type LvlDBReader struct {
-	ethDB         ethdb.Database
-	stateDB       state.Database
-	chainConfig   *params.ChainConfig
+	ethDB       ethdb.Database
+	stateDB     state.Database
+	chainConfig *params.ChainConfig
 }
 
 // NewLvlDBReader creates a new LvlDBReader
@@ -41,8 +41,8 @@ func NewLvlDBReader(path, ancient string, chainConfig *params.ChainConfig) (*Lvl
 		return nil, err
 	}
 	return &LvlDBReader{
-		ethDB: edb,
-		stateDB: state.NewDatabase(edb),
+		ethDB:       edb,
+		stateDB:     state.NewDatabase(edb),
 		chainConfig: chainConfig,
 	}, nil
 }

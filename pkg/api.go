@@ -17,14 +17,9 @@ package statediff
 
 import (
 	"context"
+
 	"github.com/ethereum/go-ethereum/statediff"
 )
-
-// APIName is the namespace used for the state diffing service API
-const APIName = "statediff"
-
-// APIVersion is the version of the state diffing service API
-const APIVersion = "0.0.1"
 
 // PublicStateDiffAPI provides an RPC interface
 // that can be used to fetch historical diffs from leveldb directly
