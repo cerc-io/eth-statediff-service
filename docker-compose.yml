@@ -11,10 +11,8 @@ services:
     environment:
     - VDB_COMMAND=serve
     volumes:
-    - eth-statediff-service-data:/app/geth/:ro
+    - /local/geth/path:/app/geth/:ro
     - ./environments/example.toml:/app/config.toml
     ports:
     - "127.0.0.1:8545:8545"
 
-volumes:
-  eth-statediff-service-data:
