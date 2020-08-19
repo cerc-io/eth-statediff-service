@@ -1,0 +1,23 @@
+version: '3.2'
+
+services:
+  eth-statediff-service:
+    build:
+      context: ./
+      cache_from:
+      - alpine:latest
+      - golang:1.13
+      dockerfile: ./Dockerfile
+      args:
+        USER: "vdbm"
+        CONFIG_FILE: ./environments/example.toml
+        EXPOSE_PORT: 8545
+    environment:
+    - VDB_COMMAND=serve
+    volumes:
+    - eth-statediff-service-data:/root/.ethereum/
+    ports:
+    - "127.0.0.1:8545:8545"
+
+volumes:
+  eth-statediff-service-data:
