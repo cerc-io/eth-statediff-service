@@ -26,14 +26,13 @@ const APIName = "statediff"
 // APIVersion is the version of the state diffing service API
 const APIVersion = "0.0.1"
 
-// PublicStateDiffAPI provides an RPC subscription interface
-// that can be used to stream out state diffs as they
-// are produced by a full node
+// PublicStateDiffAPI provides an RPC interface
+// that can be used to fetch historical diffs from leveldb directly
 type PublicStateDiffAPI struct {
 	sds IService
 }
 
-// NewPublicStateDiffAPI creates an rpc subscription interface for the underlying statediff service
+// NewPublicStateDiffAPI creates an rpc interface for the underlying statediff service
 func NewPublicStateDiffAPI(sds IService) *PublicStateDiffAPI {
 	return &PublicStateDiffAPI{
 		sds: sds,
