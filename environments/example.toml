@@ -1,6 +1,6 @@
 [leveldb]
-    path = "/Users/user/Library/Ethereum/geth/chaindata"
-    ancient = "/Users/user/Library/Ethereum/geth/chaindata/ancient"
+    path = "/app/geth/chaindata"
+    ancient = "/app/geth/chaindata/ancient"
 
 [server]
     ipcPath = ".ipc"

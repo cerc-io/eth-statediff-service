@@ -8,14 +8,11 @@ services:
       - alpine:latest
       - golang:1.13
       dockerfile: ./Dockerfile
-      args:
-        USER: "vdbm"
-        CONFIG_FILE: ./environments/example.toml
-        EXPOSE_PORT: 8545
     environment:
     - VDB_COMMAND=serve
     volumes:
-    - eth-statediff-service-data:/root/.ethereum/
+    - eth-statediff-service-data:/app/geth/:ro
+    - ./environments/example.toml:/app/config.toml
     ports:
     - "127.0.0.1:8545:8545"
 
