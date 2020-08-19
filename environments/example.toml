@@ -1,0 +1,14 @@
+[leveldb]
+    path = ""
+    ancient = ""
+
+[server]
+    ipcPath = ""
+    httpPath = ""
+
+[log]
+    file = ""
+    level = ""
+
+[eth]
+    chainID = 1
