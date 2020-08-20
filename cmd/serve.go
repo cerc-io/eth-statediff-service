@@ -82,6 +82,7 @@ func serve() {
 	if err := startServers(statediffService); err != nil {
 		logWithCommand.Fatal(err)
 	}
+	logWithCommand.Info("rpc server(s) successfully spun up; awaiting requests")
 
 	// clean shutdown
 	shutdown := make(chan os.Signal)
