@@ -1,9 +1,9 @@
 [leveldb]
-    path = "/app/geth/chaindata"
-    ancient = "/app/geth/chaindata/ancient"
+    path = "/app/geth-rw/chaindata"
+    ancient = "/app/geth-rw/chaindata/ancient"
 
 [server]
-    ipcPath = ".ipc"
+    ipcPath = "/app/test.ipc"
     httpPath = "127.0.0.1:8545"
 
 [log]

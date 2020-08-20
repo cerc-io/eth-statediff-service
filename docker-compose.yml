@@ -2,6 +2,9 @@ version: '3.2'
 
 services:
   eth-statediff-service:
+    restart: on-failure
+    cap_add:
+      - ALL
     build:
       context: ./
       cache_from:
@@ -11,8 +14,8 @@ services:
     environment:
     - VDB_COMMAND=serve
     volumes:
-    - /local/geth/path:/app/geth/:ro
-    - /tmp/somefile:/app/geth/chaindata/LOCK
+    - /srv/geth_data/geth:/app/geth-ro/:ro
+      # - /tmp/somefile:/app/geth/chaindata/LOCK
     - ./environments/example.toml:/app/config.toml
     ports:
     - "127.0.0.1:8545:8545"

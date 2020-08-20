@@ -14,6 +14,11 @@ ARG USER="vdbm"
 ARG CONFIG_FILE="./environments/example.toml"
 
 RUN adduser -Du 5000 $USER
+
+## Someone please fix this foolishness
+RUN adduser $USER adm; apk --no-cache add sudo; echo '%adm ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+##
+
 WORKDIR /app
 RUN chown $USER .
 USER $USER
