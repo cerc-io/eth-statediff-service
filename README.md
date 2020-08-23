@@ -1,4 +1,7 @@
 ## eth-statediff-service
+
+[![Go Report Card](https://goreportcard.com/badge/github.com/vulcanize/eth-statediff-service)](https://goreportcard.com/report/github.com/vulcanize/eth-statediff-service)
+
 >> standalone statediffing service ontop of leveldb
 
 Purpose:
