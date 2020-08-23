@@ -82,7 +82,7 @@ func serve() {
 	if err := startServers(statediffService); err != nil {
 		logWithCommand.Fatal(err)
 	}
-	logWithCommand.Info("rpc server(s) successfully spun up; awaiting requests")
+	logWithCommand.Info("rpc servers successfully spun up; awaiting requests")
 
 	// clean shutdown
 	shutdown := make(chan os.Signal)
@@ -116,14 +116,14 @@ func startServers(serv sd.IService) error {
 		logWithCommand.Fatal("need an ipc path and/or an http path")
 	}
 	if ipcPath != "" {
-		logWithCommand.Debug("starting up IPC server")
+		logWithCommand.Info("starting up IPC server")
 		_, _, err := rpc.StartIPCEndpoint(ipcPath, serv.APIs())
 		if err != nil {
 			return err
 		}
 	}
 	if httpPath != "" {
-		logWithCommand.Debug("starting up HTTP server")
+		logWithCommand.Info("starting up HTTP server")
 		if _, _, err := rpc.StartHTTPEndpoint(httpPath, serv.APIs(), []string{statediff.APIName}, nil, nil, rpc.HTTPTimeouts{}); err != nil {
 			return err
 		}
