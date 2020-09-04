@@ -28,7 +28,6 @@ import (
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/ethereum/go-ethereum/statediff"
 	"github.com/sirupsen/logrus"
 )
 
@@ -48,26 +47,26 @@ type IService interface {
 	// Main event loop for processing state diffs
 	Loop(wg *sync.WaitGroup)
 	// Method to get state diff object at specific block
-	StateDiffAt(blockNumber uint64, params statediff.Params) (*statediff.Payload, error)
+	StateDiffAt(blockNumber uint64, params Params) (*Payload, error)
 	// Method to get state trie object at specific block
-	StateTrieAt(blockNumber uint64, params statediff.Params) (*statediff.Payload, error)
+	StateTrieAt(blockNumber uint64, params Params) (*Payload, error)
 }
 
 // Service is the underlying struct for the state diffing service
 type Service struct {
 	// Used to build the state diff objects
-	Builder statediff.Builder
+	Builder Builder
 	// Used to read data from leveldb
 	lvlDBReader lvlDBReader
 	// Used to signal shutdown of the service
 	QuitChan chan bool
 }
 
-// NewStateDiffService creates a new statediff.Service
+// NewStateDiffService creates a new Service
 func NewStateDiffService(lvlDBReader lvlDBReader) (*Service, error) {
 	return &Service{
 		lvlDBReader: lvlDBReader,
-		Builder:     statediff.NewBuilder(lvlDBReader.StateDB()),
+		Builder:     NewBuilder(lvlDBReader.StateDB()),
 		QuitChan:    make(chan bool),
 	}, nil
 }
@@ -77,12 +76,12 @@ func (sds *Service) Protocols() []p2p.Protocol {
 	return []p2p.Protocol{}
 }
 
-// APIs returns the RPC descriptors the statediff.Service offers
+// APIs returns the RPC descriptors the Service offers
 func (sds *Service) APIs() []rpc.API {
 	return []rpc.API{
 		{
-			Namespace: statediff.APIName,
-			Version:   statediff.APIVersion,
+			Namespace: APIName,
+			Version:   APIVersion,
 			Service:   NewPublicStateDiffAPI(sds),
 			Public:    true,
 		},
@@ -104,7 +103,7 @@ func (sds *Service) Loop(wg *sync.WaitGroup) {
 
 // StateDiffAt returns a state diff object payload at the specific blockheight
 // This operation cannot be performed back past the point of db pruning; it requires an archival node for historical data
-func (sds *Service) StateDiffAt(blockNumber uint64, params statediff.Params) (*statediff.Payload, error) {
+func (sds *Service) StateDiffAt(blockNumber uint64, params Params) (*Payload, error) {
 	currentBlock, err := sds.lvlDBReader.GetBlockByNumber(blockNumber)
 	if err != nil {
 		return nil, err
@@ -121,12 +120,12 @@ func (sds *Service) StateDiffAt(blockNumber uint64, params statediff.Params) (*s
 }
 
 // processStateDiff method builds the state diff payload from the current block, parent state root, and provided params
-func (sds *Service) processStateDiff(currentBlock *types.Block, parentRoot common.Hash, params statediff.Params) (*statediff.Payload, error) {
-	stateDiff, err := sds.Builder.BuildStateDiffObject(statediff.Args{
-		NewStateRoot: currentBlock.Root(),
-		OldStateRoot: parentRoot,
+func (sds *Service) processStateDiff(currentBlock *types.Block, parentRoot common.Hash, params Params) (*Payload, error) {
+	stateDiff, err := sds.Builder.BuildStateDiffObject(Args{
 		BlockHash:    currentBlock.Hash(),
 		BlockNumber:  currentBlock.Number(),
+		OldStateRoot: parentRoot,
+		NewStateRoot: currentBlock.Root(),
 	}, params)
 	if err != nil {
 		return nil, err
@@ -139,8 +138,8 @@ func (sds *Service) processStateDiff(currentBlock *types.Block, parentRoot commo
 	return sds.newPayload(stateDiffRlp, currentBlock, params)
 }
 
-func (sds *Service) newPayload(stateObject []byte, block *types.Block, params statediff.Params) (*statediff.Payload, error) {
-	payload := &statediff.Payload{
+func (sds *Service) newPayload(stateObject []byte, block *types.Block, params Params) (*Payload, error) {
+	payload := &Payload{
 		StateObjectRlp: stateObject,
 	}
 	if params.IncludeBlock {
@@ -173,7 +172,7 @@ func (sds *Service) newPayload(stateObject []byte, block *types.Block, params st
 
 // StateTrieAt returns a state trie object payload at the specified blockheight
 // This operation cannot be performed back past the point of db pruning; it requires an archival node for historical data
-func (sds *Service) StateTrieAt(blockNumber uint64, params statediff.Params) (*statediff.Payload, error) {
+func (sds *Service) StateTrieAt(blockNumber uint64, params Params) (*Payload, error) {
 	currentBlock, err := sds.lvlDBReader.GetBlockByNumber(blockNumber)
 	if err != nil {
 		return nil, err
@@ -182,7 +181,7 @@ func (sds *Service) StateTrieAt(blockNumber uint64, params statediff.Params) (*s
 	return sds.processStateTrie(currentBlock, params)
 }
 
-func (sds *Service) processStateTrie(block *types.Block, params statediff.Params) (*statediff.Payload, error) {
+func (sds *Service) processStateTrie(block *types.Block, params Params) (*Payload, error) {
 	stateNodes, err := sds.Builder.BuildStateTrieObject(block)
 	if err != nil {
 		return nil, err

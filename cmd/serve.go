@@ -23,7 +23,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/ethereum/go-ethereum/statediff"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -124,7 +123,7 @@ func startServers(serv sd.IService) error {
 	}
 	if httpPath != "" {
 		logWithCommand.Info("starting up HTTP server")
-		if _, _, err := rpc.StartHTTPEndpoint(httpPath, serv.APIs(), []string{statediff.APIName}, nil, nil, rpc.HTTPTimeouts{}); err != nil {
+		if _, _, err := rpc.StartHTTPEndpoint(httpPath, serv.APIs(), []string{sd.APIName}, nil, nil, rpc.HTTPTimeouts{}); err != nil {
 			return err
 		}
 	}
