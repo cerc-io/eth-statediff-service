@@ -41,6 +41,7 @@ type Params struct {
 	IncludeTD                bool
 	WatchedAddresses         []common.Address
 	WatchedStorageSlots      []common.Hash
+	Workers uint
 }
 
 // Args bundles the arguments for the state diff builder

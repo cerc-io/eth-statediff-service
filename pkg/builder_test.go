@@ -42,6 +42,7 @@ var (
 	miningReward                                           = int64(2000000000000000000)
 	minerAddress                                           = common.HexToAddress("0x0")
 	minerLeafKey                                           = testhelpers.AddressToLeafKey(minerAddress)
+	workerCounts                                           = []uint{0, 1, 2, 4, 8}
 
 	balanceChange10000    = int64(10000)
 	balanceChange1000     = int64(1000)
@@ -667,24 +668,27 @@ func TestBuilder(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		diff, err := builder.BuildStateDiffObject(test.startingArguments, params)
-		if err != nil {
-			t.Error(err)
-		}
-		receivedStateDiffRlp, err := rlp.EncodeToBytes(diff)
-		if err != nil {
-			t.Error(err)
-		}
-		expectedStateDiffRlp, err := rlp.EncodeToBytes(test.expected)
-		if err != nil {
-			t.Error(err)
-		}
-		sort.Slice(receivedStateDiffRlp, func(i, j int) bool { return receivedStateDiffRlp[i] < receivedStateDiffRlp[j] })
-		sort.Slice(expectedStateDiffRlp, func(i, j int) bool { return expectedStateDiffRlp[i] < expectedStateDiffRlp[j] })
-		if !bytes.Equal(receivedStateDiffRlp, expectedStateDiffRlp) {
-			t.Logf("Test failed: %s", test.name)
-			t.Errorf("actual state diff: %+v\nexpected state diff: %+v", diff, test.expected)
+	for _, workers := range workerCounts {
+		params.Workers = workers
+		for _, test := range tests {
+			diff, err := builder.BuildStateDiffObject(test.startingArguments, params)
+			if err != nil {
+				t.Error(err)
+			}
+			receivedStateDiffRlp, err := rlp.EncodeToBytes(diff)
+			if err != nil {
+				t.Error(err)
+			}
+			expectedStateDiffRlp, err := rlp.EncodeToBytes(test.expected)
+			if err != nil {
+				t.Error(err)
+			}
+			sort.Slice(receivedStateDiffRlp, func(i, j int) bool { return receivedStateDiffRlp[i] < receivedStateDiffRlp[j] })
+			sort.Slice(expectedStateDiffRlp, func(i, j int) bool { return expectedStateDiffRlp[i] < expectedStateDiffRlp[j] })
+			if !bytes.Equal(receivedStateDiffRlp, expectedStateDiffRlp) {
+				t.Logf("Test failed: %s", test.name)
+				t.Errorf("actual state diff: %+v\nexpected state diff: %+v", diff, test.expected)
+			}
 		}
 	}
 }
@@ -924,35 +928,38 @@ func TestBuilderWithIntermediateNodes(t *testing.T) {
 		},
 	}
 
-	for i, test := range tests {
-		diff, err := builder.BuildStateDiffObject(test.startingArguments, params)
-		if err != nil {
-			t.Error(err)
-		}
-		receivedStateDiffRlp, err := rlp.EncodeToBytes(diff)
-		if err != nil {
-			t.Error(err)
-		}
-		expectedStateDiffRlp, err := rlp.EncodeToBytes(test.expected)
-		if err != nil {
-			t.Error(err)
-		}
-		sort.Slice(receivedStateDiffRlp, func(i, j int) bool { return receivedStateDiffRlp[i] < receivedStateDiffRlp[j] })
-		sort.Slice(expectedStateDiffRlp, func(i, j int) bool { return expectedStateDiffRlp[i] < expectedStateDiffRlp[j] })
-		if !bytes.Equal(receivedStateDiffRlp, expectedStateDiffRlp) {
-			t.Logf("Test failed: %s", test.name)
-			t.Errorf("actual state diff: %+v\r\n\r\n\r\nexpected state diff: %+v", diff, test.expected)
-		}
-		// Let's also confirm that our root state nodes form the state root hash in the headers
-		if i > 0 {
-			block := blocks[i-1]
-			expectedStateRoot := block.Root()
-			for _, node := range test.expected.Nodes {
-				if bytes.Equal(node.Path, []byte{}) {
-					stateRoot := crypto.Keccak256Hash(node.NodeValue)
-					if !bytes.Equal(expectedStateRoot.Bytes(), stateRoot.Bytes()) {
-						t.Logf("Test failed: %s", test.name)
-						t.Errorf("actual stateroot: %x\r\nexpected stateroot: %x", stateRoot.Bytes(), expectedStateRoot.Bytes())
+	for _, workers := range workerCounts {
+		params.Workers = workers
+		for i, test := range tests {
+			diff, err := builder.BuildStateDiffObject(test.startingArguments, params)
+			if err != nil {
+				t.Error(err)
+			}
+			receivedStateDiffRlp, err := rlp.EncodeToBytes(diff)
+			if err != nil {
+				t.Error(err)
+			}
+			expectedStateDiffRlp, err := rlp.EncodeToBytes(test.expected)
+			if err != nil {
+				t.Error(err)
+			}
+			sort.Slice(receivedStateDiffRlp, func(i, j int) bool { return receivedStateDiffRlp[i] < receivedStateDiffRlp[j] })
+			sort.Slice(expectedStateDiffRlp, func(i, j int) bool { return expectedStateDiffRlp[i] < expectedStateDiffRlp[j] })
+			if !bytes.Equal(receivedStateDiffRlp, expectedStateDiffRlp) {
+				t.Logf("Test failed: %s", test.name)
+				t.Errorf("actual state diff: %+v\r\n\r\n\r\nexpected state diff: %+v", diff, test.expected)
+			}
+			// Let's also confirm that our root state nodes form the state root hash in the headers
+			if i > 0 {
+				block := blocks[i-1]
+				expectedStateRoot := block.Root()
+				for _, node := range test.expected.Nodes {
+					if bytes.Equal(node.Path, []byte{}) {
+						stateRoot := crypto.Keccak256Hash(node.NodeValue)
+						if !bytes.Equal(expectedStateRoot.Bytes(), stateRoot.Bytes()) {
+							t.Logf("Test failed: %s", test.name)
+							t.Errorf("actual stateroot: %x\r\nexpected stateroot: %x", stateRoot.Bytes(), expectedStateRoot.Bytes())
+						}
 					}
 				}
 			}
@@ -1107,24 +1114,27 @@ func TestBuilderWithWatchedAddressList(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		diff, err := builder.BuildStateDiffObject(test.startingArguments, params)
-		if err != nil {
-			t.Error(err)
-		}
-		receivedStateDiffRlp, err := rlp.EncodeToBytes(diff)
-		if err != nil {
-			t.Error(err)
-		}
-		expectedStateDiffRlp, err := rlp.EncodeToBytes(test.expected)
-		if err != nil {
-			t.Error(err)
-		}
-		sort.Slice(receivedStateDiffRlp, func(i, j int) bool { return receivedStateDiffRlp[i] < receivedStateDiffRlp[j] })
-		sort.Slice(expectedStateDiffRlp, func(i, j int) bool { return expectedStateDiffRlp[i] < expectedStateDiffRlp[j] })
-		if !bytes.Equal(receivedStateDiffRlp, expectedStateDiffRlp) {
-			t.Logf("Test failed: %s", test.name)
-			t.Errorf("actual state diff: %+v\nexpected state diff: %+v", diff, test.expected)
+	for _, workers := range workerCounts {
+		params.Workers = workers
+		for _, test := range tests {
+			diff, err := builder.BuildStateDiffObject(test.startingArguments, params)
+			if err != nil {
+				t.Error(err)
+			}
+			receivedStateDiffRlp, err := rlp.EncodeToBytes(diff)
+			if err != nil {
+				t.Error(err)
+			}
+			expectedStateDiffRlp, err := rlp.EncodeToBytes(test.expected)
+			if err != nil {
+				t.Error(err)
+			}
+			sort.Slice(receivedStateDiffRlp, func(i, j int) bool { return receivedStateDiffRlp[i] < receivedStateDiffRlp[j] })
+			sort.Slice(expectedStateDiffRlp, func(i, j int) bool { return expectedStateDiffRlp[i] < expectedStateDiffRlp[j] })
+			if !bytes.Equal(receivedStateDiffRlp, expectedStateDiffRlp) {
+				t.Logf("Test failed: %s", test.name)
+				t.Errorf("actual state diff: %+v\nexpected state diff: %+v", diff, test.expected)
+			}
 		}
 	}
 }
@@ -1264,24 +1274,27 @@ func TestBuilderWithWatchedAddressAndStorageKeyList(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		diff, err := builder.BuildStateDiffObject(test.startingArguments, params)
-		if err != nil {
-			t.Error(err)
-		}
-		receivedStateDiffRlp, err := rlp.EncodeToBytes(diff)
-		if err != nil {
-			t.Error(err)
-		}
-		expectedStateDiffRlp, err := rlp.EncodeToBytes(test.expected)
-		if err != nil {
-			t.Error(err)
-		}
-		sort.Slice(receivedStateDiffRlp, func(i, j int) bool { return receivedStateDiffRlp[i] < receivedStateDiffRlp[j] })
-		sort.Slice(expectedStateDiffRlp, func(i, j int) bool { return expectedStateDiffRlp[i] < expectedStateDiffRlp[j] })
-		if !bytes.Equal(receivedStateDiffRlp, expectedStateDiffRlp) {
-			t.Logf("Test failed: %s", test.name)
-			t.Errorf("actual state diff: %+v\nexpected state diff: %+v", diff, test.expected)
+	for _, workers := range workerCounts {
+		params.Workers = workers
+		for _, test := range tests {
+			diff, err := builder.BuildStateDiffObject(test.startingArguments, params)
+			if err != nil {
+				t.Error(err)
+			}
+			receivedStateDiffRlp, err := rlp.EncodeToBytes(diff)
+			if err != nil {
+				t.Error(err)
+			}
+			expectedStateDiffRlp, err := rlp.EncodeToBytes(test.expected)
+			if err != nil {
+				t.Error(err)
+			}
+			sort.Slice(receivedStateDiffRlp, func(i, j int) bool { return receivedStateDiffRlp[i] < receivedStateDiffRlp[j] })
+			sort.Slice(expectedStateDiffRlp, func(i, j int) bool { return expectedStateDiffRlp[i] < expectedStateDiffRlp[j] })
+			if !bytes.Equal(receivedStateDiffRlp, expectedStateDiffRlp) {
+				t.Logf("Test failed: %s", test.name)
+				t.Errorf("actual state diff: %+v\nexpected state diff: %+v", diff, test.expected)
+			}
 		}
 	}
 }
@@ -1471,24 +1484,27 @@ func TestBuilderWithRemovedAccountAndStorage(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		diff, err := builder.BuildStateDiffObject(test.startingArguments, params)
-		if err != nil {
-			t.Error(err)
-		}
-		receivedStateDiffRlp, err := rlp.EncodeToBytes(diff)
-		if err != nil {
-			t.Error(err)
-		}
-		expectedStateDiffRlp, err := rlp.EncodeToBytes(test.expected)
-		if err != nil {
-			t.Error(err)
-		}
-		sort.Slice(receivedStateDiffRlp, func(i, j int) bool { return receivedStateDiffRlp[i] < receivedStateDiffRlp[j] })
-		sort.Slice(expectedStateDiffRlp, func(i, j int) bool { return expectedStateDiffRlp[i] < expectedStateDiffRlp[j] })
-		if !bytes.Equal(receivedStateDiffRlp, expectedStateDiffRlp) {
-			t.Logf("Test failed: %s", test.name)
-			t.Errorf("actual state diff: %+v\r\n\r\n\r\nexpected state diff: %+v", diff, test.expected)
+	for _, workers := range workerCounts {
+		params.Workers = workers
+		for _, test := range tests {
+			diff, err := builder.BuildStateDiffObject(test.startingArguments, params)
+			if err != nil {
+				t.Error(err)
+			}
+			receivedStateDiffRlp, err := rlp.EncodeToBytes(diff)
+			if err != nil {
+				t.Error(err)
+			}
+			expectedStateDiffRlp, err := rlp.EncodeToBytes(test.expected)
+			if err != nil {
+				t.Error(err)
+			}
+			sort.Slice(receivedStateDiffRlp, func(i, j int) bool { return receivedStateDiffRlp[i] < receivedStateDiffRlp[j] })
+			sort.Slice(expectedStateDiffRlp, func(i, j int) bool { return expectedStateDiffRlp[i] < expectedStateDiffRlp[j] })
+			if !bytes.Equal(receivedStateDiffRlp, expectedStateDiffRlp) {
+				t.Logf("Test failed: %s", test.name)
+				t.Errorf("actual state diff: %+v\r\n\r\n\r\nexpected state diff: %+v", diff, test.expected)
+			}
 		}
 	}
 }
@@ -1655,24 +1671,27 @@ func TestBuilderWithRemovedAccountAndStorageWithoutIntermediateNodes(t *testing.
 		},
 	}
 
-	for _, test := range tests {
-		diff, err := builder.BuildStateDiffObject(test.startingArguments, params)
-		if err != nil {
-			t.Error(err)
-		}
-		receivedStateDiffRlp, err := rlp.EncodeToBytes(diff)
-		if err != nil {
-			t.Error(err)
-		}
-		expectedStateDiffRlp, err := rlp.EncodeToBytes(test.expected)
-		if err != nil {
-			t.Error(err)
-		}
-		sort.Slice(receivedStateDiffRlp, func(i, j int) bool { return receivedStateDiffRlp[i] < receivedStateDiffRlp[j] })
-		sort.Slice(expectedStateDiffRlp, func(i, j int) bool { return expectedStateDiffRlp[i] < expectedStateDiffRlp[j] })
-		if !bytes.Equal(receivedStateDiffRlp, expectedStateDiffRlp) {
-			t.Logf("Test failed: %s", test.name)
-			t.Errorf("actual state diff: %+v\r\n\r\n\r\nexpected state diff: %+v", diff, test.expected)
+	for _, workers := range workerCounts {
+		params.Workers = workers
+		for _, test := range tests {
+			diff, err := builder.BuildStateDiffObject(test.startingArguments, params)
+			if err != nil {
+				t.Error(err)
+			}
+			receivedStateDiffRlp, err := rlp.EncodeToBytes(diff)
+			if err != nil {
+				t.Error(err)
+			}
+			expectedStateDiffRlp, err := rlp.EncodeToBytes(test.expected)
+			if err != nil {
+				t.Error(err)
+			}
+			sort.Slice(receivedStateDiffRlp, func(i, j int) bool { return receivedStateDiffRlp[i] < receivedStateDiffRlp[j] })
+			sort.Slice(expectedStateDiffRlp, func(i, j int) bool { return expectedStateDiffRlp[i] < expectedStateDiffRlp[j] })
+			if !bytes.Equal(receivedStateDiffRlp, expectedStateDiffRlp) {
+				t.Logf("Test failed: %s", test.name)
+				t.Errorf("actual state diff: %+v\r\n\r\n\r\nexpected state diff: %+v", diff, test.expected)
+			}
 		}
 	}
 }
@@ -1863,24 +1882,27 @@ func TestBuilderWithMovedAccount(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		diff, err := builder.BuildStateDiffObject(test.startingArguments, params)
-		if err != nil {
-			t.Error(err)
-		}
-		receivedStateDiffRlp, err := rlp.EncodeToBytes(diff)
-		if err != nil {
-			t.Error(err)
-		}
-		expectedStateDiffRlp, err := rlp.EncodeToBytes(test.expected)
-		if err != nil {
-			t.Error(err)
-		}
-		sort.Slice(receivedStateDiffRlp, func(i, j int) bool { return receivedStateDiffRlp[i] < receivedStateDiffRlp[j] })
-		sort.Slice(expectedStateDiffRlp, func(i, j int) bool { return expectedStateDiffRlp[i] < expectedStateDiffRlp[j] })
-		if !bytes.Equal(receivedStateDiffRlp, expectedStateDiffRlp) {
-			t.Logf("Test failed: %s", test.name)
-			t.Errorf("actual state diff: %+v\r\n\r\n\r\nexpected state diff: %+v", diff, test.expected)
+	for _, workers := range workerCounts {
+		params.Workers = workers
+		for _, test := range tests {
+			diff, err := builder.BuildStateDiffObject(test.startingArguments, params)
+			if err != nil {
+				t.Error(err)
+			}
+			receivedStateDiffRlp, err := rlp.EncodeToBytes(diff)
+			if err != nil {
+				t.Error(err)
+			}
+			expectedStateDiffRlp, err := rlp.EncodeToBytes(test.expected)
+			if err != nil {
+				t.Error(err)
+			}
+			sort.Slice(receivedStateDiffRlp, func(i, j int) bool { return receivedStateDiffRlp[i] < receivedStateDiffRlp[j] })
+			sort.Slice(expectedStateDiffRlp, func(i, j int) bool { return expectedStateDiffRlp[i] < expectedStateDiffRlp[j] })
+			if !bytes.Equal(receivedStateDiffRlp, expectedStateDiffRlp) {
+				t.Logf("Test failed: %s", test.name)
+				t.Errorf("actual state diff: %+v\r\n\r\n\r\nexpected state diff: %+v", diff, test.expected)
+			}
 		}
 	}
 }
@@ -1979,24 +2001,27 @@ func TestBuilderWithMovedAccountOnlyLeafs(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		diff, err := builder.BuildStateDiffObject(test.startingArguments, params)
-		if err != nil {
-			t.Error(err)
-		}
-		receivedStateDiffRlp, err := rlp.EncodeToBytes(diff)
-		if err != nil {
-			t.Error(err)
-		}
-		expectedStateDiffRlp, err := rlp.EncodeToBytes(test.expected)
-		if err != nil {
-			t.Error(err)
-		}
-		sort.Slice(receivedStateDiffRlp, func(i, j int) bool { return receivedStateDiffRlp[i] < receivedStateDiffRlp[j] })
-		sort.Slice(expectedStateDiffRlp, func(i, j int) bool { return expectedStateDiffRlp[i] < expectedStateDiffRlp[j] })
-		if !bytes.Equal(receivedStateDiffRlp, expectedStateDiffRlp) {
-			t.Logf("Test failed: %s", test.name)
-			t.Errorf("actual state diff: %+v\r\n\r\n\r\nexpected state diff: %+v", diff, test.expected)
+	for _, workers := range workerCounts {
+		params.Workers = workers
+		for _, test := range tests {
+			diff, err := builder.BuildStateDiffObject(test.startingArguments, params)
+			if err != nil {
+				t.Error(err)
+			}
+			receivedStateDiffRlp, err := rlp.EncodeToBytes(diff)
+			if err != nil {
+				t.Error(err)
+			}
+			expectedStateDiffRlp, err := rlp.EncodeToBytes(test.expected)
+			if err != nil {
+				t.Error(err)
+			}
+			sort.Slice(receivedStateDiffRlp, func(i, j int) bool { return receivedStateDiffRlp[i] < receivedStateDiffRlp[j] })
+			sort.Slice(expectedStateDiffRlp, func(i, j int) bool { return expectedStateDiffRlp[i] < expectedStateDiffRlp[j] })
+			if !bytes.Equal(receivedStateDiffRlp, expectedStateDiffRlp) {
+				t.Logf("Test failed: %s", test.name)
+				t.Errorf("actual state diff: %+v\r\n\r\n\r\nexpected state diff: %+v", diff, test.expected)
+			}
 		}
 	}
 }
