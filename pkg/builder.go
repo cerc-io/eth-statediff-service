@@ -51,21 +51,16 @@ type builder struct {
 	stateCache state.Database
 }
 
+type iterPair struct {
+	older, newer trie.NodeIterator
+}
+
 // NewBuilder is used to create a statediff builder
 func NewBuilder(stateCache state.Database) Builder {
 	return &builder{
 		stateCache: stateCache, // state cache is safe for concurrent reads
 	}
 }
-
-// Wraps factory functions for trie or subtrie iterators
-type iterPair struct {
-	older, newer trie.NodeIterator
-}
-
-// type WorkerArgs struct {
-//	GetOldIterator, GetNewIterator func () trie.NodeIterator
-// }
 
 // BuildStateTrieObject builds a state trie object from the provided block
 func (sdb *builder) BuildStateTrieObject(current *types.Block) (StateObject, error) {
@@ -159,8 +154,7 @@ func (sdb *builder) buildStateTrie(it trie.NodeIterator) ([]StateNode, error) {
 func (sdb *builder) BuildStateDiffObject(args Args, params Params) (StateObject, error) {
 	if len(params.WatchedAddresses) > 0 {
 		// if we are watching only specific accounts then we are only diffing leaf nodes
-		// todo - error in cmd?
-		log.Warn("Ignoring intermediate state nodes because WatchedAddresses was passed")
+		log.Info("Ignoring intermediate state nodes because WatchedAddresses was passed")
 		params.IntermediateStateNodes = false
 	}
 
@@ -183,6 +177,7 @@ func (sdb *builder) BuildStateDiffObject(args Args, params Params) (StateObject,
 	newIterFac := iter.NewSubtrieIteratorFactory(newTrie, nWorkers)
 	iterChan := make(chan []iterPair, nWorkers)
 
+	// Create iterators ahead of time to avoid race condition in state.Trie access
 	for i := uint(0); i < nWorkers; i++ {
 		// two state iterations per diff build
 		iterChan <- []iterPair{
