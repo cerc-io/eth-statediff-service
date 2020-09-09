@@ -32,7 +32,7 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 
-	iter "github.com/vulcanize/go-eth-state-node-iterator/iterator"
+	iter "github.com/vulcanize/go-eth-state-node-iterator"
 )
 
 var (
