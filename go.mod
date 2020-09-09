@@ -7,6 +7,7 @@ require (
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/viper v1.7.1
+	github.com/vulcanize/go-eth-state-node-iterator v0.0.1-alpha
 )
 
 replace github.com/ethereum/go-ethereum v1.9.11 => github.com/vulcanize/go-ethereum v1.9.11-statediff-0.0.5
