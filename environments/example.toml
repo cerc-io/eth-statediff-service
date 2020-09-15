@@ -6,6 +6,9 @@
     ipcPath = ".ipc"
     httpPath = "127.0.0.1:8545"
 
+[statediff]
+    workers = 4
+
 [log]
     file = ""
     level = "info"
