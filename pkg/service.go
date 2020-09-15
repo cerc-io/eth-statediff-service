@@ -48,9 +48,15 @@ type IService interface {
 	// Main event loop for processing state diffs
 	Loop(wg *sync.WaitGroup)
 	// Method to get state diff object at specific block
-	StateDiffAt(blockNumber uint64, params Params) (*sd.Payload, error)
+	StateDiffAt(blockNumber uint64, params sd.Params) (*sd.Payload, error)
 	// Method to get state trie object at specific block
-	StateTrieAt(blockNumber uint64, params Params) (*sd.Payload, error)
+	StateTrieAt(blockNumber uint64, params sd.Params) (*sd.Payload, error)
+}
+
+// Server configuration
+type Config struct {
+	// Number of goroutines to use
+	Workers uint
 }
 
 // Service is the underlying struct for the state diffing service
@@ -64,10 +70,10 @@ type Service struct {
 }
 
 // NewStateDiffService creates a new Service
-func NewStateDiffService(lvlDBReader lvlDBReader) (*Service, error) {
+func NewStateDiffService(lvlDBReader lvlDBReader, cfg Config) (*Service, error) {
 	return &Service{
 		lvlDBReader: lvlDBReader,
-		Builder:     NewBuilder(lvlDBReader.StateDB()),
+		Builder:     NewBuilder(lvlDBReader.StateDB(), cfg.Workers),
 		QuitChan:    make(chan bool),
 	}, nil
 }
@@ -104,7 +110,7 @@ func (sds *Service) Loop(wg *sync.WaitGroup) {
 
 // StateDiffAt returns a state diff object payload at the specific blockheight
 // This operation cannot be performed back past the point of db pruning; it requires an archival node for historical data
-func (sds *Service) StateDiffAt(blockNumber uint64, params Params) (*sd.Payload, error) {
+func (sds *Service) StateDiffAt(blockNumber uint64, params sd.Params) (*sd.Payload, error) {
 	currentBlock, err := sds.lvlDBReader.GetBlockByNumber(blockNumber)
 	if err != nil {
 		return nil, err
@@ -121,8 +127,8 @@ func (sds *Service) StateDiffAt(blockNumber uint64, params Params) (*sd.Payload,
 }
 
 // processStateDiff method builds the state diff payload from the current block, parent state root, and provided params
-func (sds *Service) processStateDiff(currentBlock *types.Block, parentRoot common.Hash, params Params) (*sd.Payload, error) {
-	stateDiff, err := sds.Builder.BuildStateDiffObject(Args{
+func (sds *Service) processStateDiff(currentBlock *types.Block, parentRoot common.Hash, params sd.Params) (*sd.Payload, error) {
+	stateDiff, err := sds.Builder.BuildStateDiffObject(sd.Args{
 		BlockHash:    currentBlock.Hash(),
 		BlockNumber:  currentBlock.Number(),
 		OldStateRoot: parentRoot,
@@ -139,7 +145,7 @@ func (sds *Service) processStateDiff(currentBlock *types.Block, parentRoot commo
 	return sds.newPayload(stateDiffRlp, currentBlock, params)
 }
 
-func (sds *Service) newPayload(stateObject []byte, block *types.Block, params Params) (*sd.Payload, error) {
+func (sds *Service) newPayload(stateObject []byte, block *types.Block, params sd.Params) (*sd.Payload, error) {
 	payload := &sd.Payload{
 		StateObjectRlp: stateObject,
 	}
@@ -173,7 +179,7 @@ func (sds *Service) newPayload(stateObject []byte, block *types.Block, params Pa
 
 // StateTrieAt returns a state trie object payload at the specified blockheight
 // This operation cannot be performed back past the point of db pruning; it requires an archival node for historical data
-func (sds *Service) StateTrieAt(blockNumber uint64, params Params) (*sd.Payload, error) {
+func (sds *Service) StateTrieAt(blockNumber uint64, params sd.Params) (*sd.Payload, error) {
 	currentBlock, err := sds.lvlDBReader.GetBlockByNumber(blockNumber)
 	if err != nil {
 		return nil, err
@@ -182,7 +188,7 @@ func (sds *Service) StateTrieAt(blockNumber uint64, params Params) (*sd.Payload,
 	return sds.processStateTrie(currentBlock, params)
 }
 
-func (sds *Service) processStateTrie(block *types.Block, params Params) (*sd.Payload, error) {
+func (sds *Service) processStateTrie(block *types.Block, params sd.Params) (*sd.Payload, error) {
 	stateNodes, err := sds.Builder.BuildStateTrieObject(block)
 	if err != nil {
 		return nil, err

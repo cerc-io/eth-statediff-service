@@ -68,7 +68,8 @@ func serve() {
 
 	// create statediff service
 	logWithCommand.Info("creating statediff service")
-	statediffService, err := sd.NewStateDiffService(lvlDBReader)
+	statediffService, err := sd.NewStateDiffService(
+		lvlDBReader, sd.Config{Workers: viper.GetUint("statediff.workers")})
 	if err != nil {
 		logWithCommand.Fatal(err)
 	}
