@@ -71,9 +71,13 @@ type Service struct {
 
 // NewStateDiffService creates a new Service
 func NewStateDiffService(lvlDBReader lvlDBReader, cfg Config) (*Service, error) {
+	builder, err := NewBuilder(lvlDBReader.StateDB(), cfg.Workers)
+	if err != nil {
+		return nil, err
+	}
 	return &Service{
 		lvlDBReader: lvlDBReader,
-		Builder:     NewBuilder(lvlDBReader.StateDB(), cfg.Workers),
+		Builder:     builder,
 		QuitChan:    make(chan bool),
 	}, nil
 }

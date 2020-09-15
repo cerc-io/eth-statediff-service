@@ -669,7 +669,7 @@ func TestBuilder(t *testing.T) {
 	}
 
 	for _, workers := range workerCounts {
-		builder := pkg.NewBuilder(chain.StateCache(), workers)
+		builder, _ = pkg.NewBuilder(chain.StateCache(), workers)
 		for _, test := range tests {
 			diff, err := builder.BuildStateDiffObject(test.startingArguments, params)
 			if err != nil {
@@ -928,7 +928,7 @@ func TestBuilderWithIntermediateNodes(t *testing.T) {
 	}
 
 	for _, workers := range workerCounts {
-		builder = pkg.NewBuilder(chain.StateCache(), workers)
+		builder, _ = pkg.NewBuilder(chain.StateCache(), workers)
 		for i, test := range tests {
 			diff, err := builder.BuildStateDiffObject(test.startingArguments, params)
 			if err != nil {
@@ -1113,7 +1113,7 @@ func TestBuilderWithWatchedAddressList(t *testing.T) {
 	}
 
 	for _, workers := range workerCounts {
-		builder = pkg.NewBuilder(chain.StateCache(), workers)
+		builder, _ = pkg.NewBuilder(chain.StateCache(), workers)
 		for _, test := range tests {
 			diff, err := builder.BuildStateDiffObject(test.startingArguments, params)
 			if err != nil {
@@ -1272,7 +1272,7 @@ func TestBuilderWithWatchedAddressAndStorageKeyList(t *testing.T) {
 	}
 
 	for _, workers := range workerCounts {
-		builder = pkg.NewBuilder(chain.StateCache(), workers)
+		builder, _ = pkg.NewBuilder(chain.StateCache(), workers)
 		for _, test := range tests {
 			diff, err := builder.BuildStateDiffObject(test.startingArguments, params)
 			if err != nil {
@@ -1481,7 +1481,7 @@ func TestBuilderWithRemovedAccountAndStorage(t *testing.T) {
 	}
 
 	for _, workers := range workerCounts {
-		builder = pkg.NewBuilder(chain.StateCache(), workers)
+		builder, _ = pkg.NewBuilder(chain.StateCache(), workers)
 		for _, test := range tests {
 			diff, err := builder.BuildStateDiffObject(test.startingArguments, params)
 			if err != nil {
@@ -1667,7 +1667,7 @@ func TestBuilderWithRemovedAccountAndStorageWithoutIntermediateNodes(t *testing.
 	}
 
 	for _, workers := range workerCounts {
-		builder = pkg.NewBuilder(chain.StateCache(), workers)
+		builder, _ = pkg.NewBuilder(chain.StateCache(), workers)
 		for _, test := range tests {
 			diff, err := builder.BuildStateDiffObject(test.startingArguments, params)
 			if err != nil {
@@ -1877,7 +1877,7 @@ func TestBuilderWithMovedAccount(t *testing.T) {
 	}
 
 	for _, workers := range workerCounts {
-		builder = pkg.NewBuilder(chain.StateCache(), workers)
+		builder, _ = pkg.NewBuilder(chain.StateCache(), workers)
 		for _, test := range tests {
 			diff, err := builder.BuildStateDiffObject(test.startingArguments, params)
 			if err != nil {
@@ -1995,7 +1995,7 @@ func TestBuilderWithMovedAccountOnlyLeafs(t *testing.T) {
 	}
 
 	for _, workers := range workerCounts {
-		builder = pkg.NewBuilder(chain.StateCache(), workers)
+		builder, _ = pkg.NewBuilder(chain.StateCache(), workers)
 		for _, test := range tests {
 			diff, err := builder.BuildStateDiffObject(test.startingArguments, params)
 			if err != nil {

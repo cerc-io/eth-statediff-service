@@ -23,6 +23,7 @@ import (
 	"bytes"
 	"fmt"
 	"sync"
+	"math/bits"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
@@ -58,14 +59,17 @@ type iterPair struct {
 }
 
 // NewBuilder is used to create a statediff builder
-func NewBuilder(stateCache state.Database, workers uint) Builder {
+func NewBuilder(stateCache state.Database, workers uint) (Builder, error) {
 	if workers == 0 {
 		workers = 1
+	}
+	if bits.OnesCount(workers) != 1 {
+		return nil, fmt.Errorf("workers must be a power of 2")
 	}
 	return &builder{
 		stateCache: stateCache, // state cache is safe for concurrent reads
 		numWorkers: workers,
-	}
+	}, nil
 }
 
 // BuildStateTrieObject builds a state trie object from the provided block
