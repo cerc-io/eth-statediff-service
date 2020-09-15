@@ -20,7 +20,6 @@
 package statediff
 
 import (
-	"fmt"
 	"sort"
 	"strings"
 )
@@ -69,28 +68,5 @@ func findIntersection(a, b []string) []string {
 				return updates
 			}
 		}
-	}
-
-}
-
-// CheckKeyType checks what type of key we have
-func CheckKeyType(elements []interface{}) (NodeType, error) {
-	if len(elements) > 2 {
-		return Branch, nil
-	}
-	if len(elements) < 2 {
-		return Unknown, fmt.Errorf("node cannot be less than two elements in length")
-	}
-	switch elements[0].([]byte)[0] / 16 {
-	case '\x00':
-		return Extension, nil
-	case '\x01':
-		return Extension, nil
-	case '\x02':
-		return Leaf, nil
-	case '\x03':
-		return Leaf, nil
-	default:
-		return Unknown, fmt.Errorf("unknown hex prefix")
 	}
 }

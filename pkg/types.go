@@ -20,15 +20,16 @@
 package statediff
 
 import (
-	"encoding/json"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/state"
+	sd "github.com/ethereum/go-ethereum/statediff"
 )
 
 // Subscription struct holds our subscription channels
 type Subscription struct {
-	PayloadChan chan<- Payload
+	PayloadChan chan<- sd.Payload
 	QuitChan    chan<- bool
 }
 
@@ -50,38 +51,14 @@ type Args struct {
 	BlockNumber                           *big.Int
 }
 
-// Payload packages the data to send to statediff subscriptions
-type Payload struct {
-	BlockRlp        []byte   `json:"blockRlp"`
-	TotalDifficulty *big.Int `json:"totalDifficulty"`
-	ReceiptsRlp     []byte   `json:"receiptsRlp"`
-	StateObjectRlp  []byte   `json:"stateObjectRlp"    gencodec:"required"`
+// AccountMap is a mapping of hex encoded path => account wrapper
+type AccountMap map[string]accountWrapper
 
-	encoded []byte
-	err     error
-}
-
-func (sd *Payload) ensureEncoded() {
-	if sd.encoded == nil && sd.err == nil {
-		sd.encoded, sd.err = json.Marshal(sd)
-	}
-}
-
-// Length to implement Encoder interface for Payload
-func (sd *Payload) Length() int {
-	sd.ensureEncoded()
-	return len(sd.encoded)
-}
-
-// Encode to implement Encoder interface for Payload
-func (sd *Payload) Encode() ([]byte, error) {
-	sd.ensureEncoded()
-	return sd.encoded, sd.err
-}
-
-// StateObject is the final output structure from the builder
-type StateObject struct {
-	BlockHash   common.Hash `json:"blockHash"       gencodec:"required"`
-	BlockNumber *big.Int    `json:"blockNumber"     gencodec:"required"`
-	Nodes       []StateNode `json:"nodes"           gencodec:"required"`
+// accountWrapper is used to temporary associate the unpacked node with its raw values
+type accountWrapper struct {
+	Account   *state.Account
+	NodeType  sd.NodeType
+	Path      []byte
+	NodeValue []byte
+	LeafKey   []byte
 }
