@@ -17,6 +17,7 @@ package statediff
 
 import (
 	"context"
+	sd "github.com/ethereum/go-ethereum/statediff"
 )
 
 // APIName is the namespace used for the state diffing service API
@@ -39,11 +40,11 @@ func NewPublicStateDiffAPI(sds IService) *PublicStateDiffAPI {
 }
 
 // StateDiffAt returns a state diff payload at the specific blockheight
-func (api *PublicStateDiffAPI) StateDiffAt(ctx context.Context, blockNumber uint64, params Params) (*Payload, error) {
+func (api *PublicStateDiffAPI) StateDiffAt(ctx context.Context, blockNumber uint64, params Params) (*sd.Payload, error) {
 	return api.sds.StateDiffAt(blockNumber, params)
 }
 
 // StateTrieAt returns a state trie payload at the specific blockheight
-func (api *PublicStateDiffAPI) StateTrieAt(ctx context.Context, blockNumber uint64, params Params) (*Payload, error) {
+func (api *PublicStateDiffAPI) StateTrieAt(ctx context.Context, blockNumber uint64, params Params) (*sd.Payload, error) {
 	return api.sds.StateTrieAt(blockNumber, params)
 }
