@@ -20,36 +20,9 @@
 package statediff
 
 import (
-	"math/big"
-
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
 	sd "github.com/ethereum/go-ethereum/statediff"
 )
-
-// Subscription struct holds our subscription channels
-type Subscription struct {
-	PayloadChan chan<- sd.Payload
-	QuitChan    chan<- bool
-}
-
-// Params is used to carry in parameters from subscribing/requesting clients configuration
-type Params struct {
-	IntermediateStateNodes   bool
-	IntermediateStorageNodes bool
-	IncludeBlock             bool
-	IncludeReceipts          bool
-	IncludeTD                bool
-	WatchedAddresses         []common.Address
-	WatchedStorageSlots      []common.Hash
-	Workers                  uint
-}
-
-// Args bundles the arguments for the state diff builder
-type Args struct {
-	OldStateRoot, NewStateRoot, BlockHash common.Hash
-	BlockNumber                           *big.Int
-}
 
 // AccountMap is a mapping of hex encoded path => account wrapper
 type AccountMap map[string]accountWrapper

@@ -23,6 +23,7 @@ import (
 	"bytes"
 	"fmt"
 	"sync"
+	"math/bits"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
@@ -44,12 +45,13 @@ var (
 
 // Builder interface exposes the method for building a state diff between two blocks
 type Builder interface {
-	BuildStateDiffObject(args Args, params Params) (sd.StateObject, error)
+	BuildStateDiffObject(args sd.Args, params sd.Params) (sd.StateObject, error)
 	BuildStateTrieObject(current *types.Block) (sd.StateObject, error)
 }
 
 type builder struct {
 	stateCache state.Database
+	numWorkers uint
 }
 
 type iterPair struct {
@@ -57,10 +59,17 @@ type iterPair struct {
 }
 
 // NewBuilder is used to create a statediff builder
-func NewBuilder(stateCache state.Database) Builder {
+func NewBuilder(stateCache state.Database, workers uint) (Builder, error) {
+	if workers == 0 {
+		workers = 1
+	}
+	if bits.OnesCount(workers) != 1 {
+		return nil, fmt.Errorf("workers must be a power of 2")
+	}
 	return &builder{
 		stateCache: stateCache, // state cache is safe for concurrent reads
-	}
+		numWorkers: workers,
+	}, nil
 }
 
 // BuildStateTrieObject builds a state trie object from the provided block
@@ -149,7 +158,7 @@ func (sdb *builder) buildStateTrie(it trie.NodeIterator) ([]sd.StateNode, error)
 }
 
 // BuildStateDiff builds a statediff object from two blocks and the provided parameters
-func (sdb *builder) BuildStateDiffObject(args Args, params Params) (sd.StateObject, error) {
+func (sdb *builder) BuildStateDiffObject(args sd.Args, params sd.Params) (sd.StateObject, error) {
 	if len(params.WatchedAddresses) > 0 {
 		// if we are watching only specific accounts then we are only diffing leaf nodes
 		log.Info("Ignoring intermediate state nodes because WatchedAddresses was passed")
@@ -165,18 +174,14 @@ func (sdb *builder) BuildStateDiffObject(args Args, params Params) (sd.StateObje
 	if err != nil {
 		return sd.StateObject{}, fmt.Errorf("error creating trie for new state root: %v", err)
 	}
-	nWorkers := params.Workers
-	if nWorkers == 0 {
-		nWorkers = 1
-	}
 
 	// Split old and new tries into corresponding subtrie iterators
-	oldIterFac := iter.NewSubtrieIteratorFactory(oldTrie, nWorkers)
-	newIterFac := iter.NewSubtrieIteratorFactory(newTrie, nWorkers)
-	iterChan := make(chan []iterPair, nWorkers)
+	oldIterFac := iter.NewSubtrieIteratorFactory(oldTrie, sdb.numWorkers)
+	newIterFac := iter.NewSubtrieIteratorFactory(newTrie, sdb.numWorkers)
+	iterChan := make(chan []iterPair, sdb.numWorkers)
 
 	// Create iterators ahead of time to avoid race condition in state.Trie access
-	for i := uint(0); i < nWorkers; i++ {
+	for i := uint(0); i < sdb.numWorkers; i++ {
 		// two state iterations per diff build
 		iterChan <- []iterPair{
 			iterPair{
@@ -193,7 +198,7 @@ func (sdb *builder) BuildStateDiffObject(args Args, params Params) (sd.StateObje
 	nodeChan := make(chan []sd.StateNode)
 	var wg sync.WaitGroup
 
-	for w := uint(0); w < nWorkers; w++ {
+	for w := uint(0); w < sdb.numWorkers; w++ {
 		wg.Add(1)
 		go func(iterChan <-chan []iterPair) error {
 			defer wg.Done()
@@ -226,7 +231,7 @@ func (sdb *builder) BuildStateDiffObject(args Args, params Params) (sd.StateObje
 	}, nil
 }
 
-func (sdb *builder) buildStateDiff(args []iterPair, params Params) ([]sd.StateNode, error) {
+func (sdb *builder) buildStateDiff(args []iterPair, params sd.Params) ([]sd.StateNode, error) {
 	// collect a slice of all the intermediate nodes that were touched and exist at B
 	// a map of their leafkey to all the accounts that were touched and exist at B
 	// and a slice of all the paths for the nodes in both of the above sets

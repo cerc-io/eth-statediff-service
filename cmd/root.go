@@ -86,9 +86,11 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file location")
 	rootCmd.PersistentFlags().String("log-file", "", "file path for logging")
 	rootCmd.PersistentFlags().String("log-level", log.InfoLevel.String(), "log level (trace, debug, info, warn, error, fatal, panic")
+	rootCmd.PersistentFlags().Int("workers", 0, "number of concurrent workers to use")
 
 	viper.BindPFlag("log.file", rootCmd.PersistentFlags().Lookup("log-file"))
 	viper.BindPFlag("log.level", rootCmd.PersistentFlags().Lookup("log-level"))
+	viper.BindPFlag("statediff.workers", rootCmd.PersistentFlags().Lookup("workers"))
 }
 
 func initConfig() {

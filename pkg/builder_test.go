@@ -27,8 +27,9 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
+	statediff "github.com/ethereum/go-ethereum/statediff"
 
-	statediff "github.com/vulcanize/eth-statediff-service/pkg"
+	pkg "github.com/vulcanize/eth-statediff-service/pkg"
 	"github.com/vulcanize/eth-statediff-service/pkg/testhelpers"
 )
 
@@ -38,7 +39,7 @@ var (
 	emptyDiffs                                             = make([]statediff.StateNode, 0)
 	emptyStorage                                           = make([]statediff.StorageNode, 0)
 	block0, block1, block2, block3, block4, block5, block6 *types.Block
-	builder                                                statediff.Builder
+	builder                                                pkg.Builder
 	miningReward                                           = int64(2000000000000000000)
 	minerAddress                                           = common.HexToAddress("0x0")
 	minerLeafKey                                           = testhelpers.AddressToLeafKey(minerAddress)
@@ -474,7 +475,6 @@ func TestBuilder(t *testing.T) {
 	block2 = blocks[1]
 	block3 = blocks[2]
 	params := statediff.Params{}
-	builder = statediff.NewBuilder(chain.StateCache())
 
 	var tests = []struct {
 		name              string
@@ -669,7 +669,7 @@ func TestBuilder(t *testing.T) {
 	}
 
 	for _, workers := range workerCounts {
-		params.Workers = workers
+		builder, _ = pkg.NewBuilder(chain.StateCache(), workers)
 		for _, test := range tests {
 			diff, err := builder.BuildStateDiffObject(test.startingArguments, params)
 			if err != nil {
@@ -706,7 +706,6 @@ func TestBuilderWithIntermediateNodes(t *testing.T) {
 		IntermediateStateNodes:   true,
 		IntermediateStorageNodes: true,
 	}
-	builder = statediff.NewBuilder(chain.StateCache())
 
 	var tests = []struct {
 		name              string
@@ -929,7 +928,7 @@ func TestBuilderWithIntermediateNodes(t *testing.T) {
 	}
 
 	for _, workers := range workerCounts {
-		params.Workers = workers
+		builder, _ = pkg.NewBuilder(chain.StateCache(), workers)
 		for i, test := range tests {
 			diff, err := builder.BuildStateDiffObject(test.startingArguments, params)
 			if err != nil {
@@ -978,7 +977,6 @@ func TestBuilderWithWatchedAddressList(t *testing.T) {
 	params := statediff.Params{
 		WatchedAddresses: []common.Address{testhelpers.Account1Addr, testhelpers.ContractAddr},
 	}
-	builder = statediff.NewBuilder(chain.StateCache())
 
 	var tests = []struct {
 		name              string
@@ -1115,7 +1113,7 @@ func TestBuilderWithWatchedAddressList(t *testing.T) {
 	}
 
 	for _, workers := range workerCounts {
-		params.Workers = workers
+		builder, _ = pkg.NewBuilder(chain.StateCache(), workers)
 		for _, test := range tests {
 			diff, err := builder.BuildStateDiffObject(test.startingArguments, params)
 			if err != nil {
@@ -1151,7 +1149,6 @@ func TestBuilderWithWatchedAddressAndStorageKeyList(t *testing.T) {
 		WatchedAddresses:    []common.Address{testhelpers.Account1Addr, testhelpers.ContractAddr},
 		WatchedStorageSlots: []common.Hash{slot1StorageKey},
 	}
-	builder = statediff.NewBuilder(chain.StateCache())
 
 	var tests = []struct {
 		name              string
@@ -1275,7 +1272,7 @@ func TestBuilderWithWatchedAddressAndStorageKeyList(t *testing.T) {
 	}
 
 	for _, workers := range workerCounts {
-		params.Workers = workers
+		builder, _ = pkg.NewBuilder(chain.StateCache(), workers)
 		for _, test := range tests {
 			diff, err := builder.BuildStateDiffObject(test.startingArguments, params)
 			if err != nil {
@@ -1311,7 +1308,6 @@ func TestBuilderWithRemovedAccountAndStorage(t *testing.T) {
 		IntermediateStateNodes:   true,
 		IntermediateStorageNodes: true,
 	}
-	builder = statediff.NewBuilder(chain.StateCache())
 
 	var tests = []struct {
 		name              string
@@ -1485,7 +1481,7 @@ func TestBuilderWithRemovedAccountAndStorage(t *testing.T) {
 	}
 
 	for _, workers := range workerCounts {
-		params.Workers = workers
+		builder, _ = pkg.NewBuilder(chain.StateCache(), workers)
 		for _, test := range tests {
 			diff, err := builder.BuildStateDiffObject(test.startingArguments, params)
 			if err != nil {
@@ -1521,7 +1517,6 @@ func TestBuilderWithRemovedAccountAndStorageWithoutIntermediateNodes(t *testing.
 		IntermediateStateNodes:   false,
 		IntermediateStorageNodes: false,
 	}
-	builder = statediff.NewBuilder(chain.StateCache())
 
 	var tests = []struct {
 		name              string
@@ -1672,7 +1667,7 @@ func TestBuilderWithRemovedAccountAndStorageWithoutIntermediateNodes(t *testing.
 	}
 
 	for _, workers := range workerCounts {
-		params.Workers = workers
+		builder, _ = pkg.NewBuilder(chain.StateCache(), workers)
 		for _, test := range tests {
 			diff, err := builder.BuildStateDiffObject(test.startingArguments, params)
 			if err != nil {
@@ -1788,7 +1783,6 @@ func TestBuilderWithMovedAccount(t *testing.T) {
 		IntermediateStateNodes:   true,
 		IntermediateStorageNodes: true,
 	}
-	builder = statediff.NewBuilder(chain.StateCache())
 
 	var tests = []struct {
 		name              string
@@ -1883,7 +1877,7 @@ func TestBuilderWithMovedAccount(t *testing.T) {
 	}
 
 	for _, workers := range workerCounts {
-		params.Workers = workers
+		builder, _ = pkg.NewBuilder(chain.StateCache(), workers)
 		for _, test := range tests {
 			diff, err := builder.BuildStateDiffObject(test.startingArguments, params)
 			if err != nil {
@@ -1918,7 +1912,6 @@ func TestBuilderWithMovedAccountOnlyLeafs(t *testing.T) {
 		IntermediateStateNodes:   false,
 		IntermediateStorageNodes: false,
 	}
-	builder = statediff.NewBuilder(chain.StateCache())
 
 	var tests = []struct {
 		name              string
@@ -2002,7 +1995,7 @@ func TestBuilderWithMovedAccountOnlyLeafs(t *testing.T) {
 	}
 
 	for _, workers := range workerCounts {
-		params.Workers = workers
+		builder, _ = pkg.NewBuilder(chain.StateCache(), workers)
 		for _, test := range tests {
 			diff, err := builder.BuildStateDiffObject(test.startingArguments, params)
 			if err != nil {
@@ -2033,7 +2026,6 @@ func TestBuildStateTrie(t *testing.T) {
 	block1 = blocks[0]
 	block2 = blocks[1]
 	block3 = blocks[2]
-	builder = statediff.NewBuilder(chain.StateCache())
 
 	var tests = []struct {
 		name     string
