@@ -10,4 +10,4 @@ require (
 	github.com/vulcanize/go-eth-state-node-iterator v0.0.1-alpha
 )
 
-replace github.com/ethereum/go-ethereum v1.9.11 => github.com/vulcanize/go-ethereum v1.9.11-statediff-0.0.5
+replace github.com/ethereum/go-ethereum v1.9.11 => github.com/vulcanize/go-ethereum v1.9.11-statediff-0.0.8

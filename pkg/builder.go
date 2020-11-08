@@ -118,11 +118,8 @@ func (sdb *builder) buildStateTrie(it trie.NodeIterator) ([]sd.StateNode, []sd.C
 	stateNodes := make([]sd.StateNode, 0)
 	codeAndCodeHashes := make([]sd.CodeAndCodeHash, 0)
 	for it.Next(true) {
-		// skip value nodes
-		if it.Leaf() {
-			continue
-		}
-		if bytes.Equal(nullHashBytes, it.Hash().Bytes()) {
+		// skip value nodes and null nodes
+		if it.Leaf() || bytes.Equal(nullHashBytes, it.Hash().Bytes()) {
 			continue
 		}
 		nodePath := make([]byte, len(it.Path()))
@@ -334,6 +331,7 @@ func (sdb *builder) createdAndUpdatedState(iters iterPair, watchedAddresses []co
 	diffAcountsAtB := make(AccountMap)
 	it, _ := trie.NewDifferenceIterator(iters.older, iters.newer)
 	for it.Next(true) {
+		// skip value nodes and null nodes
 		if it.Leaf() || bytes.Equal(nullHashBytes, it.Hash().Bytes()) {
 			continue
 		}
@@ -388,6 +386,7 @@ func (sdb *builder) deletedOrUpdatedState(iters iterPair, diffPathsAtB map[strin
 	diffAccountAtA := make(AccountMap)
 	it, _ := trie.NewDifferenceIterator(iters.newer, iters.older)
 	for it.Next(true) {
+		// skip value nodes and null nodes
 		if it.Leaf() || bytes.Equal(nullHashBytes, it.Hash().Bytes()) {
 			continue
 		}
@@ -523,6 +522,7 @@ func (sdb *builder) buildStorageNodesEventual(sr common.Hash, watchedStorageKeys
 func (sdb *builder) buildStorageNodesFromTrie(it trie.NodeIterator, watchedStorageKeys []common.Hash, intermediateNodes bool) ([]sd.StorageNode, error) {
 	storageDiffs := make([]sd.StorageNode, 0)
 	for it.Next(true) {
+		// skip value nodes and null nodes
 		if it.Leaf() || bytes.Equal(nullHashBytes, it.Hash().Bytes()) {
 			continue
 		}
@@ -590,6 +590,7 @@ func (sdb *builder) createdAndUpdatedStorage(a, b trie.NodeIterator, watchedKeys
 	diffPathsAtB := make(map[string]bool)
 	it, _ := trie.NewDifferenceIterator(a, b)
 	for it.Next(true) {
+		// skip value nodes and null nodes
 		if it.Leaf() || bytes.Equal(nullHashBytes, it.Hash().Bytes()) {
 			continue
 		}
@@ -631,6 +632,7 @@ func (sdb *builder) deletedOrUpdatedStorage(a, b trie.NodeIterator, diffPathsAtB
 	deletedStorage := make([]sd.StorageNode, 0)
 	it, _ := trie.NewDifferenceIterator(b, a)
 	for it.Next(true) {
+		// skip value nodes and null nodes
 		if it.Leaf() || bytes.Equal(nullHashBytes, it.Hash().Bytes()) {
 			continue
 		}
