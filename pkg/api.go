@@ -17,6 +17,7 @@ package statediff
 
 import (
 	"context"
+
 	sd "github.com/ethereum/go-ethereum/statediff"
 )
 
