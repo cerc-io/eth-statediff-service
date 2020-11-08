@@ -619,6 +619,12 @@ func TestBuilder(t *testing.T) {
 						StorageNodes: emptyStorage,
 					},
 				},
+				CodeAndCodeHashes: []statediff.CodeAndCodeHash{
+					{
+						Hash: testhelpers.CodeHash,
+						Code: testhelpers.ByteCodeAfterDeployment,
+					},
+				},
 			},
 		},
 		{
@@ -867,6 +873,12 @@ func TestBuilderWithIntermediateNodes(t *testing.T) {
 						StorageNodes: emptyStorage,
 					},
 				},
+				CodeAndCodeHashes: []statediff.CodeAndCodeHash{
+					{
+						Hash: testhelpers.CodeHash,
+						Code: testhelpers.ByteCodeAfterDeployment,
+					},
+				},
 			},
 		},
 		{
@@ -1077,6 +1089,12 @@ func TestBuilderWithWatchedAddressList(t *testing.T) {
 						StorageNodes: emptyStorage,
 					},
 				},
+				CodeAndCodeHashes: []statediff.CodeAndCodeHash{
+					{
+						Hash: testhelpers.CodeHash,
+						Code: testhelpers.ByteCodeAfterDeployment,
+					},
+				},
 			},
 		},
 		{
@@ -1241,6 +1259,12 @@ func TestBuilderWithWatchedAddressAndStorageKeyList(t *testing.T) {
 						LeafKey:      testhelpers.Account1LeafKey,
 						NodeValue:    account1AtBlock2LeafNode,
 						StorageNodes: emptyStorage,
+					},
+				},
+				CodeAndCodeHashes: []statediff.CodeAndCodeHash{
+					{
+						Hash: testhelpers.CodeHash,
+						Code: testhelpers.ByteCodeAfterDeployment,
 					},
 				},
 			},
@@ -1840,6 +1864,12 @@ func TestBuilderWithMovedAccount(t *testing.T) {
 						},
 					},
 				},
+				CodeAndCodeHashes: []statediff.CodeAndCodeHash{
+					{
+						Hash: testhelpers.CodeHash,
+						Code: testhelpers.ByteCodeAfterDeployment,
+					},
+				},
 			},
 		},
 		{
@@ -1956,6 +1986,12 @@ func TestBuilderWithMovedAccountOnlyLeafs(t *testing.T) {
 								NodeValue: slot1StorageLeafNode,
 							},
 						},
+					},
+				},
+				CodeAndCodeHashes: []statediff.CodeAndCodeHash{
+					{
+						Hash: testhelpers.CodeHash,
+						Code: testhelpers.ByteCodeAfterDeployment,
 					},
 				},
 			},
@@ -2136,6 +2172,12 @@ func TestBuildStateTrie(t *testing.T) {
 						StorageNodes: emptyStorage,
 					},
 				},
+				CodeAndCodeHashes: []statediff.CodeAndCodeHash{
+					{
+						Hash: testhelpers.CodeHash,
+						Code: testhelpers.ByteCodeAfterDeployment,
+					},
+				},
 			},
 		},
 		{
@@ -2209,6 +2251,12 @@ func TestBuildStateTrie(t *testing.T) {
 						LeafKey:      testhelpers.Account2LeafKey,
 						NodeValue:    account2AtBlock3LeafNode,
 						StorageNodes: emptyStorage,
+					},
+				},
+				CodeAndCodeHashes: []statediff.CodeAndCodeHash{
+					{
+						Hash: testhelpers.CodeHash,
+						Code: testhelpers.ByteCodeAfterDeployment,
 					},
 				},
 			},
