@@ -12,9 +12,9 @@ RUN GO111MODULE=on GCO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldfl
 # app container
 FROM alpine
 
-ARG USER
-ARG CONFIG_FILE
-ARG EXPOSE_PORT
+ARG USER="vdm"
+ARG CONFIG_FILE="./environments/example.toml"
+ARG EXPOSE_PORT=8545
 RUN adduser -Du 5000 $USER
 WORKDIR /app
 RUN chown $USER /app
