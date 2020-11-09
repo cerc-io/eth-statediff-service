@@ -110,6 +110,8 @@ func init() {
 }
 
 func startServers(serv sd.IService) error {
+	viper.BindEnv("server.ipcPath", "SERVER_IPC_PATH")
+	viper.BindEnv("server.httpPath", "SERVER_HTTP_PATH")
 	ipcPath := viper.GetString("server.ipcPath")
 	httpPath := viper.GetString("server.httpPath")
 	if ipcPath == "" && httpPath == "" {
