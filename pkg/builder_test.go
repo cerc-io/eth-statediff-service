@@ -27,7 +27,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
-	statediff "github.com/ethereum/go-ethereum/statediff"
+	statediff "github.com/ethereum/go-ethereum/statediff/types"
 
 	pkg "github.com/vulcanize/eth-statediff-service/pkg"
 	"github.com/vulcanize/eth-statediff-service/pkg/testhelpers"

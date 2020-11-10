@@ -21,7 +21,7 @@ package statediff
 
 import (
 	"github.com/ethereum/go-ethereum/core/state"
-	sd "github.com/ethereum/go-ethereum/statediff"
+	sd "github.com/ethereum/go-ethereum/statediff/types"
 )
 
 // AccountMap is a mapping of hex encoded path => account wrapper

@@ -33,7 +33,8 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 
-	sd "github.com/ethereum/go-ethereum/statediff"
+	"github.com/ethereum/go-ethereum/statediff"
+	. "github.com/ethereum/go-ethereum/statediff/types"
 	iter "github.com/vulcanize/go-eth-state-node-iterator"
 )
 
@@ -46,8 +47,9 @@ var (
 
 // Builder interface exposes the method for building a state diff between two blocks
 type Builder interface {
-	BuildStateDiffObject(args sd.Args, params sd.Params) (sd.StateObject, error)
-	BuildStateTrieObject(current *types.Block) (sd.StateObject, error)
+	BuildStateDiffObject(args Args, params Params) (StateObject, error)
+	BuildStateTrieObject(current *types.Block) (StateObject, error)
+	WriteStateDiffObject(args StateRoots, params Params, output StateNodeSink, codeOutput CodeSink) error
 }
 
 type builder struct {
@@ -57,6 +59,48 @@ type builder struct {
 
 type iterPair struct {
 	older, newer trie.NodeIterator
+}
+
+func resolveNode(it trie.NodeIterator, trieDB *trie.Database) (StateNode, []interface{}, error) {
+	nodePath := make([]byte, len(it.Path()))
+	copy(nodePath, it.Path())
+	node, err := trieDB.Node(it.Hash())
+	if err != nil {
+		return StateNode{}, nil, err
+	}
+	var nodeElements []interface{}
+	if err := rlp.DecodeBytes(node, &nodeElements); err != nil {
+		return StateNode{}, nil, err
+	}
+	ty, err := statediff.CheckKeyType(nodeElements)
+	if err != nil {
+		return StateNode{}, nil, err
+	}
+	return StateNode{
+		NodeType:  ty,
+		Path:      nodePath,
+		NodeValue: node,
+	}, nodeElements, nil
+}
+
+// convenience
+func stateNodeAppender(nodes *[]StateNode) StateNodeSink {
+	return func(node StateNode) error {
+		*nodes = append(*nodes, node)
+		return nil
+	}
+}
+func storageNodeAppender(nodes *[]StorageNode) StorageNodeSink {
+	return func(node StorageNode) error {
+		*nodes = append(*nodes, node)
+		return nil
+	}
+}
+func codeMappingAppender(data *[]CodeAndCodeHash) CodeSink {
+	return func(c CodeAndCodeHash) error {
+		*data = append(*data, c)
+		return nil
+	}
 }
 
 // NewBuilder is used to create a statediff builder
@@ -74,17 +118,17 @@ func NewBuilder(stateCache state.Database, workers uint) (Builder, error) {
 }
 
 // BuildStateTrieObject builds a state trie object from the provided block
-func (sdb *builder) BuildStateTrieObject(current *types.Block) (sd.StateObject, error) {
+func (sdb *builder) BuildStateTrieObject(current *types.Block) (StateObject, error) {
 	currentTrie, err := sdb.stateCache.OpenTrie(current.Root())
 	if err != nil {
-		return sd.StateObject{}, fmt.Errorf("error creating trie for block %d: %v", current.Number(), err)
+		return StateObject{}, fmt.Errorf("error creating trie for block %d: %v", current.Number(), err)
 	}
 	it := currentTrie.NodeIterator([]byte{})
 	stateNodes, codeAndCodeHashes, err := sdb.buildStateTrie(it)
 	if err != nil {
-		return sd.StateObject{}, fmt.Errorf("error collecting state nodes for block %d: %v", current.Number(), err)
+		return StateObject{}, fmt.Errorf("error collecting state nodes for block %d: %v", current.Number(), err)
 	}
-	return sd.StateObject{
+	return StateObject{
 		BlockNumber:       current.Number(),
 		BlockHash:         current.Hash(),
 		Nodes:             stateNodes,
@@ -92,68 +136,32 @@ func (sdb *builder) BuildStateTrieObject(current *types.Block) (sd.StateObject, 
 	}, nil
 }
 
-func resolveNode(it trie.NodeIterator, trieDB *trie.Database) (sd.StateNode, []interface{}, error) {
-	nodePath := make([]byte, len(it.Path()))
-	copy(nodePath, it.Path())
-	node, err := trieDB.Node(it.Hash())
-	if err != nil {
-		return sd.StateNode{}, nil, err
-	}
-	var nodeElements []interface{}
-	if err := rlp.DecodeBytes(node, &nodeElements); err != nil {
-		return sd.StateNode{}, nil, err
-	}
-	ty, err := sd.CheckKeyType(nodeElements)
-	if err != nil {
-		return sd.StateNode{}, nil, err
-	}
-	return sd.StateNode{
-		NodeType:  ty,
-		Path:      nodePath,
-		NodeValue: node,
-	}, nodeElements, nil
-}
-
-func (sdb *builder) buildStateTrie(it trie.NodeIterator) ([]sd.StateNode, []sd.CodeAndCodeHash, error) {
-	stateNodes := make([]sd.StateNode, 0)
-	codeAndCodeHashes := make([]sd.CodeAndCodeHash, 0)
+func (sdb *builder) buildStateTrie(it trie.NodeIterator) ([]StateNode, []CodeAndCodeHash, error) {
+	stateNodes := make([]StateNode, 0)
+	codeAndCodeHashes := make([]CodeAndCodeHash, 0)
 	for it.Next(true) {
-		// skip value nodes and null nodes
+		// skip value nodes
 		if it.Leaf() || bytes.Equal(nullHashBytes, it.Hash().Bytes()) {
 			continue
 		}
-		nodePath := make([]byte, len(it.Path()))
-		copy(nodePath, it.Path())
-		node, err := sdb.stateCache.TrieDB().Node(it.Hash())
+		node, nodeElements, err := resolveNode(it, sdb.stateCache.TrieDB())
 		if err != nil {
 			return nil, nil, err
 		}
-		var nodeElements []interface{}
-		if err := rlp.DecodeBytes(node, &nodeElements); err != nil {
-			return nil, nil, err
-		}
-		ty, err := sd.CheckKeyType(nodeElements)
-		if err != nil {
-			return nil, nil, err
-		}
-		switch ty {
-		case sd.Leaf:
+		switch node.NodeType {
+		case Leaf:
 			var account state.Account
 			if err := rlp.DecodeBytes(nodeElements[1].([]byte), &account); err != nil {
-				return nil, nil, fmt.Errorf("error decoding account for leaf node at path %x nerror: %v", nodePath, err)
+				return nil, nil, fmt.Errorf("error decoding account for leaf node at path %x nerror: %v", node.Path, err)
 			}
 			partialPath := trie.CompactToHex(nodeElements[0].([]byte))
-			valueNodePath := append(nodePath, partialPath...)
+			valueNodePath := append(node.Path, partialPath...)
 			encodedPath := trie.HexToCompact(valueNodePath)
 			leafKey := encodedPath[1:]
-			node := sd.StateNode{
-				NodeType:  ty,
-				Path:      nodePath,
-				LeafKey:   leafKey,
-				NodeValue: node,
-			}
+			node.LeafKey = leafKey
 			if !bytes.Equal(account.CodeHash, nullCodeHash) {
-				storageNodes, err := sdb.buildStorageNodesEventual(account.Root, nil, true)
+				var storageNodes []StorageNode
+				err := sdb.buildStorageNodesEventual(account.Root, nil, true, storageNodeAppender(&storageNodes))
 				if err != nil {
 					return nil, nil, fmt.Errorf("failed building eventual storage diffs for account %+v\r\nerror: %v", account, err)
 				}
@@ -164,27 +172,41 @@ func (sdb *builder) buildStateTrie(it trie.NodeIterator) ([]sd.StateNode, []sd.C
 				if err != nil {
 					return nil, nil, fmt.Errorf("failed to retrieve code for codehash %s\r\n error: %v", codeHash.String(), err)
 				}
-				codeAndCodeHashes = append(codeAndCodeHashes, sd.CodeAndCodeHash{
+				codeAndCodeHashes = append(codeAndCodeHashes, CodeAndCodeHash{
 					Hash: codeHash,
 					Code: code,
 				})
 			}
 			stateNodes = append(stateNodes, node)
-		case sd.Extension, sd.Branch:
-			stateNodes = append(stateNodes, sd.StateNode{
-				NodeType:  ty,
-				Path:      nodePath,
-				NodeValue: node,
-			})
+		case Extension, Branch:
+			stateNodes = append(stateNodes, node)
 		default:
-			return nil, nil, fmt.Errorf("unexpected node type %s", ty)
+			return nil, nil, fmt.Errorf("unexpected node type %s", node.NodeType)
 		}
 	}
 	return stateNodes, codeAndCodeHashes, it.Error()
 }
 
-// BuildStateDiff builds a statediff object from two blocks and the provided parameters
-func (sdb *builder) BuildStateDiffObject(args sd.Args, params sd.Params) (sd.StateObject, error) {
+// BuildStateDiffObject builds a statediff object from two blocks and the provided parameters
+func (sdb *builder) BuildStateDiffObject(args Args, params Params) (StateObject, error) {
+	var stateNodes []StateNode
+	var codeAndCodeHashes []CodeAndCodeHash
+	err := sdb.WriteStateDiffObject(
+		StateRoots{OldStateRoot: args.OldStateRoot, NewStateRoot: args.NewStateRoot},
+		params, stateNodeAppender(&stateNodes), codeMappingAppender(&codeAndCodeHashes))
+	if err != nil {
+		return StateObject{}, err
+	}
+	return StateObject{
+		BlockHash:         args.BlockHash,
+		BlockNumber:       args.BlockNumber,
+		Nodes:             stateNodes,
+		CodeAndCodeHashes: codeAndCodeHashes,
+	}, nil
+}
+
+// Writes a statediff object to output callback
+func (sdb *builder) WriteStateDiffObject(args StateRoots, params Params, output StateNodeSink, codeOutput CodeSink) error {
 	if len(params.WatchedAddresses) > 0 {
 		// if we are watching only specific accounts then we are only diffing leaf nodes
 		log.Info("Ignoring intermediate state nodes because WatchedAddresses was passed")
@@ -194,95 +216,95 @@ func (sdb *builder) BuildStateDiffObject(args sd.Args, params sd.Params) (sd.Sta
 	// Load tries for old and new states
 	oldTrie, err := sdb.stateCache.OpenTrie(args.OldStateRoot)
 	if err != nil {
-		return sd.StateObject{}, fmt.Errorf("error creating trie for old state root: %v", err)
+		return fmt.Errorf("error creating trie for old state root: %v", err)
 	}
 	newTrie, err := sdb.stateCache.OpenTrie(args.NewStateRoot)
 	if err != nil {
-		return sd.StateObject{}, fmt.Errorf("error creating trie for new state root: %v", err)
+		return fmt.Errorf("error creating trie for new state root: %v", err)
 	}
 
 	// Split old and new tries into corresponding subtrie iterators
 	oldIterFac := iter.NewSubtrieIteratorFactory(oldTrie, sdb.numWorkers)
 	newIterFac := iter.NewSubtrieIteratorFactory(newTrie, sdb.numWorkers)
-	iterChan := make(chan []iterPair, sdb.numWorkers)
 
 	// Create iterators ahead of time to avoid race condition in state.Trie access
+	// We do two state iterations per subtrie: one for new/updated nodes,
+	// one for deleted/updated nodes; prepare 2 iterator instances for each task
+	var iterPairs [][]iterPair
 	for i := uint(0); i < sdb.numWorkers; i++ {
-		// two state iterations per diff build
-		iterChan <- []iterPair{
-			iterPair{
-				older: oldIterFac.IteratorAt(i),
-				newer: newIterFac.IteratorAt(i),
-			},
-			iterPair{
-				older: oldIterFac.IteratorAt(i),
-				newer: newIterFac.IteratorAt(i),
-			},
+		iterPairs = append(iterPairs, []iterPair{
+			iterPair{older: oldIterFac.IteratorAt(i), newer: newIterFac.IteratorAt(i)},
+			iterPair{older: oldIterFac.IteratorAt(i), newer: newIterFac.IteratorAt(i)},
+		})
+	}
+
+	// Dispatch workers to process trie data; sync and collect results here via channels
+	nodeChan := make(chan StateNode)
+	codeChan := make(chan CodeAndCodeHash)
+
+	go func() {
+		nodeSender := func(node StateNode) error { nodeChan <- node; return nil }
+		codeSender := func(code CodeAndCodeHash) error { codeChan <- code; return nil }
+		var wg sync.WaitGroup
+
+		for w := uint(0); w < sdb.numWorkers; w++ {
+			wg.Add(1)
+			go func(worker uint) {
+				defer wg.Done()
+				sdb.buildStateDiff(iterPairs[worker], params, nodeSender, codeSender)
+			}(w)
+		}
+		wg.Wait()
+		close(nodeChan)
+		close(codeChan)
+	}()
+
+	for nodeChan != nil || codeChan != nil {
+		select {
+		case node, more := <-nodeChan:
+			if more {
+				if err := output(node); err != nil {
+					return err
+				}
+			} else {
+				nodeChan = nil
+			}
+		case codeAndCodeHash, more := <-codeChan:
+			if more {
+				if err := codeOutput(codeAndCodeHash); err != nil {
+					return err
+				}
+			} else {
+				codeChan = nil
+			}
 		}
 	}
 
-	type packet struct {
-		nodes []sd.StateNode
-		codes []sd.CodeAndCodeHash
-	}
-
-	packetChan := make(chan packet)
-	var wg sync.WaitGroup
-
-	for w := uint(0); w < sdb.numWorkers; w++ {
-		wg.Add(1)
-		go func(iterChan <-chan []iterPair) error {
-			defer wg.Done()
-			if iters, more := <-iterChan; more {
-				subtrieNodes, subtrieCodes, err := sdb.buildStateDiff(iters, params)
-				if err != nil {
-					return err
-				}
-				packetChan <- packet{
-					nodes: subtrieNodes,
-					codes: subtrieCodes,
-				}
-			}
-			return nil
-		}(iterChan)
-	}
-
-	go func() {
-		defer close(packetChan)
-		defer close(iterChan)
-		wg.Wait()
-	}()
-
-	stateNodes := make([]sd.StateNode, 0)
-	codeAndCodeHashes := make([]sd.CodeAndCodeHash, 0)
-	for packet := range packetChan {
-		stateNodes = append(stateNodes, packet.nodes...)
-		codeAndCodeHashes = append(codeAndCodeHashes, packet.codes...)
-	}
-
-	return sd.StateObject{
-		BlockHash:         args.BlockHash,
-		BlockNumber:       args.BlockNumber,
-		Nodes:             stateNodes,
-		CodeAndCodeHashes: codeAndCodeHashes,
-	}, nil
+	return nil
 }
 
-func (sdb *builder) buildStateDiff(args []iterPair, params sd.Params) ([]sd.StateNode, []sd.CodeAndCodeHash, error) {
+func (sdb *builder) buildStateDiff(args []iterPair, params Params, output StateNodeSink, codeOutput CodeSink) error {
 	// collect a slice of all the intermediate nodes that were touched and exist at B
 	// a map of their leafkey to all the accounts that were touched and exist at B
 	// and a slice of all the paths for the nodes in both of the above sets
-	createdOrUpdatedIntermediateNodes, diffAccountsAtB, diffPathsAtB, err := sdb.createdAndUpdatedState(
-		args[0], params.WatchedAddresses, params.IntermediateStateNodes)
+	var diffAccountsAtB AccountMap
+	var diffPathsAtB map[string]bool
+	var err error
+	if params.IntermediateStateNodes {
+		diffAccountsAtB, diffPathsAtB, err = sdb.createdAndUpdatedStateWithIntermediateNodes(args[0], output)
+	} else {
+		diffAccountsAtB, diffPathsAtB, err = sdb.createdAndUpdatedState(args[0], params.WatchedAddresses)
+	}
+
 	if err != nil {
-		return nil, nil, fmt.Errorf("error collecting createdAndUpdatedNodes: %v", err)
+		return fmt.Errorf("error collecting createdAndUpdatedNodes: %v", err)
 	}
 
 	// collect a slice of all the nodes that existed at a path in A that doesn't exist in B
 	// a map of their leafkey to all the accounts that were touched and exist at A
-	emptiedPaths, diffAccountsAtA, err := sdb.deletedOrUpdatedState(args[1], diffPathsAtB)
+	diffAccountsAtA, err := sdb.deletedOrUpdatedState(args[1], diffPathsAtB, output)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error collecting deletedOrUpdatedNodes: %v", err)
+		return fmt.Errorf("error collecting deletedOrUpdatedNodes: %v", err)
 	}
 
 	// collect and sort the leafkey keys for both account mappings into a slice
@@ -295,57 +317,43 @@ func (sdb *builder) buildStateDiff(args []iterPair, params sd.Params) ([]sd.Stat
 	// and leaving the truly created or deleted keys in place
 	updatedKeys := findIntersection(createKeys, deleteKeys)
 
-	// build the diff nodes for the updated accounts using the mappings at both A and B
-	// as directed by the keys found as the intersection of the two
-	updatedAccounts, err := sdb.buildAccountUpdates(
+	// build the diff nodes for the updated accounts using the mappings at both A and B as directed by the keys found as the intersection of the two
+	err = sdb.buildAccountUpdates(
 		diffAccountsAtB, diffAccountsAtA, updatedKeys,
-		params.WatchedStorageSlots, params.IntermediateStorageNodes)
+		params.WatchedStorageSlots, params.IntermediateStorageNodes, output)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error building diff for updated accounts: %v", err)
+		return fmt.Errorf("error building diff for updated accounts: %v", err)
 	}
 	// build the diff nodes for created accounts
-	createdAccounts, codeAndCodeHashes, err := sdb.buildAccountCreations(
-		diffAccountsAtB, params.WatchedStorageSlots, params.IntermediateStorageNodes)
+	err = sdb.buildAccountCreations(diffAccountsAtB, params.WatchedStorageSlots, params.IntermediateStorageNodes, output, codeOutput)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error building diff for created accounts: %v", err)
+		return fmt.Errorf("error building diff for created accounts: %v", err)
 	}
-
-	// assemble all of the nodes into the statediff object, including the intermediate nodes
-	nodes := append(
-		append(
-			append(updatedAccounts, createdAccounts...),
-			createdOrUpdatedIntermediateNodes...,
-		),
-		emptiedPaths...)
-
-	return nodes, codeAndCodeHashes, nil
+	return nil
 }
 
 // createdAndUpdatedState returns
-// a slice of all the intermediate nodes that exist in a different state at B than A
 // a mapping of their leafkeys to all the accounts that exist in a different state at B than A
 // and a slice of the paths for all of the nodes included in both
-func (sdb *builder) createdAndUpdatedState(iters iterPair, watchedAddresses []common.Address, intermediates bool) ([]sd.StateNode, AccountMap, map[string]bool, error) {
-	createdOrUpdatedIntermediateNodes := make([]sd.StateNode, 0)
+func (sdb *builder) createdAndUpdatedState(iters iterPair, watchedAddresses []common.Address) (AccountMap, map[string]bool, error) {
 	diffPathsAtB := make(map[string]bool)
 	diffAcountsAtB := make(AccountMap)
 	it, _ := trie.NewDifferenceIterator(iters.older, iters.newer)
 	for it.Next(true) {
-		// skip value nodes and null nodes
 		if it.Leaf() || bytes.Equal(nullHashBytes, it.Hash().Bytes()) {
 			continue
 		}
 		node, nodeElements, err := resolveNode(it, sdb.stateCache.TrieDB())
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, err
 		}
 		switch node.NodeType {
-		case sd.Leaf:
+		case Leaf:
 			// created vs updated is important for leaf nodes since we need to diff their storage
 			// so we need to map all changed accounts at B to their leafkey, since account can change pathes but not leafkey
 			var account state.Account
 			if err := rlp.DecodeBytes(nodeElements[1].([]byte), &account); err != nil {
-				return nil, nil, nil, fmt.Errorf("error decoding account for leaf node at path %x nerror: %v", node.Path, err)
+				return nil, nil, fmt.Errorf("error decoding account for leaf node at path %x nerror: %v", node.Path, err)
 			}
 			partialPath := trie.CompactToHex(nodeElements[0].([]byte))
 			valueNodePath := append(node.Path, partialPath...)
@@ -360,33 +368,22 @@ func (sdb *builder) createdAndUpdatedState(iters iterPair, watchedAddresses []co
 					Account:   &account,
 				}
 			}
-		case sd.Extension, sd.Branch:
-			// create a diff for any intermediate node that has changed at b
-			// created vs updated makes no difference for intermediate nodes since we do not need to diff storage
-			if intermediates {
-				createdOrUpdatedIntermediateNodes = append(createdOrUpdatedIntermediateNodes, sd.StateNode{
-					NodeType:  node.NodeType,
-					Path:      node.Path,
-					NodeValue: node.NodeValue,
-				})
-			}
-		default:
-			return nil, nil, nil, fmt.Errorf("unexpected node type %s", node.NodeType)
 		}
 		// add both intermediate and leaf node paths to the list of diffPathsAtB
 		diffPathsAtB[common.Bytes2Hex(node.Path)] = true
 	}
-	return createdOrUpdatedIntermediateNodes, diffAcountsAtB, diffPathsAtB, it.Error()
+	return diffAcountsAtB, diffPathsAtB, it.Error()
 }
 
-// deletedOrUpdatedState returns a slice of all the paths that are emptied at B
-// and a mapping of their leafkeys to all the accounts that exist in a different state at A than B
-func (sdb *builder) deletedOrUpdatedState(iters iterPair, diffPathsAtB map[string]bool) ([]sd.StateNode, AccountMap, error) {
-	emptiedPaths := make([]sd.StateNode, 0)
-	diffAccountAtA := make(AccountMap)
-	it, _ := trie.NewDifferenceIterator(iters.newer, iters.older)
+// createdAndUpdatedStateWithIntermediateNodes returns
+// a slice of all the intermediate nodes that exist in a different state at B than A
+// a mapping of their leafkeys to all the accounts that exist in a different state at B than A
+// and a slice of the paths for all of the nodes included in both
+func (sdb *builder) createdAndUpdatedStateWithIntermediateNodes(iters iterPair, output StateNodeSink) (AccountMap, map[string]bool, error) {
+	diffPathsAtB := make(map[string]bool)
+	diffAcountsAtB := make(AccountMap)
+	it, _ := trie.NewDifferenceIterator(iters.older, iters.newer)
 	for it.Next(true) {
-		// skip value nodes and null nodes
 		if it.Leaf() || bytes.Equal(nullHashBytes, it.Hash().Bytes()) {
 			continue
 		}
@@ -394,22 +391,75 @@ func (sdb *builder) deletedOrUpdatedState(iters iterPair, diffPathsAtB map[strin
 		if err != nil {
 			return nil, nil, err
 		}
-		// if this nodePath did not show up in diffPathsAtB
-		// that means the node at this path was deleted (or moved) in B
-		// emit an empty "removed" diff to signify as such
-		if _, ok := diffPathsAtB[common.Bytes2Hex(node.Path)]; !ok {
-			emptiedPaths = append(emptiedPaths, sd.StateNode{
-				Path:      node.Path,
-				NodeValue: []byte{},
-				NodeType:  sd.Removed,
-			})
-		}
 		switch node.NodeType {
-		case sd.Leaf:
-			// map all different accounts at A to their leafkey
+		case Leaf:
+			// created vs updated is important for leaf nodes since we need to diff their storage
+			// so we need to map all changed accounts at B to their leafkey, since account can change paths but not leafkey
 			var account state.Account
 			if err := rlp.DecodeBytes(nodeElements[1].([]byte), &account); err != nil {
 				return nil, nil, fmt.Errorf("error decoding account for leaf node at path %x nerror: %v", node.Path, err)
+			}
+			partialPath := trie.CompactToHex(nodeElements[0].([]byte))
+			valueNodePath := append(node.Path, partialPath...)
+			encodedPath := trie.HexToCompact(valueNodePath)
+			leafKey := encodedPath[1:]
+			diffAcountsAtB[common.Bytes2Hex(leafKey)] = accountWrapper{
+				NodeType:  node.NodeType,
+				Path:      node.Path,
+				NodeValue: node.NodeValue,
+				LeafKey:   leafKey,
+				Account:   &account,
+			}
+		case Extension, Branch:
+			// create a diff for any intermediate node that has changed at b
+			// created vs updated makes no difference for intermediate nodes since we do not need to diff storage
+			if err := output(StateNode{
+				NodeType:  node.NodeType,
+				Path:      node.Path,
+				NodeValue: node.NodeValue,
+			}); err != nil {
+				return nil, nil, err
+			}
+		default:
+			return nil, nil, fmt.Errorf("unexpected node type %s", node.NodeType)
+		}
+		// add both intermediate and leaf node paths to the list of diffPathsAtB
+		diffPathsAtB[common.Bytes2Hex(node.Path)] = true
+	}
+	return diffAcountsAtB, diffPathsAtB, it.Error()
+}
+
+// deletedOrUpdatedState returns a slice of all the paths that are emptied at B
+// and a mapping of their leafkeys to all the accounts that exist in a different state at A than B
+func (sdb *builder) deletedOrUpdatedState(iters iterPair, diffPathsAtB map[string]bool, output StateNodeSink) (AccountMap, error) {
+	diffAccountAtA := make(AccountMap)
+	it, _ := trie.NewDifferenceIterator(iters.newer, iters.older)
+	for it.Next(true) {
+		if it.Leaf() || bytes.Equal(nullHashBytes, it.Hash().Bytes()) {
+			continue
+		}
+		node, nodeElements, err := resolveNode(it, sdb.stateCache.TrieDB())
+		if err != nil {
+			return nil, err
+		}
+		// if this node's path did not show up in diffPathsAtB
+		// that means the node at this path was deleted (or moved) in B
+		// emit an empty "removed" diff to signify as such
+		if _, ok := diffPathsAtB[common.Bytes2Hex(node.Path)]; !ok {
+			if err := output(StateNode{
+				Path:      node.Path,
+				NodeValue: []byte{},
+				NodeType:  Removed,
+			}); err != nil {
+				return nil, err
+			}
+		}
+		switch node.NodeType {
+		case Leaf:
+			// map all different accounts at A to their leafkey
+			var account state.Account
+			if err := rlp.DecodeBytes(nodeElements[1].([]byte), &account); err != nil {
+				return nil, fmt.Errorf("error decoding account for leaf node at path %x nerror: %v", node.Path, err)
 			}
 			partialPath := trie.CompactToHex(nodeElements[0].([]byte))
 			valueNodePath := append(node.Path, partialPath...)
@@ -422,55 +472,54 @@ func (sdb *builder) deletedOrUpdatedState(iters iterPair, diffPathsAtB map[strin
 				LeafKey:   leafKey,
 				Account:   &account,
 			}
-		case sd.Extension, sd.Branch:
+		case Extension, Branch:
 			// fall through, we did everything we need to do with these node types
 		default:
-			return nil, nil, fmt.Errorf("unexpected node type %s", node.NodeType)
+			return nil, fmt.Errorf("unexpected node type %s", node.NodeType)
 		}
 	}
-	return emptiedPaths, diffAccountAtA, it.Error()
+	return diffAccountAtA, it.Error()
 }
 
 // buildAccountUpdates uses the account diffs maps for A => B and B => A and the known intersection of their leafkeys
 // to generate the statediff node objects for all of the accounts that existed at both A and B but in different states
 // needs to be called before building account creations and deletions as this mutates
 // those account maps to remove the accounts which were updated
-func (sdb *builder) buildAccountUpdates(creations, deletions AccountMap, updatedKeys []string, watchedStorageKeys []common.Hash, intermediateStorageNodes bool) ([]sd.StateNode, error) {
-	updatedAccounts := make([]sd.StateNode, 0, len(updatedKeys))
+func (sdb *builder) buildAccountUpdates(creations, deletions AccountMap, updatedKeys []string, watchedStorageKeys []common.Hash, intermediateStorageNodes bool, output StateNodeSink) error {
 	var err error
 	for _, key := range updatedKeys {
 		createdAcc := creations[key]
 		deletedAcc := deletions[key]
-		var storageDiffs []sd.StorageNode
+		var storageDiffs []StorageNode
 		if deletedAcc.Account != nil && createdAcc.Account != nil {
 			oldSR := deletedAcc.Account.Root
 			newSR := createdAcc.Account.Root
-			storageDiffs, err = sdb.buildStorageNodesIncremental(oldSR, newSR, watchedStorageKeys, intermediateStorageNodes)
+			err = sdb.buildStorageNodesIncremental(oldSR, newSR, watchedStorageKeys, intermediateStorageNodes, storageNodeAppender(&storageDiffs))
 			if err != nil {
-				return nil, fmt.Errorf("failed building incremental storage diffs for account with leafkey %s\r\nerror: %v", key, err)
+				return fmt.Errorf("failed building incremental storage diffs for account with leafkey %s\r\nerror: %v", key, err)
 			}
 		}
-		updatedAccounts = append(updatedAccounts, sd.StateNode{
+		if err = output(StateNode{
 			NodeType:     createdAcc.NodeType,
 			Path:         createdAcc.Path,
 			NodeValue:    createdAcc.NodeValue,
 			LeafKey:      createdAcc.LeafKey,
 			StorageNodes: storageDiffs,
-		})
+		}); err != nil {
+			return err
+		}
 		delete(creations, key)
 		delete(deletions, key)
 	}
 
-	return updatedAccounts, nil
+	return nil
 }
 
 // buildAccountCreations returns the statediff node objects for all the accounts that exist at B but not at A
 // it also returns the code and codehash for created contract accounts
-func (sdb *builder) buildAccountCreations(accounts AccountMap, watchedStorageKeys []common.Hash, intermediateStorageNodes bool) ([]sd.StateNode, []sd.CodeAndCodeHash, error) {
-	accountDiffs := make([]sd.StateNode, 0, len(accounts))
-	codeAndCodeHashes := make([]sd.CodeAndCodeHash, 0)
+func (sdb *builder) buildAccountCreations(accounts AccountMap, watchedStorageKeys []common.Hash, intermediateStorageNodes bool, output StateNodeSink, codeOutput CodeSink) error {
 	for _, val := range accounts {
-		diff := sd.StateNode{
+		diff := StateNode{
 			NodeType:  val.NodeType,
 			Path:      val.Path,
 			LeafKey:   val.LeafKey,
@@ -478,167 +527,178 @@ func (sdb *builder) buildAccountCreations(accounts AccountMap, watchedStorageKey
 		}
 		if !bytes.Equal(val.Account.CodeHash, nullCodeHash) {
 			// For contract creations, any storage node contained is a diff
-			storageDiffs, err := sdb.buildStorageNodesEventual(val.Account.Root, watchedStorageKeys, intermediateStorageNodes)
+			var storageDiffs []StorageNode
+			err := sdb.buildStorageNodesEventual(val.Account.Root, watchedStorageKeys, intermediateStorageNodes, storageNodeAppender(&storageDiffs))
 			if err != nil {
-				return nil, nil, fmt.Errorf("failed building eventual storage diffs for node %x\r\nerror: %v", val.Path, err)
+				return fmt.Errorf("failed building eventual storage diffs for node %x\r\nerror: %v", val.Path, err)
 			}
 			diff.StorageNodes = storageDiffs
-			// emit codehash => code mappings for new contracts
+			// emit codehash => code mappings for cod
 			codeHash := common.BytesToHash(val.Account.CodeHash)
 			code, err := sdb.stateCache.ContractCode(common.Hash{}, codeHash)
 			if err != nil {
-				return nil, nil, fmt.Errorf("failed to retrieve code for codehash %s\r\n error: %v", codeHash.String(), err)
+				return fmt.Errorf("failed to retrieve code for codehash %s\r\n error: %v", codeHash.String(), err)
 			}
-			codeAndCodeHashes = append(codeAndCodeHashes, sd.CodeAndCodeHash{
+			if err := codeOutput(CodeAndCodeHash{
 				Hash: codeHash,
 				Code: code,
-			})
+			}); err != nil {
+				return err
+			}
 		}
-		accountDiffs = append(accountDiffs, diff)
+		if err := output(diff); err != nil {
+			return err
+		}
 	}
 
-	return accountDiffs, codeAndCodeHashes, nil
+	return nil
 }
 
 // buildStorageNodesEventual builds the storage diff node objects for a created account
 // i.e. it returns all the storage nodes at this state, since there is no previous state
-func (sdb *builder) buildStorageNodesEventual(sr common.Hash, watchedStorageKeys []common.Hash, intermediateNodes bool) ([]sd.StorageNode, error) {
+func (sdb *builder) buildStorageNodesEventual(sr common.Hash, watchedStorageKeys []common.Hash, intermediateNodes bool, output StorageNodeSink) error {
 	if bytes.Equal(sr.Bytes(), emptyContractRoot.Bytes()) {
-		return nil, nil
+		return nil
 	}
-	log.Debug("Storage Root For Eventual Diff", "root", sr, sr.Hex())
+	log.Debug("Storage Root For Eventual Diff", "root", sr.Hex())
 	sTrie, err := sdb.stateCache.OpenTrie(sr)
 	if err != nil {
 		log.Info("error in build storage diff eventual", "error", err)
-		return nil, err
+		return err
 	}
 	it := sTrie.NodeIterator(make([]byte, 0))
-	return sdb.buildStorageNodesFromTrie(it, watchedStorageKeys, intermediateNodes)
+	err = sdb.buildStorageNodesFromTrie(it, watchedStorageKeys, intermediateNodes, output)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // buildStorageNodesFromTrie returns all the storage diff node objects in the provided node iterator
 // if any storage keys are provided it will only return those leaf nodes
 // including intermediate nodes can be turned on or off
-func (sdb *builder) buildStorageNodesFromTrie(it trie.NodeIterator, watchedStorageKeys []common.Hash, intermediateNodes bool) ([]sd.StorageNode, error) {
-	storageDiffs := make([]sd.StorageNode, 0)
+func (sdb *builder) buildStorageNodesFromTrie(it trie.NodeIterator, watchedStorageKeys []common.Hash, intermediateNodes bool, output StorageNodeSink) error {
 	for it.Next(true) {
-		// skip value nodes and null nodes
 		if it.Leaf() || bytes.Equal(nullHashBytes, it.Hash().Bytes()) {
 			continue
 		}
 		node, nodeElements, err := resolveNode(it, sdb.stateCache.TrieDB())
 		if err != nil {
-			return nil, err
+			return err
 		}
 		switch node.NodeType {
-		case sd.Leaf:
+		case Leaf:
 			partialPath := trie.CompactToHex(nodeElements[0].([]byte))
 			valueNodePath := append(node.Path, partialPath...)
 			encodedPath := trie.HexToCompact(valueNodePath)
 			leafKey := encodedPath[1:]
 			if isWatchedStorageKey(watchedStorageKeys, leafKey) {
-				storageDiffs = append(storageDiffs, sd.StorageNode{
+				if err := output(StorageNode{
 					NodeType:  node.NodeType,
 					Path:      node.Path,
 					NodeValue: node.NodeValue,
 					LeafKey:   leafKey,
-				})
+				}); err != nil {
+					return err
+				}
 			}
-		case sd.Extension, sd.Branch:
+		case Extension, Branch:
 			if intermediateNodes {
-				storageDiffs = append(storageDiffs, sd.StorageNode{
+				if err := output(StorageNode{
 					NodeType:  node.NodeType,
 					Path:      node.Path,
 					NodeValue: node.NodeValue,
-				})
+				}); err != nil {
+					return err
+				}
 			}
 		default:
-			return nil, fmt.Errorf("unexpected node type %s", node.NodeType)
+			return fmt.Errorf("unexpected node type %s", node.NodeType)
 		}
 	}
-	return storageDiffs, it.Error()
+	return it.Error()
 }
 
 // buildStorageNodesIncremental builds the storage diff node objects for all nodes that exist in a different state at B than A
-func (sdb *builder) buildStorageNodesIncremental(oldSR common.Hash, newSR common.Hash, watchedStorageKeys []common.Hash, intermediateNodes bool) ([]sd.StorageNode, error) {
+func (sdb *builder) buildStorageNodesIncremental(oldSR common.Hash, newSR common.Hash, watchedStorageKeys []common.Hash, intermediateNodes bool, output StorageNodeSink) error {
 	if bytes.Equal(newSR.Bytes(), oldSR.Bytes()) {
-		return nil, nil
+		return nil
 	}
 	log.Debug("Storage Roots for Incremental Diff", "old", oldSR.Hex(), "new", newSR.Hex())
 	oldTrie, err := sdb.stateCache.OpenTrie(oldSR)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	newTrie, err := sdb.stateCache.OpenTrie(newSR)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	createdOrUpdatedStorage, diffPathsAtB, err := sdb.createdAndUpdatedStorage(oldTrie.NodeIterator([]byte{}), newTrie.NodeIterator([]byte{}), watchedStorageKeys, intermediateNodes)
+	diffPathsAtB, err := sdb.createdAndUpdatedStorage(oldTrie.NodeIterator([]byte{}), newTrie.NodeIterator([]byte{}), watchedStorageKeys, intermediateNodes, output)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	deletedStorage, err := sdb.deletedOrUpdatedStorage(oldTrie.NodeIterator([]byte{}), newTrie.NodeIterator([]byte{}), diffPathsAtB, watchedStorageKeys, intermediateNodes)
+	err = sdb.deletedOrUpdatedStorage(oldTrie.NodeIterator([]byte{}), newTrie.NodeIterator([]byte{}), diffPathsAtB, watchedStorageKeys, intermediateNodes, output)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return append(createdOrUpdatedStorage, deletedStorage...), nil
+	return nil
 }
 
-func (sdb *builder) createdAndUpdatedStorage(a, b trie.NodeIterator, watchedKeys []common.Hash, intermediateNodes bool) ([]sd.StorageNode, map[string]bool, error) {
-	createdOrUpdatedStorage := make([]sd.StorageNode, 0)
+func (sdb *builder) createdAndUpdatedStorage(a, b trie.NodeIterator, watchedKeys []common.Hash, intermediateNodes bool, output StorageNodeSink) (map[string]bool, error) {
 	diffPathsAtB := make(map[string]bool)
 	it, _ := trie.NewDifferenceIterator(a, b)
 	for it.Next(true) {
-		// skip value nodes and null nodes
-		if it.Leaf() || bytes.Equal(nullHashBytes, it.Hash().Bytes()) {
-			continue
-		}
-		node, nodeElements, err := resolveNode(it, sdb.stateCache.TrieDB())
-		if err != nil {
-			return nil, nil, err
-		}
-		switch node.NodeType {
-		case sd.Leaf:
-			partialPath := trie.CompactToHex(nodeElements[0].([]byte))
-			valueNodePath := append(node.Path, partialPath...)
-			encodedPath := trie.HexToCompact(valueNodePath)
-			leafKey := encodedPath[1:]
-			if isWatchedStorageKey(watchedKeys, leafKey) {
-				createdOrUpdatedStorage = append(createdOrUpdatedStorage, sd.StorageNode{
-					NodeType:  node.NodeType,
-					Path:      node.Path,
-					NodeValue: node.NodeValue,
-					LeafKey:   leafKey,
-				})
-			}
-		case sd.Extension, sd.Branch:
-			if intermediateNodes {
-				createdOrUpdatedStorage = append(createdOrUpdatedStorage, sd.StorageNode{
-					NodeType:  node.NodeType,
-					Path:      node.Path,
-					NodeValue: node.NodeValue,
-				})
-			}
-		default:
-			return nil, nil, fmt.Errorf("unexpected node type %s", node.NodeType)
-		}
-		diffPathsAtB[common.Bytes2Hex(node.Path)] = true
-	}
-	return createdOrUpdatedStorage, diffPathsAtB, it.Error()
-}
-
-func (sdb *builder) deletedOrUpdatedStorage(a, b trie.NodeIterator, diffPathsAtB map[string]bool, watchedKeys []common.Hash, intermediateNodes bool) ([]sd.StorageNode, error) {
-	deletedStorage := make([]sd.StorageNode, 0)
-	it, _ := trie.NewDifferenceIterator(b, a)
-	for it.Next(true) {
-		// skip value nodes and null nodes
 		if it.Leaf() || bytes.Equal(nullHashBytes, it.Hash().Bytes()) {
 			continue
 		}
 		node, nodeElements, err := resolveNode(it, sdb.stateCache.TrieDB())
 		if err != nil {
 			return nil, err
+		}
+		switch node.NodeType {
+		case Leaf:
+			partialPath := trie.CompactToHex(nodeElements[0].([]byte))
+			valueNodePath := append(node.Path, partialPath...)
+			encodedPath := trie.HexToCompact(valueNodePath)
+			leafKey := encodedPath[1:]
+			if isWatchedStorageKey(watchedKeys, leafKey) {
+				if err := output(StorageNode{
+					NodeType:  node.NodeType,
+					Path:      node.Path,
+					NodeValue: node.NodeValue,
+					LeafKey:   leafKey,
+				}); err != nil {
+					return nil, err
+				}
+			}
+		case Extension, Branch:
+			if intermediateNodes {
+				if err := output(StorageNode{
+					NodeType:  node.NodeType,
+					Path:      node.Path,
+					NodeValue: node.NodeValue,
+				}); err != nil {
+					return nil, err
+				}
+			}
+		default:
+			return nil, fmt.Errorf("unexpected node type %s", node.NodeType)
+		}
+		diffPathsAtB[common.Bytes2Hex(node.Path)] = true
+	}
+	return diffPathsAtB, it.Error()
+}
+
+func (sdb *builder) deletedOrUpdatedStorage(a, b trie.NodeIterator, diffPathsAtB map[string]bool, watchedKeys []common.Hash, intermediateNodes bool, output StorageNodeSink) error {
+	it, _ := trie.NewDifferenceIterator(b, a)
+	for it.Next(true) {
+		if it.Leaf() || bytes.Equal(nullHashBytes, it.Hash().Bytes()) {
+			continue
+		}
+		node, nodeElements, err := resolveNode(it, sdb.stateCache.TrieDB())
+		if err != nil {
+			return err
 		}
 		// if this node path showed up in diffPathsAtB
 		// that means this node was updated at B and we already have the updated diff for it
@@ -647,31 +707,35 @@ func (sdb *builder) deletedOrUpdatedStorage(a, b trie.NodeIterator, diffPathsAtB
 			continue
 		}
 		switch node.NodeType {
-		case sd.Leaf:
+		case Leaf:
 			partialPath := trie.CompactToHex(nodeElements[0].([]byte))
 			valueNodePath := append(node.Path, partialPath...)
 			encodedPath := trie.HexToCompact(valueNodePath)
 			leafKey := encodedPath[1:]
 			if isWatchedStorageKey(watchedKeys, leafKey) {
-				deletedStorage = append(deletedStorage, sd.StorageNode{
-					NodeType:  sd.Removed,
+				if err := output(StorageNode{
+					NodeType:  Removed,
 					Path:      node.Path,
 					NodeValue: []byte{},
-				})
+				}); err != nil {
+					return err
+				}
 			}
-		case sd.Extension, sd.Branch:
+		case Extension, Branch:
 			if intermediateNodes {
-				deletedStorage = append(deletedStorage, sd.StorageNode{
-					NodeType:  sd.Removed,
+				if err := output(StorageNode{
+					NodeType:  Removed,
 					Path:      node.Path,
 					NodeValue: []byte{},
-				})
+				}); err != nil {
+					return err
+				}
 			}
 		default:
-			return nil, fmt.Errorf("unexpected node type %s", node.NodeType)
+			return fmt.Errorf("unexpected node type %s", node.NodeType)
 		}
 	}
-	return deletedStorage, it.Error()
+	return it.Error()
 }
 
 // isWatchedAddress is used to check if a state account corresponds to one of the addresses the builder is configured to watch

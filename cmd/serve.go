@@ -27,6 +27,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	ind "github.com/ethereum/go-ethereum/statediff/indexer"
+	"github.com/ethereum/go-ethereum/statediff/indexer/postgres"
 	sd "github.com/vulcanize/eth-statediff-service/pkg"
 )
 
@@ -53,8 +55,9 @@ func serve() {
 	if path == "" || ancientPath == "" {
 		logWithCommand.Fatal("require a valid eth leveldb primary datastore path and ancient datastore path")
 	}
-	chainID := viper.GetUint64("eth.chainID")
-	config, err := chainConfig(chainID)
+
+	nodeInfo := GetEthNodeInfo()
+	config, err := chainConfig(nodeInfo.ChainID)
 	if err != nil {
 		logWithCommand.Fatal(err)
 	}
@@ -68,8 +71,12 @@ func serve() {
 
 	// create statediff service
 	logWithCommand.Info("creating statediff service")
-	statediffService, err := sd.NewStateDiffService(
-		lvlDBReader, sd.Config{Workers: viper.GetUint("statediff.workers")})
+	db, err := postgres.NewDB(GetDBParams(), GetDBConfig(), nodeInfo)
+	if err != nil {
+		logWithCommand.Fatal(err)
+	}
+	indexer := ind.NewStateDiffIndexer(config, db)
+	statediffService, err := sd.NewStateDiffService(lvlDBReader, indexer, viper.GetUint("statediff.workers"))
 	if err != nil {
 		logWithCommand.Fatal(err)
 	}
@@ -96,15 +103,9 @@ func serve() {
 func init() {
 	rootCmd.AddCommand(serveCmd)
 
-	serveCmd.PersistentFlags().String("leveldb-path", "", "path to primary datastore")
-	serveCmd.PersistentFlags().String("ancient-path", "", "path to ancient datastore")
-	serveCmd.PersistentFlags().Uint("chain-id", 1, "ethereum chain id (mainnet = 1)")
 	serveCmd.PersistentFlags().String("http-path", "", "vdb server http path")
 	serveCmd.PersistentFlags().String("ipc-path", "", "vdb server ipc path")
 
-	viper.BindPFlag("leveldb.path", serveCmd.PersistentFlags().Lookup("leveldb-path"))
-	viper.BindPFlag("leveldb.ancient", serveCmd.PersistentFlags().Lookup("ancient-path"))
-	viper.BindPFlag("eth.chainID", serveCmd.PersistentFlags().Lookup("chain-id"))
 	viper.BindPFlag("server.httpPath", serveCmd.PersistentFlags().Lookup("http-path"))
 	viper.BindPFlag("server.ipcPath", serveCmd.PersistentFlags().Lookup("ipc-path"))
 }
