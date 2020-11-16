@@ -21,6 +21,7 @@ import (
 	"os/signal"
 	"sync"
 
+	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/sirupsen/logrus"
@@ -127,11 +128,10 @@ func startServers(serv sd.IService) error {
 	}
 	if httpPath != "" {
 		logWithCommand.Info("starting up HTTP server")
-		// XXX broken https://github.com/ethereum/go-ethereum/pull/21105
-		// if _, _, err := node.StartHTTPEndpoint(httpPath, rpc.HTTPTimeouts{}, handler); err != nil {
-		// 	return err
-		// }
-		// or node.RegisterHandler ?
+		handler := rpc.NewServer()
+		if _, _, err := node.StartHTTPEndpoint(httpPath, rpc.HTTPTimeouts{}, handler); err != nil {
+			return err
+		}
 	}
 	return nil
 }
