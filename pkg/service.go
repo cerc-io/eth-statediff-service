@@ -45,8 +45,11 @@ type lvlDBReader interface {
 
 // IService is the state-diffing service interface
 type IService interface {
-	// APIs(), Protocols(), Start() and Stop()
-	node.Service
+	// Start() and Stop()
+	node.Lifecycle
+	// For node service registration
+	APIs() []rpc.API
+	Protocols() []p2p.Protocol
 	// Main event loop for processing state diffs
 	Loop(wg *sync.WaitGroup)
 	// Method to get state diff object at specific block
@@ -207,7 +210,7 @@ func (sds *Service) processStateTrie(block *types.Block, params sd.Params) (*sd.
 }
 
 // Start is used to begin the service
-func (sds *Service) Start(*p2p.Server) error {
+func (sds *Service) Start() error {
 	logrus.Info("starting statediff service")
 	go sds.Loop(new(sync.WaitGroup))
 	return nil

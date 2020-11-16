@@ -71,7 +71,7 @@ func serve() {
 
 	// create statediff service
 	logWithCommand.Info("creating statediff service")
-	db, err := postgres.NewDB(GetDBParams(), GetDBConfig(), nodeInfo)
+	db, err := postgres.NewDB(postgres.DbConnectionString(GetDBParams()), GetDBConfig(), nodeInfo)
 	if err != nil {
 		logWithCommand.Fatal(err)
 	}
@@ -127,9 +127,11 @@ func startServers(serv sd.IService) error {
 	}
 	if httpPath != "" {
 		logWithCommand.Info("starting up HTTP server")
-		if _, _, err := rpc.StartHTTPEndpoint(httpPath, serv.APIs(), []string{sd.APIName}, nil, nil, rpc.HTTPTimeouts{}); err != nil {
-			return err
-		}
+		// XXX broken https://github.com/ethereum/go-ethereum/pull/21105
+		// if _, _, err := node.StartHTTPEndpoint(httpPath, rpc.HTTPTimeouts{}, handler); err != nil {
+		// 	return err
+		// }
+		// or node.RegisterHandler ?
 	}
 	return nil
 }
@@ -139,7 +141,7 @@ func chainConfig(chainID uint64) (*params.ChainConfig, error) {
 	case 1:
 		return params.MainnetChainConfig, nil
 	case 3:
-		return params.TestnetChainConfig, nil // Ropsten
+		return params.RopstenChainConfig, nil // Ropsten
 	case 4:
 		return params.RinkebyChainConfig, nil
 	case 5:

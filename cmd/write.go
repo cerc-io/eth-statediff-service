@@ -68,7 +68,7 @@ func write() {
 
 	// create statediff service
 	logWithCommand.Info("creating statediff service")
-	db, err := postgres.NewDB(GetDBParams(), GetDBConfig(), nodeInfo)
+	db, err := postgres.NewDB(postgres.DbConnectionString(GetDBParams()), GetDBConfig(), nodeInfo)
 	if err != nil {
 		logWithCommand.Fatal(err)
 	}
