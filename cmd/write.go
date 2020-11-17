@@ -20,9 +20,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	gethsd "github.com/ethereum/go-ethereum/statediff"
 	ind "github.com/ethereum/go-ethereum/statediff/indexer"
 	"github.com/ethereum/go-ethereum/statediff/indexer/postgres"
-	sdtypes "github.com/ethereum/go-ethereum/statediff/types"
 	sd "github.com/vulcanize/eth-statediff-service/pkg"
 )
 
@@ -80,7 +80,7 @@ func write() {
 
 	// Read all defined block ranges, write statediffs to database
 	var blockRanges [][2]uint64
-	diffParams := sdtypes.Params{ // todo: configurable?
+	diffParams := gethsd.Params{ // todo: configurable?
 		IntermediateStateNodes:   true,
 		IntermediateStorageNodes: true,
 		IncludeBlock:             true,

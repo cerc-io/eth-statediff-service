@@ -17,7 +17,7 @@ package statediff
 
 import (
 	"context"
-	sd "github.com/ethereum/go-ethereum/statediff/types"
+	sd "github.com/ethereum/go-ethereum/statediff"
 )
 
 // APIName is the namespace used for the state diffing service API

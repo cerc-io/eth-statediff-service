@@ -28,7 +28,8 @@ import (
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
-	sd "github.com/ethereum/go-ethereum/statediff/types"
+	sd "github.com/ethereum/go-ethereum/statediff"
+	sdtypes "github.com/ethereum/go-ethereum/statediff/types"
 	"github.com/sirupsen/logrus"
 
 	ind "github.com/ethereum/go-ethereum/statediff/indexer"
@@ -267,10 +268,10 @@ func (sds *Service) writeStateDiff(block *types.Block, parentRoot common.Hash, p
 	}
 	// defer handling of commit/rollback for any return case
 	defer tx.Close()
-	output := func(node sd.StateNode) error {
+	output := func(node sdtypes.StateNode) error {
 		return sds.indexer.PushStateNode(tx, node)
 	}
-	codeOutput := func(c sd.CodeAndCodeHash) error {
+	codeOutput := func(c sdtypes.CodeAndCodeHash) error {
 		return sds.indexer.PushCodeAndCodeHash(tx, c)
 	}
 	err = sds.Builder.WriteStateDiffObject(sd.StateRoots{
