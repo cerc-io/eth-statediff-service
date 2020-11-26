@@ -228,7 +228,7 @@ func (sds *Service) Stop() error {
 // This operation cannot be performed back past the point of db pruning; it requires an archival node
 // for historical data
 func (sds *Service) WriteStateDiffAt(blockNumber uint64, params sd.Params) error {
-	logrus.Info(fmt.Sprintf("writing state diff at block %d", blockNumber))
+	logrus.Info(fmt.Sprintf("Writing state diff at block %d", blockNumber))
 	currentBlock, err := sds.lvlDBReader.GetBlockByNumber(blockNumber)
 	if err != nil {
 		return err

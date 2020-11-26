@@ -533,7 +533,7 @@ func (sdb *builder) buildAccountCreations(accounts AccountMap, watchedStorageKey
 				return fmt.Errorf("failed building eventual storage diffs for node %x\r\nerror: %v", val.Path, err)
 			}
 			diff.StorageNodes = storageDiffs
-			// emit codehash => code mappings for cod
+			// emit codehash => code mappings for code
 			codeHash := common.BytesToHash(val.Account.CodeHash)
 			code, err := sdb.stateCache.ContractCode(common.Hash{}, codeHash)
 			if err != nil {

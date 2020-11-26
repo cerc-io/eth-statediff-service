@@ -64,14 +64,14 @@ func serve() {
 	}
 
 	// create leveldb reader
-	logWithCommand.Info("creating leveldb reader")
+	logWithCommand.Info("Creating leveldb reader")
 	lvlDBReader, err := sd.NewLvlDBReader(path, ancientPath, config)
 	if err != nil {
 		logWithCommand.Fatal(err)
 	}
 
 	// create statediff service
-	logWithCommand.Info("creating statediff service")
+	logWithCommand.Info("Creating statediff service")
 	db, err := postgres.NewDB(postgres.DbConnectionString(GetDBParams()), GetDBConfig(), nodeInfo)
 	if err != nil {
 		logWithCommand.Fatal(err)
@@ -83,20 +83,20 @@ func serve() {
 	}
 
 	// start service and servers
-	logWithCommand.Info("starting statediff service")
+	logWithCommand.Info("Starting statediff service")
 	wg := new(sync.WaitGroup)
 	go statediffService.Loop(wg)
-	logWithCommand.Info("starting rpc servers")
+	logWithCommand.Info("Starting RPC servers")
 	if err := startServers(statediffService); err != nil {
 		logWithCommand.Fatal(err)
 	}
-	logWithCommand.Info("rpc servers successfully spun up; awaiting requests")
+	logWithCommand.Info("RPC servers successfully spun up; awaiting requests")
 
 	// clean shutdown
 	shutdown := make(chan os.Signal)
 	signal.Notify(shutdown, os.Interrupt)
 	<-shutdown
-	logWithCommand.Info("received interrupt signal, shutting down")
+	logWithCommand.Info("Received interrupt signal, shutting down")
 	statediffService.Stop()
 	wg.Wait()
 }

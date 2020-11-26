@@ -60,14 +60,14 @@ func write() {
 	}
 
 	// create leveldb reader
-	logWithCommand.Info("creating leveldb reader")
+	logWithCommand.Info("Creating leveldb reader")
 	lvlDBReader, err := sd.NewLvlDBReader(path, ancientPath, config)
 	if err != nil {
 		logWithCommand.Fatal(err)
 	}
 
 	// create statediff service
-	logWithCommand.Info("creating statediff service")
+	logWithCommand.Info("Creating statediff service")
 	db, err := postgres.NewDB(postgres.DbConnectionString(GetDBParams()), GetDBConfig(), nodeInfo)
 	if err != nil {
 		logWithCommand.Fatal(err)
@@ -89,14 +89,14 @@ func write() {
 		IncludeCode:              true,
 	}
 	viper.UnmarshalKey("write.ranges", &blockRanges)
-	// viper.UnmarshalKey("write.params", &diffParams)
+	viper.UnmarshalKey("write.params", &diffParams)
 
 	for _, rng := range blockRanges {
 		if rng[1] < rng[0] {
 			logWithCommand.Fatal("range ending block number needs to be greater than starting block number")
 		}
-		logrus.Infof("writing statediffs from %d to %d", rng[0], rng[1])
-		for height := uint64(0); height <= rng[1]; height++ {
+		logrus.Infof("Writing statediffs from block %d to %d", rng[0], rng[1])
+		for height := rng[0]; height <= rng[1]; height++ {
 			statediffService.WriteStateDiffAt(height, diffParams)
 		}
 	}

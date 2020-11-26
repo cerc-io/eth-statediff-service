@@ -1,4 +1,4 @@
-## eth-statediff-service
+# eth-statediff-service
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/vulcanize/eth-statediff-service)](https://goreportcard.com/report/github.com/vulcanize/eth-statediff-service)
 
@@ -10,11 +10,27 @@ Stand up a statediffing service directly on top of a go-ethereum leveldb instanc
 This service can serve historical state data over the same rpc interface as
 [statediffing geth](https://github.com/vulcanize/go-ethereum/releases/tag/v1.9.11-statediff-0.0.5) without needing to run a full node
 
-Usage:
+## Usage
 
-`./eth-statediff-service serve --config={path to toml config file}`
+To serve state diffs over RPC:
 
-Config:
+`eth-statediff-service serve --config=<config path>`
+
+Available RPC methods are:
+  * `statediff_stateTrieAt()`
+  * `statediff_streamCodeAndCodeHash()`
+  * `statediff_stateDiffAt()`
+  * `statediff_writeStateDiffAt()`
+
+To write state diffs directly to a database:
+
+`eth-statediff-service write --config=<config path>`
+
+This depends on the `database` settings being properly configured.
+
+## Configuration
+
+An example config file:
 
 ```toml
 [leveldb]
@@ -25,10 +41,24 @@ Config:
     ipcPath = "~/.vulcanize/vulcanize.ipc"
     httpPath = "127.0.0.1:8545"
 
+[write]
+    ranges = [[1, 2], [3, 4]]
+[write.params]
+    IntermediateStateNodes   = true
+    IntermediateStorageNodes = false
+    IncludeBlock             = true
+    IncludeReceipts          = true
+    IncludeTD                = true
+    IncludeCode              = false
+
+[statediff]
+    workers = 4
+
 [log]
-    file = ""
+    file = "~/.vulcanize/statediff.log"
     level = "info"
 
 [eth]
     chainID = 1
+
 ```
