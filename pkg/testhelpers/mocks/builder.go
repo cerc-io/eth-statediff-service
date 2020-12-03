@@ -18,36 +18,44 @@ package mocks
 
 import (
 	"github.com/ethereum/go-ethereum/core/types"
-	statediff "github.com/vulcanize/eth-statediff-service/pkg"
+	sd "github.com/ethereum/go-ethereum/statediff/types"
 )
 
 // Builder is a mock state diff builder
 type Builder struct {
-	Args         statediff.Args
-	Params       statediff.Params
-	stateDiff    statediff.StateObject
+	Args         sd.Args
+	Params       sd.Params
+	stateDiff    sd.StateObject
 	block        *types.Block
-	stateTrie    statediff.StateObject
+	stateTrie    sd.StateObject
 	builderError error
 }
 
 // BuildStateDiffObject mock method
-func (builder *Builder) BuildStateDiffObject(args statediff.Args, params statediff.Params) (statediff.StateObject, error) {
+func (builder *Builder) BuildStateDiffObject(args sd.Args, params sd.Params) (sd.StateObject, error) {
 	builder.Args = args
 	builder.Params = params
 
 	return builder.stateDiff, builder.builderError
 }
 
+// BuildStateDiffObject mock method
+func (builder *Builder) WriteStateDiffObject(args sd.StateRoots, params sd.Params, output sd.StateNodeSink, codeOutput sd.CodeSink) error {
+	builder.StateRoots = args
+	builder.Params = params
+
+	return builder.builderError
+}
+
 // BuildStateTrieObject mock method
-func (builder *Builder) BuildStateTrieObject(block *types.Block) (statediff.StateObject, error) {
+func (builder *Builder) BuildStateTrieObject(block *types.Block) (sd.StateObject, error) {
 	builder.block = block
 
 	return builder.stateTrie, builder.builderError
 }
 
 // SetStateDiffToBuild mock method
-func (builder *Builder) SetStateDiffToBuild(stateDiff statediff.StateObject) {
+func (builder *Builder) SetStateDiffToBuild(stateDiff sd.StateObject) {
 	builder.stateDiff = stateDiff
 }
 

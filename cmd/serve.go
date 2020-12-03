@@ -21,12 +21,15 @@ import (
 	"os/signal"
 	"sync"
 
+	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	ind "github.com/ethereum/go-ethereum/statediff/indexer"
+	"github.com/ethereum/go-ethereum/statediff/indexer/postgres"
 	sd "github.com/vulcanize/eth-statediff-service/pkg"
 )
 
@@ -53,42 +56,47 @@ func serve() {
 	if path == "" || ancientPath == "" {
 		logWithCommand.Fatal("require a valid eth leveldb primary datastore path and ancient datastore path")
 	}
-	chainID := viper.GetUint64("eth.chainID")
-	config, err := chainConfig(chainID)
+
+	nodeInfo := GetEthNodeInfo()
+	config, err := chainConfig(nodeInfo.ChainID)
 	if err != nil {
 		logWithCommand.Fatal(err)
 	}
 
 	// create leveldb reader
-	logWithCommand.Info("creating leveldb reader")
+	logWithCommand.Info("Creating leveldb reader")
 	lvlDBReader, err := sd.NewLvlDBReader(path, ancientPath, config)
 	if err != nil {
 		logWithCommand.Fatal(err)
 	}
 
 	// create statediff service
-	logWithCommand.Info("creating statediff service")
-	statediffService, err := sd.NewStateDiffService(
-		lvlDBReader, sd.Config{Workers: viper.GetUint("statediff.workers")})
+	logWithCommand.Info("Creating statediff service")
+	db, err := postgres.NewDB(postgres.DbConnectionString(GetDBParams()), GetDBConfig(), nodeInfo)
+	if err != nil {
+		logWithCommand.Fatal(err)
+	}
+	indexer := ind.NewStateDiffIndexer(config, db)
+	statediffService, err := sd.NewStateDiffService(lvlDBReader, indexer, viper.GetUint("statediff.workers"))
 	if err != nil {
 		logWithCommand.Fatal(err)
 	}
 
 	// start service and servers
-	logWithCommand.Info("starting statediff service")
+	logWithCommand.Info("Starting statediff service")
 	wg := new(sync.WaitGroup)
 	go statediffService.Loop(wg)
-	logWithCommand.Info("starting rpc servers")
+	logWithCommand.Info("Starting RPC servers")
 	if err := startServers(statediffService); err != nil {
 		logWithCommand.Fatal(err)
 	}
-	logWithCommand.Info("rpc servers successfully spun up; awaiting requests")
+	logWithCommand.Info("RPC servers successfully spun up; awaiting requests")
 
 	// clean shutdown
 	shutdown := make(chan os.Signal)
 	signal.Notify(shutdown, os.Interrupt)
 	<-shutdown
-	logWithCommand.Info("received interrupt signal, shutting down")
+	logWithCommand.Info("Received interrupt signal, shutting down")
 	statediffService.Stop()
 	wg.Wait()
 }
@@ -96,15 +104,9 @@ func serve() {
 func init() {
 	rootCmd.AddCommand(serveCmd)
 
-	serveCmd.PersistentFlags().String("leveldb-path", "", "path to primary datastore")
-	serveCmd.PersistentFlags().String("ancient-path", "", "path to ancient datastore")
-	serveCmd.PersistentFlags().Uint("chain-id", 1, "ethereum chain id (mainnet = 1)")
 	serveCmd.PersistentFlags().String("http-path", "", "vdb server http path")
 	serveCmd.PersistentFlags().String("ipc-path", "", "vdb server ipc path")
 
-	viper.BindPFlag("leveldb.path", serveCmd.PersistentFlags().Lookup("leveldb-path"))
-	viper.BindPFlag("leveldb.ancient", serveCmd.PersistentFlags().Lookup("ancient-path"))
-	viper.BindPFlag("eth.chainID", serveCmd.PersistentFlags().Lookup("chain-id"))
 	viper.BindPFlag("server.httpPath", serveCmd.PersistentFlags().Lookup("http-path"))
 	viper.BindPFlag("server.ipcPath", serveCmd.PersistentFlags().Lookup("ipc-path"))
 }
@@ -126,7 +128,8 @@ func startServers(serv sd.IService) error {
 	}
 	if httpPath != "" {
 		logWithCommand.Info("starting up HTTP server")
-		if _, _, err := rpc.StartHTTPEndpoint(httpPath, serv.APIs(), []string{sd.APIName}, nil, nil, rpc.HTTPTimeouts{}); err != nil {
+		handler := rpc.NewServer()
+		if _, _, err := node.StartHTTPEndpoint(httpPath, rpc.HTTPTimeouts{}, handler); err != nil {
 			return err
 		}
 	}
@@ -138,7 +141,7 @@ func chainConfig(chainID uint64) (*params.ChainConfig, error) {
 	case 1:
 		return params.MainnetChainConfig, nil
 	case 3:
-		return params.TestnetChainConfig, nil // Ropsten
+		return params.RopstenChainConfig, nil // Ropsten
 	case 4:
 		return params.RinkebyChainConfig, nil
 	case 5:

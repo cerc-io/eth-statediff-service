@@ -17,7 +17,6 @@ package statediff
 
 import (
 	"context"
-
 	sd "github.com/ethereum/go-ethereum/statediff"
 )
 
@@ -48,4 +47,9 @@ func (api *PublicStateDiffAPI) StateDiffAt(ctx context.Context, blockNumber uint
 // StateTrieAt returns a state trie payload at the specific blockheight
 func (api *PublicStateDiffAPI) StateTrieAt(ctx context.Context, blockNumber uint64, params sd.Params) (*sd.Payload, error) {
 	return api.sds.StateTrieAt(blockNumber, params)
+}
+
+// WriteStateDiffAt writes a state diff object directly to DB at the specific blockheight
+func (api *PublicStateDiffAPI) WriteStateDiffAt(ctx context.Context, blockNumber uint64, params sd.Params) error {
+	return api.sds.WriteStateDiffAt(blockNumber, params)
 }

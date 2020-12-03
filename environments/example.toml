@@ -9,9 +9,21 @@
 [statediff]
     workers = 4
 
+[write]
+    ranges = [
+        [0, 0]
+    ]
+
 [log]
     file = ""
     level = "info"
 
 [eth]
     chainID = 1
+
+[database]
+    name     = "vulcanize_test"
+    hostname = "localhost"
+    port     = 5432
+    user     = "vulcanize"
+    password = "..."

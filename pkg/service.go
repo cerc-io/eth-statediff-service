@@ -29,7 +29,10 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
 	sd "github.com/ethereum/go-ethereum/statediff"
+	sdtypes "github.com/ethereum/go-ethereum/statediff/types"
 	"github.com/sirupsen/logrus"
+
+	ind "github.com/ethereum/go-ethereum/statediff/indexer"
 )
 
 // lvlDBReader are the db interfaces required by the statediffing service
@@ -43,20 +46,19 @@ type lvlDBReader interface {
 
 // IService is the state-diffing service interface
 type IService interface {
-	// APIs(), Protocols(), Start() and Stop()
-	node.Service
+	// Start() and Stop()
+	node.Lifecycle
+	// For node service registration
+	APIs() []rpc.API
+	Protocols() []p2p.Protocol
 	// Main event loop for processing state diffs
 	Loop(wg *sync.WaitGroup)
 	// Method to get state diff object at specific block
 	StateDiffAt(blockNumber uint64, params sd.Params) (*sd.Payload, error)
 	// Method to get state trie object at specific block
 	StateTrieAt(blockNumber uint64, params sd.Params) (*sd.Payload, error)
-}
-
-// Server configuration
-type Config struct {
-	// Number of goroutines to use
-	Workers uint
+	// Method to write state diff object directly to DB
+	WriteStateDiffAt(blockNumber uint64, params sd.Params) error
 }
 
 // Service is the underlying struct for the state diffing service
@@ -67,11 +69,13 @@ type Service struct {
 	lvlDBReader lvlDBReader
 	// Used to signal shutdown of the service
 	QuitChan chan bool
+	// Interface for publishing statediffs as PG-IPLD objects
+	indexer ind.Indexer
 }
 
 // NewStateDiffService creates a new Service
-func NewStateDiffService(lvlDBReader lvlDBReader, cfg Config) (*Service, error) {
-	builder, err := NewBuilder(lvlDBReader.StateDB(), cfg.Workers)
+func NewStateDiffService(lvlDBReader lvlDBReader, indexer ind.Indexer, workers uint) (*Service, error) {
+	builder, err := NewBuilder(lvlDBReader.StateDB(), workers)
 	if err != nil {
 		return nil, err
 	}
@@ -79,6 +83,7 @@ func NewStateDiffService(lvlDBReader lvlDBReader, cfg Config) (*Service, error) 
 		lvlDBReader: lvlDBReader,
 		Builder:     builder,
 		QuitChan:    make(chan bool),
+		indexer:     indexer,
 	}, nil
 }
 
@@ -206,7 +211,7 @@ func (sds *Service) processStateTrie(block *types.Block, params sd.Params) (*sd.
 }
 
 // Start is used to begin the service
-func (sds *Service) Start(*p2p.Server) error {
+func (sds *Service) Start() error {
 	logrus.Info("starting statediff service")
 	go sds.Loop(new(sync.WaitGroup))
 	return nil
@@ -216,5 +221,62 @@ func (sds *Service) Start(*p2p.Server) error {
 func (sds *Service) Stop() error {
 	logrus.Info("stopping statediff service")
 	close(sds.QuitChan)
+	return nil
+}
+
+// WriteStateDiffAt writes a state diff at the specific blockheight directly to the database
+// This operation cannot be performed back past the point of db pruning; it requires an archival node
+// for historical data
+func (sds *Service) WriteStateDiffAt(blockNumber uint64, params sd.Params) error {
+	logrus.Info(fmt.Sprintf("Writing state diff at block %d", blockNumber))
+	currentBlock, err := sds.lvlDBReader.GetBlockByNumber(blockNumber)
+	if err != nil {
+		return err
+	}
+	parentRoot := common.Hash{}
+	if blockNumber != 0 {
+		parentBlock, err := sds.lvlDBReader.GetBlockByHash(currentBlock.ParentHash())
+		if err != nil {
+			return err
+		}
+		parentRoot = parentBlock.Root()
+	}
+	return sds.writeStateDiff(currentBlock, parentRoot, params)
+}
+
+// Writes a state diff from the current block, parent state root, and provided params
+func (sds *Service) writeStateDiff(block *types.Block, parentRoot common.Hash, params sd.Params) error {
+	var totalDifficulty *big.Int
+	var receipts types.Receipts
+	var err error
+	if params.IncludeTD {
+		totalDifficulty, err = sds.lvlDBReader.GetTdByHash(block.Hash())
+	}
+	if err != nil {
+		return err
+	}
+	if params.IncludeReceipts {
+		receipts, err = sds.lvlDBReader.GetReceiptsByHash(block.Hash())
+	}
+	if err != nil {
+		return err
+	}
+
+	tx, err := sds.indexer.PushBlock(block, receipts, totalDifficulty)
+	if err != nil {
+		return err
+	}
+	// defer handling of commit/rollback for any return case
+	defer tx.Close()
+	output := func(node sdtypes.StateNode) error {
+		return sds.indexer.PushStateNode(tx, node)
+	}
+	codeOutput := func(c sdtypes.CodeAndCodeHash) error {
+		return sds.indexer.PushCodeAndCodeHash(tx, c)
+	}
+	err = sds.Builder.WriteStateDiffObject(sd.StateRoots{
+		NewStateRoot: block.Root(),
+		OldStateRoot: parentRoot,
+	}, params, output, codeOutput)
 	return nil
 }
