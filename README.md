@@ -12,6 +12,8 @@ This service can serve historical state data over the same rpc interface as
 
 ## Usage
 
+### `serve`
+
 To serve state diffs over RPC:
 
 `eth-statediff-service serve --config=<config path>`
@@ -21,6 +23,8 @@ Available RPC methods are:
   * `statediff_streamCodeAndCodeHash()`
   * `statediff_stateDiffAt()`
   * `statediff_writeStateDiffAt()`
+
+### `write`
 
 To write state diffs directly to a database:
 
