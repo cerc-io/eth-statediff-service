@@ -55,10 +55,14 @@ type IService interface {
 	Loop(wg *sync.WaitGroup)
 	// Method to get state diff object at specific block
 	StateDiffAt(blockNumber uint64, params sd.Params) (*sd.Payload, error)
+	// Method to get state diff object at specific block
+	StateDiffFor(blockHash common.Hash, params sd.Params) (*sd.Payload, error)
 	// Method to get state trie object at specific block
 	StateTrieAt(blockNumber uint64, params sd.Params) (*sd.Payload, error)
 	// Method to write state diff object directly to DB
 	WriteStateDiffAt(blockNumber uint64, params sd.Params) error
+	// Method to get state trie object at specific block
+	WriteStateDiffFor(blockHash common.Hash, params sd.Params) error
 }
 
 // Service is the underlying struct for the state diffing service
@@ -126,6 +130,24 @@ func (sds *Service) StateDiffAt(blockNumber uint64, params sd.Params) (*sd.Paylo
 	}
 	logrus.Info(fmt.Sprintf("sending state diff at block %d", blockNumber))
 	if blockNumber == 0 {
+		return sds.processStateDiff(currentBlock, common.Hash{}, params)
+	}
+	parentBlock, err := sds.lvlDBReader.GetBlockByHash(currentBlock.ParentHash())
+	if err != nil {
+		return nil, err
+	}
+	return sds.processStateDiff(currentBlock, parentBlock.Root(), params)
+}
+
+// StateDiffFor returns a state diff object payload for the specific blockhash
+// This operation cannot be performed back past the point of db pruning; it requires an archival node for historical data
+func (sds *Service) StateDiffFor(blockHash common.Hash, params sd.Params) (*sd.Payload, error) {
+	currentBlock, err := sds.lvlDBReader.GetBlockByHash(blockHash)
+	if err != nil {
+		return nil, err
+	}
+	logrus.Info(fmt.Sprintf("sending state diff at block %s", blockHash.Hex()))
+	if currentBlock.NumberU64() == 0 {
 		return sds.processStateDiff(currentBlock, common.Hash{}, params)
 	}
 	parentBlock, err := sds.lvlDBReader.GetBlockByHash(currentBlock.ParentHash())
@@ -235,6 +257,26 @@ func (sds *Service) WriteStateDiffAt(blockNumber uint64, params sd.Params) error
 	}
 	parentRoot := common.Hash{}
 	if blockNumber != 0 {
+		parentBlock, err := sds.lvlDBReader.GetBlockByHash(currentBlock.ParentHash())
+		if err != nil {
+			return err
+		}
+		parentRoot = parentBlock.Root()
+	}
+	return sds.writeStateDiff(currentBlock, parentRoot, params)
+}
+
+// WriteStateDiffFor writes a state diff for the specific blockHash directly to the database
+// This operation cannot be performed back past the point of db pruning; it requires an archival node
+// for historical data
+func (sds *Service) WriteStateDiffFor(blockHash common.Hash, params sd.Params) error {
+	logrus.Info(fmt.Sprintf("Writing state diff for block %s", blockHash.Hex()))
+	currentBlock, err := sds.lvlDBReader.GetBlockByHash(blockHash)
+	if err != nil {
+		return err
+	}
+	parentRoot := common.Hash{}
+	if currentBlock.NumberU64() != 0 {
 		parentBlock, err := sds.lvlDBReader.GetBlockByHash(currentBlock.ParentHash())
 		if err != nil {
 			return err
