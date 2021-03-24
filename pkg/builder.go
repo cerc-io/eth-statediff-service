@@ -442,18 +442,6 @@ func (sdb *builder) deletedOrUpdatedState(iters iterPair, diffPathsAtB map[strin
 		if err != nil {
 			return nil, err
 		}
-		// if this node's path did not show up in diffPathsAtB
-		// that means the node at this path was deleted (or moved) in B
-		// emit an empty "removed" diff to signify as such
-		if _, ok := diffPathsAtB[common.Bytes2Hex(node.Path)]; !ok {
-			if err := output(sdtypes.StateNode{
-				Path:      node.Path,
-				NodeValue: []byte{},
-				NodeType:  sdtypes.Removed,
-			}); err != nil {
-				return nil, err
-			}
-		}
 		switch node.NodeType {
 		case sdtypes.Leaf:
 			// map all different accounts at A to their leafkey
@@ -472,7 +460,32 @@ func (sdb *builder) deletedOrUpdatedState(iters iterPair, diffPathsAtB map[strin
 				LeafKey:   leafKey,
 				Account:   &account,
 			}
+			// if this node's path did not show up in diffPathsAtB
+			// that means the node at this path was deleted (or moved) in B
+			// emit an empty "removed" diff to signify as such
+			if _, ok := diffPathsAtB[common.Bytes2Hex(node.Path)]; !ok {
+				if err := output(sdtypes.StateNode{
+					Path:      node.Path,
+					NodeValue: []byte{},
+					NodeType:  sdtypes.Removed,
+					LeafKey:   leafKey,
+				}); err != nil {
+					return nil, err
+				}
+			}
 		case sdtypes.Extension, sdtypes.Branch:
+			// if this node's path did not show up in diffPathsAtB
+			// that means the node at this path was deleted (or moved) in B
+			// emit an empty "removed" diff to signify as such
+			if _, ok := diffPathsAtB[common.Bytes2Hex(node.Path)]; !ok {
+				if err := output(sdtypes.StateNode{
+					Path:      node.Path,
+					NodeValue: []byte{},
+					NodeType:  sdtypes.Removed,
+				}); err != nil {
+					return nil, err
+				}
+			}
 			// fall through, we did everything we need to do with these node types
 		default:
 			return nil, fmt.Errorf("unexpected node type %s", node.NodeType)
@@ -717,6 +730,7 @@ func (sdb *builder) deletedOrUpdatedStorage(a, b trie.NodeIterator, diffPathsAtB
 					NodeType:  sdtypes.Removed,
 					Path:      node.Path,
 					NodeValue: []byte{},
+					LeafKey:   leafKey,
 				}); err != nil {
 					return err
 				}
