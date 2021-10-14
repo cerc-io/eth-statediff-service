@@ -20,7 +20,7 @@
 package statediff
 
 import (
-	"github.com/ethereum/go-ethereum/core/state"
+	"github.com/ethereum/go-ethereum/core/types"
 	sd "github.com/ethereum/go-ethereum/statediff/types"
 )
 
@@ -29,7 +29,7 @@ type AccountMap map[string]accountWrapper
 
 // accountWrapper is used to temporary associate the unpacked node with its raw values
 type accountWrapper struct {
-	Account   *state.Account
+	Account   *types.StateAccount
 	NodeType  sd.NodeType
 	Path      []byte
 	NodeValue []byte

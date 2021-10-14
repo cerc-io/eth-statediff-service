@@ -30,6 +30,7 @@ import (
 
 	ind "github.com/ethereum/go-ethereum/statediff/indexer"
 	"github.com/ethereum/go-ethereum/statediff/indexer/postgres"
+
 	sd "github.com/vulcanize/eth-statediff-service/pkg"
 )
 
@@ -76,7 +77,12 @@ func serve() {
 	if err != nil {
 		logWithCommand.Fatal(err)
 	}
-	indexer := ind.NewStateDiffIndexer(config, db)
+
+	indexer, err := ind.NewStateDiffIndexer(config, db)
+	if err != nil {
+		logWithCommand.Fatal(err)
+	}
+
 	statediffService, err := sd.NewStateDiffService(lvlDBReader, indexer, viper.GetUint("statediff.workers"))
 	if err != nil {
 		logWithCommand.Fatal(err)

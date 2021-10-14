@@ -36,7 +36,7 @@ type LvlDBReader struct {
 
 // NewLvlDBReader creates a new LvlDBReader
 func NewLvlDBReader(path, ancient string, chainConfig *params.ChainConfig) (*LvlDBReader, error) {
-	edb, err := rawdb.NewLevelDBDatabaseWithFreezer(path, 1024, 256, ancient, "eth-statediff-service")
+	edb, err := rawdb.NewLevelDBDatabaseWithFreezer(path, 1024, 256, ancient, "eth-statediff-service", true)
 	if err != nil {
 		return nil, err
 	}

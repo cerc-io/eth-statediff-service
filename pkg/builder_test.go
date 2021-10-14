@@ -25,7 +25,6 @@ import (
 	"github.com/ethereum/go-ethereum/statediff"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -89,7 +88,7 @@ var (
 		slot0StorageValue,
 	})
 
-	contractAccountAtBlock2, _ = rlp.EncodeToBytes(state.Account{
+	contractAccountAtBlock2, _ = rlp.EncodeToBytes(types.StateAccount{
 		Nonce:    1,
 		Balance:  big.NewInt(0),
 		CodeHash: common.HexToHash("0xaaea5efba4fd7b45d7ec03918ac5d8b31aa93b48986af0e6b591f0f087c80127").Bytes(),
@@ -99,7 +98,7 @@ var (
 		common.Hex2Bytes("3114658a74d9cc9f7acf2c5cd696c3494d7c344d78bfec3add0d91ec4e8d1c45"),
 		contractAccountAtBlock2,
 	})
-	contractAccountAtBlock3, _ = rlp.EncodeToBytes(state.Account{
+	contractAccountAtBlock3, _ = rlp.EncodeToBytes(types.StateAccount{
 		Nonce:    1,
 		Balance:  big.NewInt(0),
 		CodeHash: common.HexToHash("0xaaea5efba4fd7b45d7ec03918ac5d8b31aa93b48986af0e6b591f0f087c80127").Bytes(),
@@ -109,7 +108,7 @@ var (
 		common.Hex2Bytes("3114658a74d9cc9f7acf2c5cd696c3494d7c344d78bfec3add0d91ec4e8d1c45"),
 		contractAccountAtBlock3,
 	})
-	contractAccountAtBlock4, _ = rlp.EncodeToBytes(state.Account{
+	contractAccountAtBlock4, _ = rlp.EncodeToBytes(types.StateAccount{
 		Nonce:    1,
 		Balance:  big.NewInt(0),
 		CodeHash: common.HexToHash("0xaaea5efba4fd7b45d7ec03918ac5d8b31aa93b48986af0e6b591f0f087c80127").Bytes(),
@@ -119,7 +118,7 @@ var (
 		common.Hex2Bytes("3114658a74d9cc9f7acf2c5cd696c3494d7c344d78bfec3add0d91ec4e8d1c45"),
 		contractAccountAtBlock4,
 	})
-	contractAccountAtBlock5, _ = rlp.EncodeToBytes(state.Account{
+	contractAccountAtBlock5, _ = rlp.EncodeToBytes(types.StateAccount{
 		Nonce:    1,
 		Balance:  big.NewInt(0),
 		CodeHash: common.HexToHash("0xaaea5efba4fd7b45d7ec03918ac5d8b31aa93b48986af0e6b591f0f087c80127").Bytes(),
@@ -130,7 +129,7 @@ var (
 		contractAccountAtBlock5,
 	})
 
-	minerAccountAtBlock1, _ = rlp.EncodeToBytes(state.Account{
+	minerAccountAtBlock1, _ = rlp.EncodeToBytes(types.StateAccount{
 		Nonce:    0,
 		Balance:  big.NewInt(miningReward),
 		CodeHash: testhelpers.NullCodeHash.Bytes(),
@@ -140,7 +139,7 @@ var (
 		common.Hex2Bytes("3380c7b7ae81a58eb98d9c78de4a1fd7fd9535fc953ed2be602daaa41767312a"),
 		minerAccountAtBlock1,
 	})
-	minerAccountAtBlock2, _ = rlp.EncodeToBytes(state.Account{
+	minerAccountAtBlock2, _ = rlp.EncodeToBytes(types.StateAccount{
 		Nonce:    0,
 		Balance:  big.NewInt(miningReward + miningReward),
 		CodeHash: testhelpers.NullCodeHash.Bytes(),
@@ -151,7 +150,7 @@ var (
 		minerAccountAtBlock2,
 	})
 
-	account1AtBlock1, _ = rlp.EncodeToBytes(state.Account{
+	account1AtBlock1, _ = rlp.EncodeToBytes(types.StateAccount{
 		Nonce:    0,
 		Balance:  big.NewInt(balanceChange10000),
 		CodeHash: testhelpers.NullCodeHash.Bytes(),
@@ -161,7 +160,7 @@ var (
 		common.Hex2Bytes("3926db69aaced518e9b9f0f434a473e7174109c943548bb8f23be41ca76d9ad2"),
 		account1AtBlock1,
 	})
-	account1AtBlock2, _ = rlp.EncodeToBytes(state.Account{
+	account1AtBlock2, _ = rlp.EncodeToBytes(types.StateAccount{
 		Nonce:    2,
 		Balance:  big.NewInt(block1Account1Balance - balanceChange1000 + balanceChange1000),
 		CodeHash: testhelpers.NullCodeHash.Bytes(),
@@ -171,7 +170,7 @@ var (
 		common.Hex2Bytes("3926db69aaced518e9b9f0f434a473e7174109c943548bb8f23be41ca76d9ad2"),
 		account1AtBlock2,
 	})
-	account1AtBlock5, _ = rlp.EncodeToBytes(state.Account{
+	account1AtBlock5, _ = rlp.EncodeToBytes(types.StateAccount{
 		Nonce:    2,
 		Balance:  big.NewInt(block1Account1Balance - balanceChange1000 + balanceChange1000 + miningReward),
 		CodeHash: testhelpers.NullCodeHash.Bytes(),
@@ -181,7 +180,7 @@ var (
 		common.Hex2Bytes("3926db69aaced518e9b9f0f434a473e7174109c943548bb8f23be41ca76d9ad2"),
 		account1AtBlock5,
 	})
-	account1AtBlock6, _ = rlp.EncodeToBytes(state.Account{
+	account1AtBlock6, _ = rlp.EncodeToBytes(types.StateAccount{
 		Nonce:    3,
 		Balance:  big.NewInt(block1Account1Balance - balanceChange1000 + balanceChange1000 + miningReward),
 		CodeHash: testhelpers.NullCodeHash.Bytes(),
@@ -192,7 +191,7 @@ var (
 		account1AtBlock6,
 	})
 
-	account2AtBlock2, _ = rlp.EncodeToBytes(state.Account{
+	account2AtBlock2, _ = rlp.EncodeToBytes(types.StateAccount{
 		Nonce:    0,
 		Balance:  big.NewInt(balanceChange1000),
 		CodeHash: testhelpers.NullCodeHash.Bytes(),
@@ -202,7 +201,7 @@ var (
 		common.Hex2Bytes("3957f3e2f04a0764c3a0491b175f69926da61efbcc8f61fa1455fd2d2b4cdd45"),
 		account2AtBlock2,
 	})
-	account2AtBlock3, _ = rlp.EncodeToBytes(state.Account{
+	account2AtBlock3, _ = rlp.EncodeToBytes(types.StateAccount{
 		Nonce:    0,
 		Balance:  big.NewInt(block2Account2Balance + miningReward),
 		CodeHash: testhelpers.NullCodeHash.Bytes(),
@@ -212,7 +211,7 @@ var (
 		common.Hex2Bytes("3957f3e2f04a0764c3a0491b175f69926da61efbcc8f61fa1455fd2d2b4cdd45"),
 		account2AtBlock3,
 	})
-	account2AtBlock4, _ = rlp.EncodeToBytes(state.Account{
+	account2AtBlock4, _ = rlp.EncodeToBytes(types.StateAccount{
 		Nonce:    0,
 		Balance:  big.NewInt(block2Account2Balance + miningReward*2),
 		CodeHash: testhelpers.NullCodeHash.Bytes(),
@@ -222,7 +221,7 @@ var (
 		common.Hex2Bytes("3957f3e2f04a0764c3a0491b175f69926da61efbcc8f61fa1455fd2d2b4cdd45"),
 		account2AtBlock4,
 	})
-	account2AtBlock6, _ = rlp.EncodeToBytes(state.Account{
+	account2AtBlock6, _ = rlp.EncodeToBytes(types.StateAccount{
 		Nonce:    0,
 		Balance:  big.NewInt(block2Account2Balance + miningReward*3),
 		CodeHash: testhelpers.NullCodeHash.Bytes(),
@@ -233,7 +232,7 @@ var (
 		account2AtBlock6,
 	})
 
-	bankAccountAtBlock0, _ = rlp.EncodeToBytes(state.Account{
+	bankAccountAtBlock0, _ = rlp.EncodeToBytes(types.StateAccount{
 		Nonce:    0,
 		Balance:  big.NewInt(testhelpers.TestBankFunds.Int64()),
 		CodeHash: testhelpers.NullCodeHash.Bytes(),
@@ -243,7 +242,7 @@ var (
 		common.Hex2Bytes("2000bf49f440a1cd0527e4d06e2765654c0f56452257516d793a9b8d604dcfdf2a"),
 		bankAccountAtBlock0,
 	})
-	bankAccountAtBlock1, _ = rlp.EncodeToBytes(state.Account{
+	bankAccountAtBlock1, _ = rlp.EncodeToBytes(types.StateAccount{
 		Nonce:    1,
 		Balance:  big.NewInt(testhelpers.TestBankFunds.Int64() - balanceChange10000),
 		CodeHash: testhelpers.NullCodeHash.Bytes(),
@@ -253,7 +252,7 @@ var (
 		common.Hex2Bytes("30bf49f440a1cd0527e4d06e2765654c0f56452257516d793a9b8d604dcfdf2a"),
 		bankAccountAtBlock1,
 	})
-	bankAccountAtBlock2, _ = rlp.EncodeToBytes(state.Account{
+	bankAccountAtBlock2, _ = rlp.EncodeToBytes(types.StateAccount{
 		Nonce:    2,
 		Balance:  big.NewInt(block1BankBalance - balanceChange1000),
 		CodeHash: testhelpers.NullCodeHash.Bytes(),
@@ -263,7 +262,7 @@ var (
 		common.Hex2Bytes("30bf49f440a1cd0527e4d06e2765654c0f56452257516d793a9b8d604dcfdf2a"),
 		bankAccountAtBlock2,
 	})
-	bankAccountAtBlock3, _ = rlp.EncodeToBytes(state.Account{
+	bankAccountAtBlock3, _ = rlp.EncodeToBytes(types.StateAccount{
 		Nonce:    3,
 		Balance:  big.NewInt(99989000),
 		CodeHash: testhelpers.NullCodeHash.Bytes(),
@@ -273,7 +272,7 @@ var (
 		common.Hex2Bytes("30bf49f440a1cd0527e4d06e2765654c0f56452257516d793a9b8d604dcfdf2a"),
 		bankAccountAtBlock3,
 	})
-	bankAccountAtBlock4, _ = rlp.EncodeToBytes(state.Account{
+	bankAccountAtBlock4, _ = rlp.EncodeToBytes(types.StateAccount{
 		Nonce:    6,
 		Balance:  big.NewInt(99989000),
 		CodeHash: testhelpers.NullCodeHash.Bytes(),
@@ -283,7 +282,7 @@ var (
 		common.Hex2Bytes("30bf49f440a1cd0527e4d06e2765654c0f56452257516d793a9b8d604dcfdf2a"),
 		bankAccountAtBlock4,
 	})
-	bankAccountAtBlock5, _ = rlp.EncodeToBytes(state.Account{
+	bankAccountAtBlock5, _ = rlp.EncodeToBytes(types.StateAccount{
 		Nonce:    7,
 		Balance:  big.NewInt(99989000),
 		CodeHash: testhelpers.NullCodeHash.Bytes(),
@@ -1735,7 +1734,7 @@ var (
 		slot00StorageValue,
 	})
 
-	contractAccountAtBlock01, _ = rlp.EncodeToBytes(state.Account{
+	contractAccountAtBlock01, _ = rlp.EncodeToBytes(types.StateAccount{
 		Nonce:    1,
 		Balance:  big.NewInt(0),
 		CodeHash: common.HexToHash("0xaaea5efba4fd7b45d7ec03918ac5d8b31aa93b48986af0e6b591f0f087c80127").Bytes(),
@@ -1746,7 +1745,7 @@ var (
 		contractAccountAtBlock01,
 	})
 
-	bankAccountAtBlock01, _ = rlp.EncodeToBytes(state.Account{
+	bankAccountAtBlock01, _ = rlp.EncodeToBytes(types.StateAccount{
 		Nonce:    1,
 		Balance:  big.NewInt(testhelpers.TestBankFunds.Int64() + miningReward),
 		CodeHash: testhelpers.NullCodeHash.Bytes(),
@@ -1756,7 +1755,7 @@ var (
 		common.Hex2Bytes("30bf49f440a1cd0527e4d06e2765654c0f56452257516d793a9b8d604dcfdf2a"),
 		bankAccountAtBlock01,
 	})
-	bankAccountAtBlock02, _ = rlp.EncodeToBytes(state.Account{
+	bankAccountAtBlock02, _ = rlp.EncodeToBytes(types.StateAccount{
 		Nonce:    2,
 		Balance:  big.NewInt(testhelpers.TestBankFunds.Int64() + miningReward*2),
 		CodeHash: testhelpers.NullCodeHash.Bytes(),
