@@ -16,13 +16,18 @@
 package cmd
 
 import (
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
+	"fmt"
+	"net/http"
+	"strconv"
+	"sync"
+	"time"
 
 	gethsd "github.com/ethereum/go-ethereum/statediff"
 	ind "github.com/ethereum/go-ethereum/statediff/indexer"
 	"github.com/ethereum/go-ethereum/statediff/indexer/postgres"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	sd "github.com/vulcanize/eth-statediff-service/pkg"
 )
@@ -36,15 +41,20 @@ var writeCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		subCommand = cmd.CalledAs()
 		logWithCommand = *logrus.WithField("SubCommand", subCommand)
-		write()
+
+		addr, _ := cmd.Flags().GetString("serve")
+		write(addr)
 	},
 }
 
+type blockRange [2]uint64
+
 func init() {
 	rootCmd.AddCommand(writeCmd)
+	writeCmd.Flags().String("serve", ":8888", "starts a server which handles write request through endpoints")
 }
 
-func write() {
+func write(addr string) {
 	logWithCommand.Info("Starting statediff writer")
 
 	// load params
@@ -85,7 +95,7 @@ func write() {
 	}
 
 	// Read all defined block ranges, write statediffs to database
-	var blockRanges [][2]uint64
+	var blockRanges []blockRange
 	diffParams := gethsd.Params{ // todo: configurable?
 		IntermediateStateNodes:   true,
 		IntermediateStorageNodes: true,
@@ -97,13 +107,71 @@ func write() {
 	viper.UnmarshalKey("write.ranges", &blockRanges)
 	viper.UnmarshalKey("write.params", &diffParams)
 
-	for _, rng := range blockRanges {
-		if rng[1] < rng[0] {
-			logWithCommand.Fatal("range ending block number needs to be greater than starting block number")
+	blockRangesCh := make(chan blockRange, 100)
+	go func() {
+		for _, r := range blockRanges {
+			blockRangesCh <- r
 		}
-		logrus.Infof("Writing statediffs from block %d to %d", rng[0], rng[1])
-		for height := rng[0]; height <= rng[1]; height++ {
-			statediffService.WriteStateDiffAt(height, diffParams)
+		if addr == "" {
+			close(blockRangesCh)
+			return
 		}
+		startServer(addr, blockRangesCh)
+	}()
+
+	processRanges(statediffService, diffParams, blockRangesCh)
+}
+
+func startServer(addr string, blockRangesCh chan<- blockRange) {
+	handler := func(w http.ResponseWriter, req *http.Request) {
+		start, err := strconv.Atoi(req.URL.Query().Get("start"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to parse start value: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		end, err := strconv.Atoi(req.URL.Query().Get("end"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to parse end value: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		select {
+		case blockRangesCh <- blockRange{uint64(start), uint64(end)}:
+		case <-time.After(time.Millisecond * 200):
+			http.Error(w, "server is busy", http.StatusInternalServerError)
+			return
+		}
+
+		fmt.Fprintf(w, "added block range to the queue\n")
 	}
+
+	http.HandleFunc("/writeDiff", handler)
+	logrus.Fatal(http.ListenAndServe(addr, nil))
+}
+
+type diffService interface {
+	WriteStateDiffAt(blockNumber uint64, params gethsd.Params) error
+}
+
+func processRanges(sds diffService, param gethsd.Params, blockRangesCh chan blockRange) {
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for rng := range blockRangesCh {
+			if rng[1] < rng[0] {
+				logWithCommand.Fatal("range ending block number needs to be greater than starting block number")
+			}
+			logrus.Infof("Writing statediffs from block %d to %d", rng[0], rng[1])
+			for height := rng[0]; height <= rng[1]; height++ {
+				err := sds.WriteStateDiffAt(height, param)
+				if err != nil {
+					logrus.Errorf("failed to write state diff for range: %v %v", rng, err)
+				}
+			}
+		}
+	}()
+
+	wg.Wait()
 }
