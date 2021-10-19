@@ -18,7 +18,6 @@ package testhelpers
 
 import (
 	"math/big"
-	"math/rand"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
@@ -42,12 +41,7 @@ func AddressToEncodedPath(address common.Address) []byte {
 // Test variables
 var (
 	EvenLeafFlag = []byte{byte(2) << 4}
-	BlockNumber  = big.NewInt(rand.Int63())
-	BlockHash    = "0xfa40fbe2d98d98b3363a778d52f2bcd29d6790b9b3f3cab2b167fd12d3550f73"
 	NullCodeHash = crypto.Keccak256Hash([]byte{})
-	StoragePath  = common.HexToHash("0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470").Bytes()
-	StorageKey   = common.HexToHash("0000000000000000000000000000000000000000000000000000000000000001").Bytes()
-	StorageValue = common.Hex2Bytes("0x03")
 	NullHash     = common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000")
 
 	Testdb          = rawdb.NewMemoryDatabase()

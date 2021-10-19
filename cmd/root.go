@@ -106,6 +106,8 @@ func init() {
 		"0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3", "eth genesis block hash")
 	rootCmd.PersistentFlags().String("eth-network-id", "1", "eth network id")
 	rootCmd.PersistentFlags().String("eth-chain-id", "1", "eth chain id")
+	rootCmd.PersistentFlags().Int("cache-db", 1024, "megabytes of memory allocated to database cache")
+	rootCmd.PersistentFlags().Int("cache-trie", 1024, "Megabytes of memory allocated to trie cache")
 
 	viper.BindPFlag("log.file", rootCmd.PersistentFlags().Lookup("log-file"))
 	viper.BindPFlag("log.level", rootCmd.PersistentFlags().Lookup("log-level"))
@@ -122,6 +124,8 @@ func init() {
 	viper.BindPFlag("ethereum.genesisBlock", rootCmd.PersistentFlags().Lookup("eth-genesis-block"))
 	viper.BindPFlag("ethereum.networkID", rootCmd.PersistentFlags().Lookup("eth-network-id"))
 	viper.BindPFlag("ethereum.chainID", rootCmd.PersistentFlags().Lookup("eth-chain-id"))
+	viper.BindPFlag("cache.database", rootCmd.PersistentFlags().Lookup("cache-db"))
+	viper.BindPFlag("cache.trie", rootCmd.PersistentFlags().Lookup("cache-trie"))
 }
 
 func initConfig() {

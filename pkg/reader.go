@@ -25,6 +25,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/trie"
 )
 
 // LvlDBReader exposes the necessary read functions on lvldb
@@ -34,16 +35,24 @@ type LvlDBReader struct {
 	chainConfig *params.ChainConfig
 }
 
+// ReaderConfig struct for initializing a LvlDBReader
+type ReaderConfig struct {
+	TrieConfig        *trie.Config
+	ChainConfig       *params.ChainConfig
+	Path, AncientPath string
+	DBCacheSize       int
+}
+
 // NewLvlDBReader creates a new LvlDBReader
-func NewLvlDBReader(path, ancient string, chainConfig *params.ChainConfig) (*LvlDBReader, error) {
-	edb, err := rawdb.NewLevelDBDatabaseWithFreezer(path, 1024, 256, ancient, "eth-statediff-service", true)
+func NewLvlDBReader(conf ReaderConfig) (*LvlDBReader, error) {
+	edb, err := rawdb.NewLevelDBDatabaseWithFreezer(conf.Path, conf.DBCacheSize, 256, conf.AncientPath, "eth-statediff-service", true)
 	if err != nil {
 		return nil, err
 	}
 	return &LvlDBReader{
 		ethDB:       edb,
-		stateDB:     state.NewDatabase(edb),
-		chainConfig: chainConfig,
+		stateDB:     state.NewDatabaseWithConfig(edb, conf.TrieConfig),
+		chainConfig: conf.ChainConfig,
 	}, nil
 }
 
