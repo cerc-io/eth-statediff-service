@@ -31,10 +31,11 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
+	sd "github.com/ethereum/go-ethereum/statediff"
+	sdtrie "github.com/ethereum/go-ethereum/statediff/trie"
+	sdtypes "github.com/ethereum/go-ethereum/statediff/types"
 	"github.com/ethereum/go-ethereum/trie"
 
-	sd "github.com/ethereum/go-ethereum/statediff"
-	sdtypes "github.com/ethereum/go-ethereum/statediff/types"
 	iter "github.com/vulcanize/go-eth-state-node-iterator"
 )
 
@@ -72,7 +73,7 @@ func resolveNode(it trie.NodeIterator, trieDB *trie.Database) (sdtypes.StateNode
 	if err := rlp.DecodeBytes(node, &nodeElements); err != nil {
 		return sdtypes.StateNode{}, nil, err
 	}
-	ty, err := sd.CheckKeyType(nodeElements)
+	ty, err := sdtrie.CheckKeyType(nodeElements)
 	if err != nil {
 		return sdtypes.StateNode{}, nil, err
 	}
@@ -150,7 +151,7 @@ func (sdb *builder) buildStateTrie(it trie.NodeIterator) ([]sdtypes.StateNode, [
 		}
 		switch node.NodeType {
 		case sdtypes.Leaf:
-			var account state.Account
+			var account types.StateAccount
 			if err := rlp.DecodeBytes(nodeElements[1].([]byte), &account); err != nil {
 				return nil, nil, fmt.Errorf("error decoding account for leaf node at path %x nerror: %v", node.Path, err)
 			}
@@ -351,7 +352,7 @@ func (sdb *builder) createdAndUpdatedState(iters iterPair, watchedAddresses []co
 		case sdtypes.Leaf:
 			// created vs updated is important for leaf nodes since we need to diff their storage
 			// so we need to map all changed accounts at B to their leafkey, since account can change pathes but not leafkey
-			var account state.Account
+			var account types.StateAccount
 			if err := rlp.DecodeBytes(nodeElements[1].([]byte), &account); err != nil {
 				return nil, nil, fmt.Errorf("error decoding account for leaf node at path %x nerror: %v", node.Path, err)
 			}
@@ -395,7 +396,7 @@ func (sdb *builder) createdAndUpdatedStateWithIntermediateNodes(iters iterPair, 
 		case sdtypes.Leaf:
 			// created vs updated is important for leaf nodes since we need to diff their storage
 			// so we need to map all changed accounts at B to their leafkey, since account can change paths but not leafkey
-			var account state.Account
+			var account types.StateAccount
 			if err := rlp.DecodeBytes(nodeElements[1].([]byte), &account); err != nil {
 				return nil, nil, fmt.Errorf("error decoding account for leaf node at path %x nerror: %v", node.Path, err)
 			}
@@ -445,7 +446,7 @@ func (sdb *builder) deletedOrUpdatedState(iters iterPair, diffPathsAtB map[strin
 		switch node.NodeType {
 		case sdtypes.Leaf:
 			// map all different accounts at A to their leafkey
-			var account state.Account
+			var account types.StateAccount
 			if err := rlp.DecodeBytes(nodeElements[1].([]byte), &account); err != nil {
 				return nil, fmt.Errorf("error decoding account for leaf node at path %x nerror: %v", node.Path, err)
 			}
