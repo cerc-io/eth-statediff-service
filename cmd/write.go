@@ -25,6 +25,7 @@ import (
 	gethsd "github.com/ethereum/go-ethereum/statediff"
 	ind "github.com/ethereum/go-ethereum/statediff/indexer"
 	"github.com/ethereum/go-ethereum/statediff/indexer/postgres"
+	"github.com/ethereum/go-ethereum/trie"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -41,9 +42,7 @@ var writeCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		subCommand = cmd.CalledAs()
 		logWithCommand = *logrus.WithField("SubCommand", subCommand)
-
-		addr, _ := cmd.Flags().GetString("serve")
-		write(addr)
+		write()
 	},
 }
 
@@ -51,10 +50,11 @@ type blockRange [2]uint64
 
 func init() {
 	rootCmd.AddCommand(writeCmd)
-	writeCmd.Flags().String("serve", ":8888", "starts a server which handles write request through endpoints")
+	writeCmd.Flags().String("serve", "", "starts a server which handles write request through endpoints")
+	viper.BindPFlag("write.serve", writeCmd.PersistentFlags().Lookup("serve"))
 }
 
-func write(addr string) {
+func write() {
 	logWithCommand.Info("Starting statediff writer")
 
 	// load params
@@ -72,7 +72,18 @@ func write(addr string) {
 
 	// create leveldb reader
 	logWithCommand.Info("Creating leveldb reader")
-	lvlDBReader, err := sd.NewLvlDBReader(path, ancientPath, config)
+	conf := sd.ReaderConfig{
+		TrieConfig: &trie.Config{
+			Cache:     viper.GetInt("cache.trie"),
+			Journal:   "",
+			Preimages: false,
+		},
+		ChainConfig: config,
+		Path:        path,
+		AncientPath: ancientPath,
+		DBCacheSize: viper.GetInt("cache.database"),
+	}
+	lvlDBReader, err := sd.NewLvlDBReader(conf)
 	if err != nil {
 		logWithCommand.Fatal(err)
 	}
@@ -108,6 +119,7 @@ func write(addr string) {
 	viper.UnmarshalKey("write.params", &diffParams)
 
 	blockRangesCh := make(chan blockRange, 100)
+	addr := viper.GetString("write.serve")
 	go func() {
 		for _, r := range blockRanges {
 			blockRangesCh <- r

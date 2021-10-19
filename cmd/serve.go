@@ -24,6 +24,7 @@ import (
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/ethereum/go-ethereum/trie"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -66,7 +67,18 @@ func serve() {
 
 	// create leveldb reader
 	logWithCommand.Info("Creating leveldb reader")
-	lvlDBReader, err := sd.NewLvlDBReader(path, ancientPath, config)
+	conf := sd.ReaderConfig{
+		TrieConfig: &trie.Config{
+			Cache:     viper.GetInt("cache.trie"),
+			Journal:   "",
+			Preimages: false,
+		},
+		ChainConfig: config,
+		Path:        path,
+		AncientPath: ancientPath,
+		DBCacheSize: viper.GetInt("cache.database"),
+	}
+	lvlDBReader, err := sd.NewLvlDBReader(conf)
 	if err != nil {
 		logWithCommand.Fatal(err)
 	}

@@ -13,6 +13,7 @@
     ranges = [
         [0, 0]
     ]
+    serve = ":8888"
 
 [log]
     file = ""
@@ -27,3 +28,7 @@
     port     = 5432
     user     = "vulcanize"
     password = "..."
+
+[cache]
+    database = 1024
+    trie = 1024

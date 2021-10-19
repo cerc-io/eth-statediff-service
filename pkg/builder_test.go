@@ -22,12 +22,11 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/statediff"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/ethereum/go-ethereum/statediff"
 	sdtypes "github.com/ethereum/go-ethereum/statediff/types"
 
 	pkg "github.com/vulcanize/eth-statediff-service/pkg"

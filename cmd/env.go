@@ -28,6 +28,13 @@ const (
 	ETH_GENESIS_BLOCK = "ETH_GENESIS_BLOCK"
 	ETH_NETWORK_ID    = "ETH_NETWORK_ID"
 	ETH_CHAIN_ID      = "ETH_CHAIN_ID"
+
+	DB_CACHE_SIZE_MB   = "DB_CACHE_SIZE_MB"
+	TRIE_CACHE_SIZE_MB = "TRIE_CACHE_SIZE_MB"
+
+	WRITE_SERVER = "WRITE_SERVER"
+
+	STATEDIFF_WORKERS = "STATEDIFF_WORKERS"
 )
 
 // Bind env vars for eth node and DB configuration
@@ -46,4 +53,11 @@ func init() {
 	viper.BindEnv("database.maxIdle", pg.DATABASE_MAX_IDLE_CONNECTIONS)
 	viper.BindEnv("database.maxOpen", pg.DATABASE_MAX_OPEN_CONNECTIONS)
 	viper.BindEnv("database.maxLifetime", pg.DATABASE_MAX_CONN_LIFETIME)
+
+	viper.BindEnv("cache.database", DB_CACHE_SIZE_MB)
+	viper.BindEnv("cache.trie", TRIE_CACHE_SIZE_MB)
+
+	viper.BindEnv("write.serve", WRITE_SERVER)
+
+	viper.BindEnv("statediff.workers", STATEDIFF_WORKERS)
 }

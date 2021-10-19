@@ -37,10 +37,10 @@ type LvlDBReader struct {
 
 // ReaderConfig struct for initializing a LvlDBReader
 type ReaderConfig struct {
-	TrieConfig *trie.Config
-	ChainConfig *params.ChainConfig
+	TrieConfig        *trie.Config
+	ChainConfig       *params.ChainConfig
 	Path, AncientPath string
-	DBCacheSize int
+	DBCacheSize       int
 }
 
 // NewLvlDBReader creates a new LvlDBReader
