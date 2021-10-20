@@ -31,10 +31,10 @@ const (
 
 	DB_CACHE_SIZE_MB   = "DB_CACHE_SIZE_MB"
 	TRIE_CACHE_SIZE_MB = "TRIE_CACHE_SIZE_MB"
-
-	WRITE_SERVER = "WRITE_SERVER"
-
-	STATEDIFF_WORKERS = "STATEDIFF_WORKERS"
+	LVLDB_PATH         = "LVLDB_PATH"
+	LVLDB_ANCIENT      = "LVLDB_ANCIENT"
+	STATEDIFF_WORKERS  = "STATEDIFF_WORKERS"
+	WRITE_SERVER       = "WRITE_SERVER"
 )
 
 // Bind env vars for eth node and DB configuration
@@ -57,7 +57,8 @@ func init() {
 	viper.BindEnv("cache.database", DB_CACHE_SIZE_MB)
 	viper.BindEnv("cache.trie", TRIE_CACHE_SIZE_MB)
 
-	viper.BindEnv("write.serve", WRITE_SERVER)
+	viper.BindEnv("leveldb.path", LVLDB_PATH)
+	viper.BindEnv("leveldb.ancient", LVLDB_ANCIENT)
 
 	viper.BindEnv("statediff.workers", STATEDIFF_WORKERS)
 }

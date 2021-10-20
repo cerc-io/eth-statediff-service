@@ -50,14 +50,15 @@ type blockRange [2]uint64
 
 func init() {
 	rootCmd.AddCommand(writeCmd)
-	writeCmd.Flags().String("serve", "", "starts a server which handles write request through endpoints")
-	viper.BindPFlag("write.serve", writeCmd.PersistentFlags().Lookup("serve"))
+	writeCmd.PersistentFlags().String("write-api", "", "starts a server which handles write request through endpoints")
+	viper.BindPFlag("write.serve", writeCmd.PersistentFlags().Lookup("write-api"))
 }
 
 func write() {
 	logWithCommand.Info("Starting statediff writer")
-
 	// load params
+	viper.BindEnv("write.serve", WRITE_SERVER)
+	addr := viper.GetString("write.serve")
 	path := viper.GetString("leveldb.path")
 	ancientPath := viper.GetString("leveldb.ancient")
 	if path == "" || ancientPath == "" {
@@ -119,7 +120,6 @@ func write() {
 	viper.UnmarshalKey("write.params", &diffParams)
 
 	blockRangesCh := make(chan blockRange, 100)
-	addr := viper.GetString("write.serve")
 	go func() {
 		for _, r := range blockRanges {
 			blockRangesCh <- r
