@@ -29,107 +29,53 @@ const statsSubsystem = "stats"
 var (
 	metrics bool
 
-	receipts     prometheus.Counter
-	transactions prometheus.Counter
-	blocks       prometheus.Counter
-	logs		prometheus.Counter
-	accessListEntries prometheus.Counter
+	lastLoadedHeight    prometheus.Gauge
+	lastProcessedHeight prometheus.Gauge
 
-	lenPayloadChan prometheus.Gauge
-
-	tPayloadDecode             prometheus.Histogram
-	tFreePostgres              prometheus.Histogram
-	tPostgresCommit            prometheus.Histogram
-	tHeaderProcessing          prometheus.Histogram
-	tUncleProcessing           prometheus.Histogram
-	tTxAndRecProcessing        prometheus.Histogram
-	tStateAndStoreProcessing   prometheus.Histogram
-	tCodeAndCodeHashProcessing prometheus.Histogram
+	tBlockLoad       prometheus.Histogram
+	tBlockProcessing prometheus.Histogram
+	tStateProcessing prometheus.Histogram
+	tTxCommit        prometheus.Histogram
 )
 
 // Init module initialization
 func Init() {
 	metrics = true
 
-	blocks = promauto.NewCounter(prometheus.CounterOpts{
+	lastLoadedHeight = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: namespace,
-		Name:      "blocks",
-		Help:      "The total number of processed blocks",
+		Name:      "loaded_height",
+		Help:      "The last block that was loaded for processing",
 	})
-	transactions = promauto.NewCounter(prometheus.CounterOpts{
+	lastProcessedHeight = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: namespace,
-		Name:      "transactions",
-		Help:      "The total number of processed transactions",
-	})
-	receipts = promauto.NewCounter(prometheus.CounterOpts{
-		Namespace: namespace,
-		Name:      "receipts",
-		Help:      "The total number of processed receipts",
-	})
-	logs = promauto.NewCounter(prometheus.CounterOpts{
-		Namespace: namespace,
-		Name:      "logs",
-		Help:      "The total number of processed logs",
-	})
-	accessListEntries = promauto.NewCounter(prometheus.CounterOpts{
-		Namespace: namespace,
-		Name:      "access_list_entries",
-		Help:      "The total number of processed access list entries",
+		Name:      "processed_height",
+		Help:      "The last block that was processed",
 	})
 
-	lenPayloadChan = promauto.NewGauge(prometheus.GaugeOpts{
-		Namespace: namespace,
-		Name:      "len_payload_chan",
-		Help:      "Current length of publishPayload",
-	})
-
-	tPayloadDecode = promauto.NewHistogram(prometheus.HistogramOpts{
+	tBlockLoad = promauto.NewHistogram(prometheus.HistogramOpts{
 		Namespace: namespace,
 		Subsystem: statsSubsystem,
-		Name:      "t_payload_decode",
-		Help:      "Payload decoding time",
+		Name:      "t_block_load",
+		Help:      "Block loading time",
 	})
-	tFreePostgres = promauto.NewHistogram(prometheus.HistogramOpts{
+	tBlockProcessing = promauto.NewHistogram(prometheus.HistogramOpts{
 		Namespace: namespace,
 		Subsystem: statsSubsystem,
-		Name:      "t_free_postgres",
-		Help:      "Time spent waiting for free postgres tx",
+		Name:      "t_block_processing",
+		Help:      "Block (header, uncles, txs, rcts, tx trie, rct trie) processing time",
 	})
-	tPostgresCommit = promauto.NewHistogram(prometheus.HistogramOpts{
+	tStateProcessing = promauto.NewHistogram(prometheus.HistogramOpts{
 		Namespace: namespace,
 		Subsystem: statsSubsystem,
-		Name:      "t_postgres_commit",
-		Help:      "Postgres transaction commit duration",
+		Name:      "t_state_processing",
+		Help:      "State (state trie, storage tries, and code) processing time",
 	})
-	tHeaderProcessing = promauto.NewHistogram(prometheus.HistogramOpts{
+	tTxCommit = promauto.NewHistogram(prometheus.HistogramOpts{
 		Namespace: namespace,
 		Subsystem: statsSubsystem,
-		Name:      "t_header_processing",
-		Help:      "Header processing time",
-	})
-	tUncleProcessing = promauto.NewHistogram(prometheus.HistogramOpts{
-		Namespace: namespace,
-		Subsystem: statsSubsystem,
-		Name:      "t_uncle_processing",
-		Help:      "Uncle processing time",
-	})
-	tTxAndRecProcessing = promauto.NewHistogram(prometheus.HistogramOpts{
-		Namespace: namespace,
-		Subsystem: statsSubsystem,
-		Name:      "t_tx_receipt_processing",
-		Help:      "Tx and receipt processing time",
-	})
-	tStateAndStoreProcessing = promauto.NewHistogram(prometheus.HistogramOpts{
-		Namespace: namespace,
-		Subsystem: statsSubsystem,
-		Name:      "t_state_store_processing",
-		Help:      "State and storage processing time",
-	})
-	tCodeAndCodeHashProcessing = promauto.NewHistogram(prometheus.HistogramOpts{
-		Namespace: namespace,
-		Subsystem: statsSubsystem,
-		Name:      "t_code_codehash_processing",
-		Help:      "Code and codehash processing time",
+		Name:      "t_postgres_tx_commit",
+		Help:      "Postgres tx commit time",
 	})
 }
 
@@ -140,45 +86,17 @@ func RegisterDBCollector(name string, db *sqlx.DB) {
 	}
 }
 
-// BlockInc block counter increment
-func BlockInc() {
+// SetLastLoadedHeight sets last loaded height
+func SetLastLoadedHeight(height int64) {
 	if metrics {
-		blocks.Inc()
+		lastLoadedHeight.Set(float64(height))
 	}
 }
 
-// TransactionInc transaction counter increment
-func TransactionInc() {
+// SetLastProcessedHeight sets last processed height
+func SetLastProcessedHeight(height int64) {
 	if metrics {
-		transactions.Inc()
-	}
-}
-
-// ReceiptInc receipt counter increment
-func ReceiptInc() {
-	if metrics {
-		receipts.Inc()
-	}
-}
-
-// LogInc log counter increment
-func LogInc() {
-	if metrics {
-		logs.Inc()
-	}
-}
-
-// AccessListElementInc access list element counter increment
-func AccessListElementInc() {
-	if metrics {
-		accessListEntries.Inc()
-	}
-}
-
-// SetLenPayloadChan set chan length
-func SetLenPayloadChan(ln int) {
-	if metrics {
-		lenPayloadChan.Set(float64(ln))
+		lastProcessedHeight.Set(float64(height))
 	}
 }
 
@@ -189,21 +107,13 @@ func SetTimeMetric(name string, t time.Duration) {
 	}
 	tAsF64 := t.Seconds()
 	switch name {
-	case "t_payload_decode":
-		tPayloadDecode.Observe(tAsF64)
-	case "t_free_postgres":
-		tFreePostgres.Observe(tAsF64)
-	case "t_postgres_commit":
-		tPostgresCommit.Observe(tAsF64)
-	case "t_header_processing":
-		tHeaderProcessing.Observe(tAsF64)
-	case "t_uncle_processing":
-		tUncleProcessing.Observe(tAsF64)
-	case "t_tx_receipt_processing":
-		tTxAndRecProcessing.Observe(tAsF64)
-	case "t_state_store_processing":
-		tStateAndStoreProcessing.Observe(tAsF64)
-	case "t_code_codehash_processing":
-		tCodeAndCodeHashProcessing.Observe(tAsF64)
+	case "t_block_load":
+		tBlockLoad.Observe(tAsF64)
+	case "t_block_processing":
+		tBlockProcessing.Observe(tAsF64)
+	case "t_state_processing":
+		tStateProcessing.Observe(tAsF64)
+	case "t_postgres_tx_commit":
+		tTxCommit.Observe(tAsF64)
 	}
 }
