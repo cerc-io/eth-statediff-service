@@ -26,6 +26,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"github.com/vulcanize/eth-statediff-service/pkg/prom"
 )
 
 var (
@@ -63,6 +65,19 @@ func initFuncs(cmd *cobra.Command, args []string) {
 	}
 	if err := logLevel(); err != nil {
 		log.Fatal("Could not set log level: ", err)
+	}
+
+	if viper.GetBool("prom.metrics") {
+		prom.Init()
+	}
+
+	if viper.GetBool("prom.http") {
+		addr := fmt.Sprintf(
+			"%s:%s",
+			viper.GetString("prom.httpAddr"),
+			viper.GetString("prom.httpPort"),
+		)
+		prom.Listen(addr)
 	}
 }
 
@@ -106,8 +121,15 @@ func init() {
 		"0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3", "eth genesis block hash")
 	rootCmd.PersistentFlags().String("eth-network-id", "1", "eth network id")
 	rootCmd.PersistentFlags().String("eth-chain-id", "1", "eth chain id")
+
 	rootCmd.PersistentFlags().Int("cache-db", 1024, "megabytes of memory allocated to database cache")
 	rootCmd.PersistentFlags().Int("cache-trie", 1024, "Megabytes of memory allocated to trie cache")
+
+	rootCmd.PersistentFlags().Bool("prom-http", false, "enable prometheus http service")
+	rootCmd.PersistentFlags().String("prom-http-addr", "127.0.0.1", "prometheus http host")
+	rootCmd.PersistentFlags().String("prom-http-port", "8080", "prometheus http port")
+
+	rootCmd.PersistentFlags().Bool("metrics", false, "enable metrics")
 
 	viper.BindPFlag("log.file", rootCmd.PersistentFlags().Lookup("log-file"))
 	viper.BindPFlag("log.level", rootCmd.PersistentFlags().Lookup("log-level"))
@@ -126,6 +148,10 @@ func init() {
 	viper.BindPFlag("ethereum.chainID", rootCmd.PersistentFlags().Lookup("eth-chain-id"))
 	viper.BindPFlag("cache.database", rootCmd.PersistentFlags().Lookup("cache-db"))
 	viper.BindPFlag("cache.trie", rootCmd.PersistentFlags().Lookup("cache-trie"))
+	viper.BindPFlag("prom.http", rootCmd.PersistentFlags().Lookup("prom-http"))
+	viper.BindPFlag("prom.httpAddr", rootCmd.PersistentFlags().Lookup("prom-http-addr"))
+	viper.BindPFlag("prom.httpPort", rootCmd.PersistentFlags().Lookup("prom-http-port"))
+	viper.BindPFlag("prom.metrics", rootCmd.PersistentFlags().Lookup("metrics"))
 }
 
 func initConfig() {
