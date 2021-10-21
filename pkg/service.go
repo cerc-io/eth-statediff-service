@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"math/big"
 	"sync"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/state"
@@ -31,6 +32,7 @@ import (
 	sd "github.com/ethereum/go-ethereum/statediff"
 	sdtypes "github.com/ethereum/go-ethereum/statediff/types"
 	"github.com/sirupsen/logrus"
+	"github.com/vulcanize/eth-statediff-service/pkg/prom"
 
 	ind "github.com/ethereum/go-ethereum/statediff/indexer"
 )
@@ -251,6 +253,7 @@ func (sds *Service) Stop() error {
 // for historical data
 func (sds *Service) WriteStateDiffAt(blockNumber uint64, params sd.Params) error {
 	logrus.Info(fmt.Sprintf("Writing state diff at block %d", blockNumber))
+	t := time.Now()
 	currentBlock, err := sds.lvlDBReader.GetBlockByNumber(blockNumber)
 	if err != nil {
 		return err
@@ -263,7 +266,7 @@ func (sds *Service) WriteStateDiffAt(blockNumber uint64, params sd.Params) error
 		}
 		parentRoot = parentBlock.Root()
 	}
-	return sds.writeStateDiff(currentBlock, parentRoot, params)
+	return sds.writeStateDiff(currentBlock, parentRoot, params, t)
 }
 
 // WriteStateDiffFor writes a state diff for the specific blockHash directly to the database
@@ -271,6 +274,7 @@ func (sds *Service) WriteStateDiffAt(blockNumber uint64, params sd.Params) error
 // for historical data
 func (sds *Service) WriteStateDiffFor(blockHash common.Hash, params sd.Params) error {
 	logrus.Info(fmt.Sprintf("Writing state diff for block %s", blockHash.Hex()))
+	t := time.Now()
 	currentBlock, err := sds.lvlDBReader.GetBlockByHash(blockHash)
 	if err != nil {
 		return err
@@ -283,11 +287,11 @@ func (sds *Service) WriteStateDiffFor(blockHash common.Hash, params sd.Params) e
 		}
 		parentRoot = parentBlock.Root()
 	}
-	return sds.writeStateDiff(currentBlock, parentRoot, params)
+	return sds.writeStateDiff(currentBlock, parentRoot, params, t)
 }
 
 // Writes a state diff from the current block, parent state root, and provided params
-func (sds *Service) writeStateDiff(block *types.Block, parentRoot common.Hash, params sd.Params) error {
+func (sds *Service) writeStateDiff(block *types.Block, parentRoot common.Hash, params sd.Params, t time.Time) error {
 	var totalDifficulty *big.Int
 	var receipts types.Receipts
 	var err error
@@ -303,7 +307,10 @@ func (sds *Service) writeStateDiff(block *types.Block, parentRoot common.Hash, p
 	if err != nil {
 		return err
 	}
-
+	height := block.Number().Int64()
+	prom.SetLastLoadedHeight(height)
+	prom.SetTimeMetric("t_block_load", time.Now().Sub(t))
+	t = time.Now()
 	tx, err := sds.indexer.PushBlock(block, receipts, totalDifficulty)
 	if err != nil {
 		return err
@@ -315,9 +322,16 @@ func (sds *Service) writeStateDiff(block *types.Block, parentRoot common.Hash, p
 	codeOutput := func(c sdtypes.CodeAndCodeHash) error {
 		return sds.indexer.PushCodeAndCodeHash(tx, c)
 	}
+	prom.SetTimeMetric("t_block_processing", time.Now().Sub(t))
+	t = time.Now()
 	err = sds.Builder.WriteStateDiffObject(sd.StateRoots{
 		NewStateRoot: block.Root(),
 		OldStateRoot: parentRoot,
 	}, params, output, codeOutput)
-	return tx.Close(err)
+	prom.SetTimeMetric("t_state_processing", time.Now().Sub(t))
+	t = time.Now()
+	err = tx.Close(err)
+	prom.SetLastProcessedHeight(height)
+	prom.SetTimeMetric("t_postgres_tx_commit", time.Now().Sub(t))
+	return err
 }

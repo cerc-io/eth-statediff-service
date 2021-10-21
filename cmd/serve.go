@@ -24,13 +24,9 @@ import (
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/ethereum/go-ethereum/trie"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-
-	ind "github.com/ethereum/go-ethereum/statediff/indexer"
-	"github.com/ethereum/go-ethereum/statediff/indexer/postgres"
 
 	sd "github.com/vulcanize/eth-statediff-service/pkg"
 )
@@ -50,52 +46,9 @@ var serveCmd = &cobra.Command{
 }
 
 func serve() {
-	logWithCommand.Info("starting statediff RPC service")
+	logWithCommand.Info("Running eth-statediff-service serve command")
 
-	// load params
-	path := viper.GetString("leveldb.path")
-	ancientPath := viper.GetString("leveldb.ancient")
-	if path == "" || ancientPath == "" {
-		logWithCommand.Fatal("require a valid eth leveldb primary datastore path and ancient datastore path")
-	}
-
-	nodeInfo := GetEthNodeInfo()
-	config, err := chainConfig(nodeInfo.ChainID)
-	if err != nil {
-		logWithCommand.Fatal(err)
-	}
-
-	// create leveldb reader
-	logWithCommand.Info("Creating leveldb reader")
-	conf := sd.ReaderConfig{
-		TrieConfig: &trie.Config{
-			Cache:     viper.GetInt("cache.trie"),
-			Journal:   "",
-			Preimages: false,
-		},
-		ChainConfig: config,
-		Path:        path,
-		AncientPath: ancientPath,
-		DBCacheSize: viper.GetInt("cache.database"),
-	}
-	lvlDBReader, err := sd.NewLvlDBReader(conf)
-	if err != nil {
-		logWithCommand.Fatal(err)
-	}
-
-	// create statediff service
-	logWithCommand.Info("Creating statediff service")
-	db, err := postgres.NewDB(postgres.DbConnectionString(GetDBParams()), GetDBConfig(), nodeInfo)
-	if err != nil {
-		logWithCommand.Fatal(err)
-	}
-
-	indexer, err := ind.NewStateDiffIndexer(config, db)
-	if err != nil {
-		logWithCommand.Fatal(err)
-	}
-
-	statediffService, err := sd.NewStateDiffService(lvlDBReader, indexer, viper.GetUint("statediff.workers"))
+	statediffService, err := createStateDiffService()
 	if err != nil {
 		logWithCommand.Fatal(err)
 	}

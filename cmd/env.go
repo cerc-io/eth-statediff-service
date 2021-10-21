@@ -35,6 +35,11 @@ const (
 	LVLDB_ANCIENT      = "LVLDB_ANCIENT"
 	STATEDIFF_WORKERS  = "STATEDIFF_WORKERS"
 	WRITE_SERVER       = "WRITE_SERVER"
+
+	PROM_METRICS   = "PROM_METRICS"
+	PROM_HTTP      = "PROM_HTTP"
+	PROM_HTTP_ADDR = "PROM_HTTP_ADDR"
+	PROM_HTTP_PORT = "PROM_HTTP_PORT"
 )
 
 // Bind env vars for eth node and DB configuration
@@ -59,6 +64,11 @@ func init() {
 
 	viper.BindEnv("leveldb.path", LVLDB_PATH)
 	viper.BindEnv("leveldb.ancient", LVLDB_ANCIENT)
+
+	viper.BindEnv("prom.metrics", PROM_METRICS)
+	viper.BindEnv("prom.http", PROM_HTTP)
+	viper.BindEnv("prom.httpAddr", PROM_HTTP_ADDR)
+	viper.BindEnv("prom.httpPort", PROM_HTTP_PORT)
 
 	viper.BindEnv("statediff.workers", STATEDIFF_WORKERS)
 }
