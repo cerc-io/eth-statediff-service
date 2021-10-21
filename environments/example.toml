@@ -32,3 +32,9 @@
 [cache]
     database = 1024
     trie = 1024
+
+[prom]
+    metrics = true
+    http = true
+    addr = "localhost"
+    port = "8889"
