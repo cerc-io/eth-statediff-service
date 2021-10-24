@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	namespace = "eth-statediff-service"
+	namespace = "eth_statediff_service"
 	subsystem = "connections"
 )
 

@@ -309,7 +309,7 @@ func (sds *Service) writeStateDiff(block *types.Block, parentRoot common.Hash, p
 	}
 	height := block.Number().Int64()
 	prom.SetLastLoadedHeight(height)
-	prom.SetTimeMetric("t_block_load", time.Now().Sub(t))
+	prom.SetTimeMetric(prom.T_BLOCK_LOAD, time.Now().Sub(t))
 	t = time.Now()
 	tx, err := sds.indexer.PushBlock(block, receipts, totalDifficulty)
 	if err != nil {
@@ -322,16 +322,16 @@ func (sds *Service) writeStateDiff(block *types.Block, parentRoot common.Hash, p
 	codeOutput := func(c sdtypes.CodeAndCodeHash) error {
 		return sds.indexer.PushCodeAndCodeHash(tx, c)
 	}
-	prom.SetTimeMetric("t_block_processing", time.Now().Sub(t))
+	prom.SetTimeMetric(prom.T_BLOCK_PROCESSING, time.Now().Sub(t))
 	t = time.Now()
 	err = sds.Builder.WriteStateDiffObject(sd.StateRoots{
 		NewStateRoot: block.Root(),
 		OldStateRoot: parentRoot,
 	}, params, output, codeOutput)
-	prom.SetTimeMetric("t_state_processing", time.Now().Sub(t))
+	prom.SetTimeMetric(prom.T_STATE_PROCESSING, time.Now().Sub(t))
 	t = time.Now()
 	err = tx.Close(err)
 	prom.SetLastProcessedHeight(height)
-	prom.SetTimeMetric("t_postgres_tx_commit", time.Now().Sub(t))
+	prom.SetTimeMetric(prom.T_POSTGRES_TX_COMMIT, time.Now().Sub(t))
 	return err
 }

@@ -38,43 +38,52 @@ var (
 	tTxCommit        prometheus.Histogram
 )
 
+const (
+	LOADED_HEIGHT        = "loaded_height"
+	PROCESSED_HEIGHT     = "processed_height"
+	T_BLOCK_LOAD         = "t_block_load"
+	T_BLOCK_PROCESSING   = "t_block_processing"
+	T_STATE_PROCESSING   = "t_state_processing"
+	T_POSTGRES_TX_COMMIT = "t_postgres_tx_commit"
+)
+
 // Init module initialization
 func Init() {
 	metrics = true
 
 	lastLoadedHeight = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: namespace,
-		Name:      "loaded_height",
+		Name:      LOADED_HEIGHT,
 		Help:      "The last block that was loaded for processing",
 	})
 	lastProcessedHeight = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: namespace,
-		Name:      "processed_height",
+		Name:      PROCESSED_HEIGHT,
 		Help:      "The last block that was processed",
 	})
 
 	tBlockLoad = promauto.NewHistogram(prometheus.HistogramOpts{
 		Namespace: namespace,
 		Subsystem: statsSubsystem,
-		Name:      "t_block_load",
+		Name:      T_BLOCK_LOAD,
 		Help:      "Block loading time",
 	})
 	tBlockProcessing = promauto.NewHistogram(prometheus.HistogramOpts{
 		Namespace: namespace,
 		Subsystem: statsSubsystem,
-		Name:      "t_block_processing",
+		Name:      T_BLOCK_PROCESSING,
 		Help:      "Block (header, uncles, txs, rcts, tx trie, rct trie) processing time",
 	})
 	tStateProcessing = promauto.NewHistogram(prometheus.HistogramOpts{
 		Namespace: namespace,
 		Subsystem: statsSubsystem,
-		Name:      "t_state_processing",
+		Name:      T_STATE_PROCESSING,
 		Help:      "State (state trie, storage tries, and code) processing time",
 	})
 	tTxCommit = promauto.NewHistogram(prometheus.HistogramOpts{
 		Namespace: namespace,
 		Subsystem: statsSubsystem,
-		Name:      "t_postgres_tx_commit",
+		Name:      T_POSTGRES_TX_COMMIT,
 		Help:      "Postgres tx commit time",
 	})
 }
@@ -107,13 +116,13 @@ func SetTimeMetric(name string, t time.Duration) {
 	}
 	tAsF64 := t.Seconds()
 	switch name {
-	case "t_block_load":
+	case T_BLOCK_LOAD:
 		tBlockLoad.Observe(tAsF64)
-	case "t_block_processing":
+	case T_BLOCK_PROCESSING:
 		tBlockProcessing.Observe(tAsF64)
-	case "t_state_processing":
+	case T_STATE_PROCESSING:
 		tStateProcessing.Observe(tAsF64)
-	case "t_postgres_tx_commit":
+	case T_POSTGRES_TX_COMMIT:
 		tTxCommit.Observe(tAsF64)
 	}
 }
