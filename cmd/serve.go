@@ -16,13 +16,11 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"os/signal"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/node"
-	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -34,7 +32,7 @@ import (
 // serveCmd represents the serve command
 var serveCmd = &cobra.Command{
 	Use:   "serve",
-	Short: "Standup a standalone statediffing RPC service on top of leveldb",
+	Short: "Stand up a standalone statediffing RPC service on top of leveldb",
 	Long: `Usage
 
 ./eth-statediff-service serve --config={path to toml config file}`,
@@ -43,6 +41,10 @@ var serveCmd = &cobra.Command{
 		logWithCommand = *logrus.WithField("SubCommand", subCommand)
 		serve()
 	},
+}
+
+func init() {
+	rootCmd.AddCommand(serveCmd)
 }
 
 func serve() {
@@ -72,19 +74,7 @@ func serve() {
 	wg.Wait()
 }
 
-func init() {
-	rootCmd.AddCommand(serveCmd)
-
-	serveCmd.PersistentFlags().String("http-path", "", "vdb server http path")
-	serveCmd.PersistentFlags().String("ipc-path", "", "vdb server ipc path")
-
-	viper.BindPFlag("server.httpPath", serveCmd.PersistentFlags().Lookup("http-path"))
-	viper.BindPFlag("server.ipcPath", serveCmd.PersistentFlags().Lookup("ipc-path"))
-}
-
-func startServers(serv sd.IService) error {
-	viper.BindEnv("server.ipcPath", "SERVER_IPC_PATH")
-	viper.BindEnv("server.httpPath", "SERVER_HTTP_PATH")
+func startServers(serv sd.StateDiffService) error {
 	ipcPath := viper.GetString("server.ipcPath")
 	httpPath := viper.GetString("server.httpPath")
 	if ipcPath == "" && httpPath == "" {
@@ -105,19 +95,4 @@ func startServers(serv sd.IService) error {
 		}
 	}
 	return nil
-}
-
-func chainConfig(chainID uint64) (*params.ChainConfig, error) {
-	switch chainID {
-	case 1:
-		return params.MainnetChainConfig, nil
-	case 3:
-		return params.RopstenChainConfig, nil // Ropsten
-	case 4:
-		return params.RinkebyChainConfig, nil
-	case 5:
-		return params.GoerliChainConfig, nil
-	default:
-		return nil, fmt.Errorf("chain config for chainid %d not available", chainID)
-	}
 }

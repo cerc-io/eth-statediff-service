@@ -68,6 +68,7 @@ func initFuncs(cmd *cobra.Command, args []string) {
 	}
 
 	if viper.GetBool("prom.metrics") {
+		log.Info("initializing prometheus metrics")
 		prom.Init()
 	}
 
@@ -77,6 +78,7 @@ func initFuncs(cmd *cobra.Command, args []string) {
 			viper.GetString("prom.httpAddr"),
 			viper.GetString("prom.httpPort"),
 		)
+		log.Info("starting prometheus server")
 		prom.Listen(addr)
 	}
 }
@@ -100,6 +102,8 @@ func init() {
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 
+	rootCmd.PersistentFlags().String("http-path", "", "vdb server http path")
+	rootCmd.PersistentFlags().String("ipc-path", "", "vdb server ipc path")
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file location")
 	rootCmd.PersistentFlags().String("log-file", "", "file path for logging")
 	rootCmd.PersistentFlags().String("log-level", log.InfoLevel.String(),
@@ -107,7 +111,11 @@ func init() {
 
 	rootCmd.PersistentFlags().String("leveldb-path", "", "path to primary datastore")
 	rootCmd.PersistentFlags().String("ancient-path", "", "path to ancient datastore")
-	rootCmd.PersistentFlags().Int("workers", 0, "number of concurrent workers to use")
+
+	rootCmd.PersistentFlags().Bool("prerun", false, "turn on prerun of toml configured ranges")
+	rootCmd.PersistentFlags().Int("service-workers", 0, "number of range requests to process concurrently")
+	rootCmd.PersistentFlags().Int("trie-workers", 0, "number of workers to use for trie traversal and processing")
+	rootCmd.PersistentFlags().Int("worker-queue-size", 0, "size of the range request queue for service workers")
 
 	rootCmd.PersistentFlags().String("database-name", "vulcanize_public", "database name")
 	rootCmd.PersistentFlags().Int("database-port", 5432, "database port")
@@ -131,9 +139,14 @@ func init() {
 
 	rootCmd.PersistentFlags().Bool("metrics", false, "enable metrics")
 
+	viper.BindPFlag("server.httpPath", rootCmd.PersistentFlags().Lookup("http-path"))
+	viper.BindPFlag("server.ipcPath", rootCmd.PersistentFlags().Lookup("ipc-path"))
 	viper.BindPFlag("log.file", rootCmd.PersistentFlags().Lookup("log-file"))
 	viper.BindPFlag("log.level", rootCmd.PersistentFlags().Lookup("log-level"))
-	viper.BindPFlag("statediff.workers", rootCmd.PersistentFlags().Lookup("workers"))
+	viper.BindPFlag("statediff.prerun", rootCmd.PersistentFlags().Lookup("prerun"))
+	viper.BindPFlag("statediff.serviceWorkers", rootCmd.PersistentFlags().Lookup("service-workers"))
+	viper.BindPFlag("statediff.trieWorkers", rootCmd.PersistentFlags().Lookup("trie-workers"))
+	viper.BindPFlag("statediff.workerQueueSize", rootCmd.PersistentFlags().Lookup("worker-queue-size"))
 	viper.BindPFlag("leveldb.path", rootCmd.PersistentFlags().Lookup("leveldb-path"))
 	viper.BindPFlag("leveldb.ancient", rootCmd.PersistentFlags().Lookup("ancient-path"))
 	viper.BindPFlag("database.name", rootCmd.PersistentFlags().Lookup("database-name"))

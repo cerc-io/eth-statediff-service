@@ -35,6 +35,7 @@ import (
 	sdtrie "github.com/ethereum/go-ethereum/statediff/trie"
 	sdtypes "github.com/ethereum/go-ethereum/statediff/types"
 	"github.com/ethereum/go-ethereum/trie"
+	"github.com/sirupsen/logrus"
 
 	iter "github.com/vulcanize/go-eth-state-node-iterator"
 )
@@ -206,7 +207,7 @@ func (sdb *builder) BuildStateDiffObject(args sd.Args, params sd.Params) (sd.Sta
 	}, nil
 }
 
-// Writes a statediff object to output callback
+// WriteStateDiffObject writes a statediff object to output callback
 func (sdb *builder) WriteStateDiffObject(args sd.StateRoots, params sd.Params, output sdtypes.StateNodeSink, codeOutput sdtypes.CodeSink) error {
 	if len(params.WatchedAddresses) > 0 {
 		// if we are watching only specific accounts then we are only diffing leaf nodes
@@ -234,8 +235,8 @@ func (sdb *builder) WriteStateDiffObject(args sd.StateRoots, params sd.Params, o
 	var iterPairs [][]iterPair
 	for i := uint(0); i < sdb.numWorkers; i++ {
 		iterPairs = append(iterPairs, []iterPair{
-			iterPair{older: oldIterFac.IteratorAt(i), newer: newIterFac.IteratorAt(i)},
-			iterPair{older: oldIterFac.IteratorAt(i), newer: newIterFac.IteratorAt(i)},
+			{older: oldIterFac.IteratorAt(i), newer: newIterFac.IteratorAt(i)},
+			{older: oldIterFac.IteratorAt(i), newer: newIterFac.IteratorAt(i)},
 		})
 	}
 
@@ -252,7 +253,9 @@ func (sdb *builder) WriteStateDiffObject(args sd.StateRoots, params sd.Params, o
 			wg.Add(1)
 			go func(worker uint) {
 				defer wg.Done()
-				sdb.buildStateDiff(iterPairs[worker], params, nodeSender, codeSender)
+				if err := sdb.buildStateDiff(iterPairs[worker], params, nodeSender, codeSender); err != nil {
+					logrus.Errorf("buildStateDiff error for worker %d, pparams %+v", worker, params)
+				}
 			}(w)
 		}
 		wg.Wait()

@@ -29,12 +29,16 @@ const (
 	ETH_NETWORK_ID    = "ETH_NETWORK_ID"
 	ETH_CHAIN_ID      = "ETH_CHAIN_ID"
 
-	DB_CACHE_SIZE_MB   = "DB_CACHE_SIZE_MB"
-	TRIE_CACHE_SIZE_MB = "TRIE_CACHE_SIZE_MB"
-	LVLDB_PATH         = "LVLDB_PATH"
-	LVLDB_ANCIENT      = "LVLDB_ANCIENT"
-	STATEDIFF_WORKERS  = "STATEDIFF_WORKERS"
-	WRITE_SERVER       = "WRITE_SERVER"
+	DB_CACHE_SIZE_MB            = "DB_CACHE_SIZE_MB"
+	TRIE_CACHE_SIZE_MB          = "TRIE_CACHE_SIZE_MB"
+	LVLDB_PATH                  = "LVLDB_PATH"
+	LVLDB_ANCIENT               = "LVLDB_ANCIENT"
+	STATEDIFF_TRIE_WORKERS      = "STATEDIFF_TRIE_WORKERS"
+	STATEDIFF_SERVICE_WORKERS   = "STATEDIFF_SERVICE_WORKERS"
+	STATEDIFF_WORKER_QUEUE_SIZE = "STATEDIFF_WORKER_QUEUE_SIZE"
+
+	SERVICE_IPC_PATH  = "SERVICE_IPC_PATH"
+	SERVICE_HTTP_PATH = "SERVICE_HTTP_PATH"
 
 	PROM_METRICS   = "PROM_METRICS"
 	PROM_HTTP      = "PROM_HTTP"
@@ -44,6 +48,9 @@ const (
 
 // Bind env vars for eth node and DB configuration
 func init() {
+	viper.BindEnv("server.ipcPath", SERVICE_IPC_PATH)
+	viper.BindEnv("server.httpPath", SERVICE_HTTP_PATH)
+
 	viper.BindEnv("ethereum.nodeID", ETH_NODE_ID)
 	viper.BindEnv("ethereum.clientName", ETH_CLIENT_NAME)
 	viper.BindEnv("ethereum.genesisBlock", ETH_GENESIS_BLOCK)
@@ -70,5 +77,7 @@ func init() {
 	viper.BindEnv("prom.httpAddr", PROM_HTTP_ADDR)
 	viper.BindEnv("prom.httpPort", PROM_HTTP_PORT)
 
-	viper.BindEnv("statediff.workers", STATEDIFF_WORKERS)
+	viper.BindEnv("statediff.serviceWorkers", STATEDIFF_SERVICE_WORKERS)
+	viper.BindEnv("statediff.trieWorkers", STATEDIFF_TRIE_WORKERS)
+	viper.BindEnv("statediff.workerQueueSize", STATEDIFF_WORKER_QUEUE_SIZE)
 }

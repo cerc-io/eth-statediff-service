@@ -7,13 +7,24 @@
     httpPath = "127.0.0.1:8545"
 
 [statediff]
-    workers = 4
+    prerun = true
+    serviceWorkers = 1
+    workerQueueSize = 1024
+    trieWorkers = 4
 
-[write]
+[prerun]
     ranges = [
-        [0, 0]
+        [0, 1000]
     ]
-    serve = ":8888"
+    [prerun.params]
+        intermediateStateNodes = true
+        intermediateStorageNodes = true
+        includeBlock = true
+        includeReceipts = true
+        includeTD = true
+        includeCode = true
+        watchedAddresses = []
+        watchedStorageKeys = []
 
 [log]
     file = ""
@@ -36,5 +47,5 @@
 [prom]
     metrics = true
     http = true
-    addr = "localhost"
-    port = "8889"
+    httpAddr = "localhost"
+    httpPort = "8889"
