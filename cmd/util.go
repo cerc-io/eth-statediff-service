@@ -107,8 +107,8 @@ func setupPreRunRanges() []sd.RangeRequest {
 	}
 	preRunParams.WatchedStorageSlots = keys
 	var rawRanges []blockRange
-	blockRanges := make([]sd.RangeRequest, len(rawRanges))
 	viper.UnmarshalKey("prerun.ranges", &rawRanges)
+	blockRanges := make([]sd.RangeRequest, len(rawRanges))
 	for i, rawRange := range rawRanges {
 		blockRanges[i] = sd.RangeRequest{
 			Start:  rawRange[0],

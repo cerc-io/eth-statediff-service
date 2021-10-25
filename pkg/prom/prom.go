@@ -29,8 +29,7 @@ const statsSubsystem = "stats"
 var (
 	metrics bool
 
-	queuedRanges prometheus.Counter
-
+	queuedRanges        prometheus.Gauge
 	lastLoadedHeight    prometheus.Gauge
 	lastProcessedHeight prometheus.Gauge
 
@@ -54,12 +53,11 @@ const (
 func Init() {
 	metrics = true
 
-	queuedRanges = promauto.NewCounter(prometheus.CounterOpts{
+	queuedRanges = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: namespace,
 		Name:      RANGES_QUEUED,
 		Help:      "Number of range requests currently queued",
 	})
-
 	lastLoadedHeight = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: namespace,
 		Name:      LOADED_HEIGHT,
@@ -114,7 +112,7 @@ func IncQueuedRanges() {
 // DecQueuedRanges decrements the number of queued range requests
 func DecQueuedRanges() {
 	if metrics {
-		queuedRanges.Add(-1)
+		queuedRanges.Dec()
 	}
 }
 

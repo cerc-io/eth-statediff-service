@@ -129,7 +129,7 @@ func (sds *Service) Loop(wg *sync.WaitGroup) error {
 				select {
 				case blockRange := <-sds.queue:
 					prom.DecQueuedRanges()
-					for j := blockRange.Start; j <= blockRange.Start; j++ {
+					for j := blockRange.Start; j <= blockRange.Stop; j++ {
 						if err := sds.WriteStateDiffAt(j, blockRange.Params); err != nil {
 							logrus.Errorf("service worker %d error writing statediff at height %d in range (%d, %d) : %v", id, j, blockRange.Start, blockRange.Stop, err)
 						}
@@ -143,6 +143,7 @@ func (sds *Service) Loop(wg *sync.WaitGroup) error {
 							logrus.Infof("service worker %d finished processing statediff height %d in range (%d, %d)", id, j, blockRange.Start, blockRange.Stop)
 						}
 					}
+					logrus.Infof("service worker %d finished processing range (%d, %d)", id, blockRange.Start, blockRange.Stop)
 				case <-sds.quitChan:
 					logrus.Infof("closing the statediff service loop worker %d", id)
 					return
