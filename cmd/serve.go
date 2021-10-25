@@ -58,7 +58,9 @@ func serve() {
 	// start service and servers
 	logWithCommand.Info("Starting statediff service")
 	wg := new(sync.WaitGroup)
-	go statediffService.Loop(wg)
+	if err := statediffService.Loop(wg); err != nil {
+		logWithCommand.Fatalf("unable to start statediff service: %v", err)
+	}
 	logWithCommand.Info("Starting RPC servers")
 	if err := startServers(statediffService); err != nil {
 		logWithCommand.Fatal(err)
