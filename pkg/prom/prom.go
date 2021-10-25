@@ -24,7 +24,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-const statsSubsystem = "stats"
+const (
+	statsSubsystem = "stats"
+	subsystemHTTP  = "http"
+	subsystemIPC   = "ipc"
+)
 
 var (
 	metrics bool
@@ -37,6 +41,10 @@ var (
 	tBlockProcessing prometheus.Histogram
 	tStateProcessing prometheus.Histogram
 	tTxCommit        prometheus.Histogram
+
+	httpCount    prometheus.Counter
+	httpDuration prometheus.Histogram
+	ipcCount     prometheus.Gauge
 )
 
 const (
@@ -92,6 +100,25 @@ func Init() {
 		Subsystem: statsSubsystem,
 		Name:      T_POSTGRES_TX_COMMIT,
 		Help:      "Postgres tx commit time",
+	})
+
+	httpCount = promauto.NewCounter(prometheus.CounterOpts{
+		Namespace: namespace,
+		Subsystem: subsystemHTTP,
+		Name:      "count",
+		Help:      "http request count",
+	})
+	httpDuration = promauto.NewHistogram(prometheus.HistogramOpts{
+		Namespace: namespace,
+		Subsystem: subsystemHTTP,
+		Name:      "duration",
+		Help:      "http request duration",
+	})
+	ipcCount = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: namespace,
+		Subsystem: subsystemIPC,
+		Name:      "count",
+		Help:      "unix socket connection count",
 	})
 }
 
