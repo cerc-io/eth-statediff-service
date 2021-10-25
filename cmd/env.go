@@ -44,6 +44,7 @@ const (
 	PROM_HTTP      = "PROM_HTTP"
 	PROM_HTTP_ADDR = "PROM_HTTP_ADDR"
 	PROM_HTTP_PORT = "PROM_HTTP_PORT"
+	PROM_DB_STATS  = "PROM_DB_STATS"
 )
 
 // Bind env vars for eth node and DB configuration
@@ -76,6 +77,7 @@ func init() {
 	viper.BindEnv("prom.http", PROM_HTTP)
 	viper.BindEnv("prom.httpAddr", PROM_HTTP_ADDR)
 	viper.BindEnv("prom.httpPort", PROM_HTTP_PORT)
+	viper.BindEnv("prom.dbStats", PROM_DB_STATS)
 
 	viper.BindEnv("statediff.serviceWorkers", STATEDIFF_SERVICE_WORKERS)
 	viper.BindEnv("statediff.trieWorkers", STATEDIFF_TRIE_WORKERS)
