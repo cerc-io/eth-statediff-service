@@ -20,13 +20,13 @@ import (
 	"os/signal"
 	"sync"
 
-	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
 	sd "github.com/vulcanize/eth-statediff-service/pkg"
+	srpc "github.com/vulcanize/eth-statediff-service/pkg/rpc"
 )
 
 // serveCmd represents the serve command
@@ -84,17 +84,20 @@ func startServers(serv sd.StateDiffService) error {
 	}
 	if ipcPath != "" {
 		logWithCommand.Info("starting up IPC server")
-		_, _, err := rpc.StartIPCEndpoint(ipcPath, serv.APIs())
+		_, _, err := srpc.StartIPCEndpoint(ipcPath, serv.APIs())
 		if err != nil {
 			return err
 		}
 	}
 	if httpPath != "" {
 		logWithCommand.Info("starting up HTTP server")
-		handler := rpc.NewServer()
-		if _, _, err := node.StartHTTPEndpoint(httpPath, rpc.HTTPTimeouts{}, handler); err != nil {
+		_, err := srpc.StartHTTPEndpoint(httpPath, serv.APIs(), []string{"statediff"}, nil, []string{"*"}, rpc.HTTPTimeouts{})
+		if err != nil {
 			return err
 		}
+	} else {
+		logWithCommand.Info("HTTP server is disabled")
 	}
+
 	return nil
 }
