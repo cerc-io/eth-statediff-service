@@ -28,23 +28,32 @@ import (
 	"github.com/ethereum/go-ethereum/trie"
 )
 
-// LvlDBReader exposes the necessary read functions on lvldb
+// Reader interface required by the statediffing service
+type Reader interface {
+	GetBlockByHash(hash common.Hash) (*types.Block, error)
+	GetBlockByNumber(number uint64) (*types.Block, error)
+	GetReceiptsByHash(hash common.Hash) (types.Receipts, error)
+	GetTdByHash(hash common.Hash) (*big.Int, error)
+	StateDB() state.Database
+}
+
+// LvlDBReader exposes the necessary Reader methods on lvldb
 type LvlDBReader struct {
 	ethDB       ethdb.Database
 	stateDB     state.Database
 	chainConfig *params.ChainConfig
 }
 
-// ReaderConfig struct for initializing a LvlDBReader
-type ReaderConfig struct {
+// LvLDBReaderConfig struct for initializing a LvlDBReader
+type LvLDBReaderConfig struct {
 	TrieConfig        *trie.Config
 	ChainConfig       *params.ChainConfig
 	Path, AncientPath string
 	DBCacheSize       int
 }
 
-// NewLvlDBReader creates a new LvlDBReader
-func NewLvlDBReader(conf ReaderConfig) (*LvlDBReader, error) {
+// NewLvlDBReader creates a new Read using LevelDB
+func NewLvlDBReader(conf LvLDBReaderConfig) (*LvlDBReader, error) {
 	edb, err := rawdb.NewLevelDBDatabaseWithFreezer(conf.Path, conf.DBCacheSize, 256, conf.AncientPath, "eth-statediff-service", true)
 	if err != nil {
 		return nil, err

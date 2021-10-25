@@ -29,6 +29,7 @@ const statsSubsystem = "stats"
 var (
 	metrics bool
 
+	queuedRanges        prometheus.Gauge
 	lastLoadedHeight    prometheus.Gauge
 	lastProcessedHeight prometheus.Gauge
 
@@ -39,6 +40,7 @@ var (
 )
 
 const (
+	RANGES_QUEUED        = "ranges_queued"
 	LOADED_HEIGHT        = "loaded_height"
 	PROCESSED_HEIGHT     = "processed_height"
 	T_BLOCK_LOAD         = "t_block_load"
@@ -51,6 +53,11 @@ const (
 func Init() {
 	metrics = true
 
+	queuedRanges = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: namespace,
+		Name:      RANGES_QUEUED,
+		Help:      "Number of range requests currently queued",
+	})
 	lastLoadedHeight = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: namespace,
 		Name:      LOADED_HEIGHT,
@@ -88,10 +95,24 @@ func Init() {
 	})
 }
 
-// RegisterDBCollector create metric colletor for given connection
+// RegisterDBCollector create metric collector for given connection
 func RegisterDBCollector(name string, db *sqlx.DB) {
 	if metrics {
 		prometheus.Register(NewDBStatsCollector(name, db))
+	}
+}
+
+// IncQueuedRanges increments the number of queued range requests
+func IncQueuedRanges() {
+	if metrics {
+		queuedRanges.Inc()
+	}
+}
+
+// DecQueuedRanges decrements the number of queued range requests
+func DecQueuedRanges() {
+	if metrics {
+		queuedRanges.Dec()
 	}
 }
 

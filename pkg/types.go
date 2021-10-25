@@ -21,7 +21,8 @@ package statediff
 
 import (
 	"github.com/ethereum/go-ethereum/core/types"
-	sd "github.com/ethereum/go-ethereum/statediff/types"
+	sd "github.com/ethereum/go-ethereum/statediff"
+	sdTypes "github.com/ethereum/go-ethereum/statediff/types"
 )
 
 // AccountMap is a mapping of hex encoded path => account wrapper
@@ -30,8 +31,14 @@ type AccountMap map[string]accountWrapper
 // accountWrapper is used to temporary associate the unpacked node with its raw values
 type accountWrapper struct {
 	Account   *types.StateAccount
-	NodeType  sd.NodeType
+	NodeType  sdTypes.NodeType
 	Path      []byte
 	NodeValue []byte
 	LeafKey   []byte
+}
+
+// RangeRequest holds range quest work params
+type RangeRequest struct {
+	Start, Stop uint64
+	Params      sd.Params
 }

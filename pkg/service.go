@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/p2p"
@@ -37,34 +36,29 @@ import (
 	ind "github.com/ethereum/go-ethereum/statediff/indexer"
 )
 
-// lvlDBReader are the db interfaces required by the statediffing service
-type lvlDBReader interface {
-	GetBlockByHash(hash common.Hash) (*types.Block, error)
-	GetBlockByNumber(number uint64) (*types.Block, error)
-	GetReceiptsByHash(hash common.Hash) (types.Receipts, error)
-	GetTdByHash(hash common.Hash) (*big.Int, error)
-	StateDB() state.Database
-}
+const defaultQueueSize = 1024
 
-// IService is the state-diffing service interface
-type IService interface {
-	// Start() and Stop()
+// StateDiffService is the state-diffing service interface
+type StateDiffService interface {
+	// Lifecycle Start() and Stop()
 	node.Lifecycle
-	// For node service registration
+	// APIs and Protocols() interface for node service registration
 	APIs() []rpc.API
 	Protocols() []p2p.Protocol
-	// Main event loop for processing state diffs
-	Loop(wg *sync.WaitGroup)
-	// Method to get state diff object at specific block
+	// Loop is the main event loop for processing state diffs
+	Loop(wg *sync.WaitGroup) error
+	// StateDiffAt method to get state diff object at specific block
 	StateDiffAt(blockNumber uint64, params sd.Params) (*sd.Payload, error)
-	// Method to get state diff object at specific block
+	// StateDiffFor method to get state diff object at specific block
 	StateDiffFor(blockHash common.Hash, params sd.Params) (*sd.Payload, error)
-	// Method to get state trie object at specific block
+	// StateTrieAt method to get state trie object at specific block
 	StateTrieAt(blockNumber uint64, params sd.Params) (*sd.Payload, error)
-	// Method to write state diff object directly to DB
+	// WriteStateDiffAt method to write state diff object directly to DB
 	WriteStateDiffAt(blockNumber uint64, params sd.Params) error
-	// Method to get state trie object at specific block
+	// WriteStateDiffFor method to get state trie object at specific block
 	WriteStateDiffFor(blockHash common.Hash, params sd.Params) error
+	// WriteStateDiffsInRange method to wrtie state diff objects within the range directly to the DB
+	WriteStateDiffsInRange(start, stop uint64, params sd.Params) error
 }
 
 // Service is the underlying struct for the state diffing service
@@ -72,24 +66,35 @@ type Service struct {
 	// Used to build the state diff objects
 	Builder Builder
 	// Used to read data from leveldb
-	lvlDBReader lvlDBReader
+	lvlDBReader Reader
 	// Used to signal shutdown of the service
-	QuitChan chan bool
+	quitChan chan struct{}
 	// Interface for publishing statediffs as PG-IPLD objects
 	indexer ind.Indexer
+	// range queue
+	queue chan RangeRequest
+	// number of ranges we can work over concurrently
+	workers uint
+	// ranges configured locally
+	preruns []RangeRequest
 }
 
 // NewStateDiffService creates a new Service
-func NewStateDiffService(lvlDBReader lvlDBReader, indexer ind.Indexer, workers uint) (*Service, error) {
-	builder, err := NewBuilder(lvlDBReader.StateDB(), workers)
+func NewStateDiffService(lvlDBReader Reader, indexer ind.Indexer, conf Config) (*Service, error) {
+	builder, err := NewBuilder(lvlDBReader.StateDB(), conf.TrieWorkers)
 	if err != nil {
 		return nil, err
+	}
+	if conf.WorkerQueueSize == 0 {
+		conf.WorkerQueueSize = defaultQueueSize
 	}
 	return &Service{
 		lvlDBReader: lvlDBReader,
 		Builder:     builder,
-		QuitChan:    make(chan bool),
 		indexer:     indexer,
+		workers:     conf.ServiceWorkers,
+		queue:       make(chan RangeRequest, conf.WorkerQueueSize),
+		preruns:     conf.PreRuns,
 	}, nil
 }
 
@@ -111,16 +116,48 @@ func (sds *Service) APIs() []rpc.API {
 }
 
 // Loop is an empty service loop for awaiting rpc requests
-func (sds *Service) Loop(wg *sync.WaitGroup) {
-	wg.Add(1)
-	for {
-		select {
-		case <-sds.QuitChan:
-			logrus.Info("closing the statediff service loop")
-			wg.Done()
-			return
+func (sds *Service) Loop(wg *sync.WaitGroup) error {
+	if sds.quitChan != nil {
+		return fmt.Errorf("service loop is already running")
+	}
+	sds.quitChan = make(chan struct{})
+	for i := 0; i < int(sds.workers); i++ {
+		wg.Add(1)
+		go func(id int) {
+			defer wg.Done()
+			for {
+				select {
+				case blockRange := <-sds.queue:
+					prom.DecQueuedRanges()
+					for j := blockRange.Start; j <= blockRange.Stop; j++ {
+						if err := sds.WriteStateDiffAt(j, blockRange.Params); err != nil {
+							logrus.Errorf("service worker %d error writing statediff at height %d in range (%d, %d) : %v", id, j, blockRange.Start, blockRange.Stop, err)
+						}
+						select {
+						case <-sds.quitChan:
+							logrus.Infof("closing service worker %d\n"+
+								"working in range (%d, %d)\n"+
+								"last processed height: %d", id, blockRange.Start, blockRange.Stop, j)
+							return
+						default:
+							logrus.Infof("service worker %d finished processing statediff height %d in range (%d, %d)", id, j, blockRange.Start, blockRange.Stop)
+						}
+					}
+					logrus.Infof("service worker %d finished processing range (%d, %d)", id, blockRange.Start, blockRange.Stop)
+				case <-sds.quitChan:
+					logrus.Infof("closing the statediff service loop worker %d", id)
+					return
+				}
+			}
+		}(i)
+	}
+	for _, preRun := range sds.preruns {
+		if err := sds.WriteStateDiffsInRange(preRun.Start, preRun.Stop, preRun.Params); err != nil {
+			close(sds.quitChan)
+			return err
 		}
 	}
+	return nil
 }
 
 // StateDiffAt returns a state diff object payload at the specific blockheight
@@ -237,14 +274,13 @@ func (sds *Service) processStateTrie(block *types.Block, params sd.Params) (*sd.
 // Start is used to begin the service
 func (sds *Service) Start() error {
 	logrus.Info("starting statediff service")
-	go sds.Loop(new(sync.WaitGroup))
-	return nil
+	return sds.Loop(new(sync.WaitGroup))
 }
 
 // Stop is used to close down the service
 func (sds *Service) Stop() error {
 	logrus.Info("stopping statediff service")
-	close(sds.QuitChan)
+	close(sds.quitChan)
 	return nil
 }
 
@@ -334,4 +370,20 @@ func (sds *Service) writeStateDiff(block *types.Block, parentRoot common.Hash, p
 	prom.SetLastProcessedHeight(height)
 	prom.SetTimeMetric(prom.T_POSTGRES_TX_COMMIT, time.Now().Sub(t))
 	return err
+}
+
+// WriteStateDiffsInRange adds a RangeRequest to the work queue
+func (sds *Service) WriteStateDiffsInRange(start, stop uint64, params sd.Params) error {
+	if stop < start {
+		return fmt.Errorf("invalid block range (%d, %d): stop height must be greater or equal to start height", start, stop)
+	}
+	blocked := time.NewTimer(30 * time.Second)
+	select {
+	case sds.queue <- RangeRequest{Start: start, Stop: stop, Params: params}:
+		prom.IncQueuedRanges()
+		logrus.Infof("added range (%d, %d) to the worker queue", start, stop)
+		return nil
+	case <-blocked.C:
+		return fmt.Errorf("unable to add range (%d, %d) to the worker queue", start, stop)
+	}
 }

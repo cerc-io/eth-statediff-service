@@ -30,11 +30,11 @@ const APIVersion = "0.0.1"
 // PublicStateDiffAPI provides an RPC interface
 // that can be used to fetch historical diffs from leveldb directly
 type PublicStateDiffAPI struct {
-	sds IService
+	sds StateDiffService
 }
 
 // NewPublicStateDiffAPI creates an rpc interface for the underlying statediff service
-func NewPublicStateDiffAPI(sds IService) *PublicStateDiffAPI {
+func NewPublicStateDiffAPI(sds StateDiffService) *PublicStateDiffAPI {
 	return &PublicStateDiffAPI{
 		sds: sds,
 	}
@@ -53,4 +53,9 @@ func (api *PublicStateDiffAPI) StateTrieAt(ctx context.Context, blockNumber uint
 // WriteStateDiffAt writes a state diff object directly to DB at the specific blockheight
 func (api *PublicStateDiffAPI) WriteStateDiffAt(ctx context.Context, blockNumber uint64, params sd.Params) error {
 	return api.sds.WriteStateDiffAt(blockNumber, params)
+}
+
+// WriteStateDiffsInRange writes the state diff objects for the provided block range, with the provided params
+func (api *PublicStateDiffAPI) WriteStateDiffsInRange(ctx context.Context, start, stop uint64, params sd.Params) error {
+	return api.sds.WriteStateDiffsInRange(start, stop, params)
 }
