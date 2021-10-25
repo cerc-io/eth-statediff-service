@@ -136,8 +136,8 @@ func init() {
 	rootCmd.PersistentFlags().Bool("prom-http", false, "enable prometheus http service")
 	rootCmd.PersistentFlags().String("prom-http-addr", "127.0.0.1", "prometheus http host")
 	rootCmd.PersistentFlags().String("prom-http-port", "8080", "prometheus http port")
-
-	rootCmd.PersistentFlags().Bool("metrics", false, "enable metrics")
+	rootCmd.PersistentFlags().Bool("prom-db-stats", false, "enables prometheus db stats")
+	rootCmd.PersistentFlags().Bool("prom-metrics", false, "enable prometheus metrics")
 
 	viper.BindPFlag("server.httpPath", rootCmd.PersistentFlags().Lookup("http-path"))
 	viper.BindPFlag("server.ipcPath", rootCmd.PersistentFlags().Lookup("ipc-path"))
@@ -164,7 +164,8 @@ func init() {
 	viper.BindPFlag("prom.http", rootCmd.PersistentFlags().Lookup("prom-http"))
 	viper.BindPFlag("prom.httpAddr", rootCmd.PersistentFlags().Lookup("prom-http-addr"))
 	viper.BindPFlag("prom.httpPort", rootCmd.PersistentFlags().Lookup("prom-http-port"))
-	viper.BindPFlag("prom.metrics", rootCmd.PersistentFlags().Lookup("metrics"))
+	viper.BindPFlag("prom.dbStats", rootCmd.PersistentFlags().Lookup("prom-db-stats"))
+	viper.BindPFlag("prom.metrics", rootCmd.PersistentFlags().Lookup("prom-metrics"))
 }
 
 func initConfig() {

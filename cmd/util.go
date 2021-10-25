@@ -52,15 +52,17 @@ func createStateDiffService() (sd.StateDiffService, error) {
 	}
 
 	// create statediff service
-	logWithCommand.Info("Creating statediff service")
+	logWithCommand.Info("Setting up Postgres DB")
 	db, err := setupPostgres(nodeInfo)
 	if err != nil {
 		logWithCommand.Fatal(err)
 	}
+	logWithCommand.Info("Creating statediff indexer")
 	indexer, err := ind.NewStateDiffIndexer(chainConf, db)
 	if err != nil {
 		logWithCommand.Fatal(err)
 	}
+	logWithCommand.Info("Creating statediff service")
 	sdConf := sd.Config{
 		ServiceWorkers:  viper.GetUint("statediff.serviceWorkers"),
 		TrieWorkers:     viper.GetUint("statediff.trieWorkers"),
@@ -71,12 +73,16 @@ func createStateDiffService() (sd.StateDiffService, error) {
 }
 
 func setupPostgres(nodeInfo node.Info) (*postgres.DB, error) {
-	params := GetDBParams()
-	db, err := postgres.NewDB(postgres.DbConnectionString(params), GetDBConfig(), nodeInfo)
+	p := GetDBParams()
+	logWithCommand.Info("initializing DB connection pool")
+	db, err := postgres.NewDB(postgres.DbConnectionString(p), GetDBConfig(), nodeInfo)
 	if err != nil {
 		return nil, err
 	}
-	prom.RegisterDBCollector(params.Name, db.DB)
+	if viper.GetBool("prom.dbStats") {
+		logWithCommand.Info("registering DB collector")
+		prom.RegisterDBCollector(p.Name, db.DB)
+	}
 	return db, nil
 }
 

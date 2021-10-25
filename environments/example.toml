@@ -45,6 +45,7 @@
     trie = 1024
 
 [prom]
+    dbStats = false
     metrics = true
     http = true
     httpAddr = "localhost"
