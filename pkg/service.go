@@ -47,6 +47,8 @@ type StateDiffService interface {
 	Protocols() []p2p.Protocol
 	// Loop is the main event loop for processing state diffs
 	Loop(wg *sync.WaitGroup) error
+	// Run is a one-off command to run on a predefined set of ranges
+	Run(ranges []RangeRequest) error
 	// StateDiffAt method to get state diff object at specific block
 	StateDiffAt(blockNumber uint64, params sd.Params) (*sd.Payload, error)
 	// StateDiffFor method to get state diff object at specific block
@@ -115,11 +117,34 @@ func (sds *Service) APIs() []rpc.API {
 	}
 }
 
+// Run does a one-off processing run on the provided RangeRequests + any pre-runs, exiting afterwards
+func (sds *Service) Run(rngs []RangeRequest) error {
+	for _, preRun := range sds.preruns {
+		logrus.Infof("processing prerun range (%d, %d)", preRun.Start, preRun.Stop)
+		for i := preRun.Start; i <= preRun.Stop; i++ {
+			if err := sds.WriteStateDiffAt(i, preRun.Params); err != nil {
+				return fmt.Errorf("error writing statediff at height %d in range (%d, %d) : %v", i, preRun.Start, preRun.Stop, err)
+			}
+		}
+	}
+	sds.preruns = nil
+	for _, rng := range rngs {
+		logrus.Infof("processing prerun range (%d, %d)", rng.Start, rng.Stop)
+		for i := rng.Start; i <= rng.Stop; i++ {
+			if err := sds.WriteStateDiffAt(i, rng.Params); err != nil {
+				return fmt.Errorf("error writing statediff at height %d in range (%d, %d) : %v", i, rng.Start, rng.Stop, err)
+			}
+		}
+	}
+	return nil
+}
+
 // Loop is an empty service loop for awaiting rpc requests
 func (sds *Service) Loop(wg *sync.WaitGroup) error {
 	if sds.quitChan != nil {
 		return fmt.Errorf("service loop is already running")
 	}
+
 	sds.quitChan = make(chan struct{})
 	for i := 0; i < int(sds.workers); i++ {
 		wg.Add(1)
@@ -128,6 +153,7 @@ func (sds *Service) Loop(wg *sync.WaitGroup) error {
 			for {
 				select {
 				case blockRange := <-sds.queue:
+					logrus.Infof("service worker %d received range (%d, %d) off of work queue, beginning processing", id, blockRange.Start, blockRange.Stop)
 					prom.DecQueuedRanges()
 					for j := blockRange.Start; j <= blockRange.Stop; j++ {
 						if err := sds.WriteStateDiffAt(j, blockRange.Params); err != nil {

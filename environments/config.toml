@@ -1,22 +1,20 @@
 [leveldb]
-    path = "/Users/user/Library/Ethereum/geth/chaindata"
-    ancient = "/Users/user/Library/Ethereum/geth/chaindata/ancient"
+    path = "/app/geth-rw/chaindata"
+    ancient = "/app/geth-rw/chaindata/ancient"
 
 [server]
-    ipcPath = ".ipc"
-    httpPath = "127.0.0.1:8545"
+    ipcPath = ""
+    httpPath = "0.0.0.0:8545"
 
 [statediff]
     prerun = true
     serviceWorkers = 1
     workerQueueSize = 1024
-    trieWorkers = 4
+    trieWorkers = 16
 
 [prerun]
-    only = false
-    ranges = [
-        [0, 1000]
-    ]
+    only = true
+    ranges = []
     [prerun.params]
         intermediateStateNodes = true
         intermediateStorageNodes = true
@@ -35,19 +33,19 @@
     chainID = 1
 
 [database]
-    name     = "vulcanize_test"
-    hostname = "localhost"
+    name     = ""
+    hostname = ""
     port     = 5432
-    user     = "vulcanize"
-    password = "..."
+    user     = ""
+    password = ""
 
 [cache]
     database = 1024
-    trie = 1024
+    trie = 4096
 
 [prom]
     dbStats = false
     metrics = true
     http = true
-    httpAddr = "localhost"
-    httpPort = "8889"
+    httpAddr = "0.0.0.0"
+    httpPort = 9100
