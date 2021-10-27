@@ -55,6 +55,14 @@ func serve() {
 		logWithCommand.Fatal(err)
 	}
 
+	// short circuit if we only want to perform prerun
+	if viper.GetBool("prerun.only") {
+		if err := statediffService.Run(nil); err != nil {
+			logWithCommand.Fatal("unable to perform prerun: %v", err)
+		}
+		return
+	}
+
 	// start service and servers
 	logWithCommand.Info("Starting statediff service")
 	wg := new(sync.WaitGroup)

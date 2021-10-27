@@ -13,6 +13,7 @@
     trieWorkers = 4
 
 [prerun]
+    only = false
     ranges = [
         [0, 1000]
     ]

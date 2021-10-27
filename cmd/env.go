@@ -45,6 +45,10 @@ const (
 	PROM_HTTP_ADDR = "PROM_HTTP_ADDR"
 	PROM_HTTP_PORT = "PROM_HTTP_PORT"
 	PROM_DB_STATS  = "PROM_DB_STATS"
+
+	PRERUN_ONLY        = "PRERUN_ONLY"
+	PRERUN_RANGE_START = "PRERUN_RANGE_START"
+	PRERUN_RANGE_STOP  = "PRERUN_RANGE_STOP"
 )
 
 // Bind env vars for eth node and DB configuration
@@ -82,4 +86,8 @@ func init() {
 	viper.BindEnv("statediff.serviceWorkers", STATEDIFF_SERVICE_WORKERS)
 	viper.BindEnv("statediff.trieWorkers", STATEDIFF_TRIE_WORKERS)
 	viper.BindEnv("statediff.workerQueueSize", STATEDIFF_WORKER_QUEUE_SIZE)
+
+	viper.BindEnv("prerun.only", PRERUN_ONLY)
+	viper.BindEnv("prerun.start", PRERUN_RANGE_START)
+	viper.BindEnv("prerun.stop", PRERUN_RANGE_STOP)
 }

@@ -122,6 +122,16 @@ func setupPreRunRanges() []sd.RangeRequest {
 			Params: preRunParams,
 		}
 	}
+	if viper.IsSet("prerun.start") && viper.IsSet("prerun.stop") {
+		hardStart := viper.GetInt("prerun.start")
+		hardStop := viper.GetInt("prerun.stop")
+		blockRanges = append(blockRanges, sd.RangeRequest{
+			Start:  uint64(hardStart),
+			Stop:   uint64(hardStop),
+			Params: preRunParams,
+		})
+	}
+
 	return blockRanges
 }
 

@@ -139,6 +139,10 @@ func init() {
 	rootCmd.PersistentFlags().Bool("prom-db-stats", false, "enables prometheus db stats")
 	rootCmd.PersistentFlags().Bool("prom-metrics", false, "enable prometheus metrics")
 
+	rootCmd.PersistentFlags().Bool("prerun-only", false, "only process pre-configured ranges; exit afterwards")
+	rootCmd.PersistentFlags().Int("prerun-start", 0, "start height for a prerun range")
+	rootCmd.PersistentFlags().Int("prerun-stop", 0, "stop height for a prerun range")
+
 	viper.BindPFlag("server.httpPath", rootCmd.PersistentFlags().Lookup("http-path"))
 	viper.BindPFlag("server.ipcPath", rootCmd.PersistentFlags().Lookup("ipc-path"))
 	viper.BindPFlag("log.file", rootCmd.PersistentFlags().Lookup("log-file"))
@@ -166,6 +170,9 @@ func init() {
 	viper.BindPFlag("prom.httpPort", rootCmd.PersistentFlags().Lookup("prom-http-port"))
 	viper.BindPFlag("prom.dbStats", rootCmd.PersistentFlags().Lookup("prom-db-stats"))
 	viper.BindPFlag("prom.metrics", rootCmd.PersistentFlags().Lookup("prom-metrics"))
+	viper.BindPFlag("prerun.only", rootCmd.PersistentFlags().Lookup("prerun-only"))
+	viper.BindPFlag("prerun.start", rootCmd.PersistentFlags().Lookup("prerun-start"))
+	viper.BindPFlag("prerun.stop", rootCmd.PersistentFlags().Lookup("prerun-stop"))
 }
 
 func initConfig() {
