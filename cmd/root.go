@@ -84,7 +84,6 @@ func initFuncs(cmd *cobra.Command, args []string) {
 }
 
 func logLevel() error {
-	viper.BindEnv("log.level", "LOGRUS_LEVEL")
 	lvl, err := log.ParseLevel(viper.GetString("log.level"))
 	if err != nil {
 		return err
