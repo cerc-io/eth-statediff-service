@@ -1,0 +1,51 @@
+[leveldb]
+    path = "/app/geth-rw/chaindata"
+    ancient = "/app/geth-rw/chaindata/ancient"
+
+[server]
+    ipcPath = ""
+    httpPath = "0.0.0.0:8545"
+
+[statediff]
+    prerun = true
+    serviceWorkers = 1
+    workerQueueSize = 1024
+    trieWorkers = 16
+
+[prerun]
+    only = true
+    ranges = []
+    [prerun.params]
+        intermediateStateNodes = true
+        intermediateStorageNodes = true
+        includeBlock = true
+        includeReceipts = true
+        includeTD = true
+        includeCode = true
+        watchedAddresses = []
+        watchedStorageKeys = []
+
+[log]
+    file = ""
+    level = "info"
+
+[eth]
+    chainID = 1
+
+[database]
+    name     = ""
+    hostname = ""
+    port     = 5432
+    user     = ""
+    password = ""
+
+[cache]
+    database = 1024
+    trie = 4096
+
+[prom]
+    dbStats = false
+    metrics = true
+    http = true
+    httpAddr = "0.0.0.0"
+    httpPort = 9100
