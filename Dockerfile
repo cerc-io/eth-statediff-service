@@ -15,7 +15,7 @@ RUN GO111MODULE=on GCO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldfl
 FROM alpine
 
 ARG USER="vdm"
-ARG CONFIG_FILE="./environments/example.toml"
+ARG CONFIG_FILE="./environments/config.toml"
 ARG EXPOSE_PORT=8545
 
 RUN adduser -Du 5000 $USER adm
