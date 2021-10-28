@@ -18,8 +18,10 @@ package cmd
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/ethereum/go-ethereum/statediff/indexer/node"
 	"github.com/ethereum/go-ethereum/statediff/indexer/postgres"
@@ -172,6 +174,8 @@ func init() {
 	viper.BindPFlag("prerun.only", rootCmd.PersistentFlags().Lookup("prerun-only"))
 	viper.BindPFlag("prerun.start", rootCmd.PersistentFlags().Lookup("prerun-start"))
 	viper.BindPFlag("prerun.stop", rootCmd.PersistentFlags().Lookup("prerun-stop"))
+
+	rand.Seed(time.Now().UnixNano())
 }
 
 func initConfig() {
@@ -188,13 +192,50 @@ func initConfig() {
 }
 
 func GetEthNodeInfo() node.Info {
-	return node.Info{
-		ID:           viper.GetString("ethereum.nodeID"),
-		ClientName:   viper.GetString("ethereum.clientName"),
-		GenesisBlock: viper.GetString("ethereum.genesisBlock"),
-		NetworkID:    viper.GetString("ethereum.networkID"),
-		ChainID:      viper.GetUint64("ethereum.chainID"),
+	var nodeID, genesisBlock, networkID, clientName string
+	var chainID uint64
+	if !viper.IsSet("ethereum.nodeID") {
+		nodeID = randSeq(12)
+	} else {
+		nodeID = viper.GetString("ethereum.nodeID")
 	}
+	if !viper.IsSet("ethereum.genesisBlock") {
+		genesisBlock = "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3"
+	} else {
+		genesisBlock = viper.GetString("ethereum.genesisBlock")
+	}
+	if !viper.IsSet("ethereum.chainID") {
+		chainID = 1
+	} else {
+		chainID = viper.GetUint64("ethereum.chainID")
+	}
+	if !viper.IsSet("ethereum.networkID") {
+		networkID = "1"
+	} else {
+		networkID = viper.GetString("ethereum.networkID")
+	}
+	if !viper.IsSet("ethereum.clientName") {
+		clientName = "eth-statediff-service"
+	} else {
+		clientName = viper.GetString("ethereum.clientName")
+	}
+	return node.Info{
+		ID:           nodeID,
+		ClientName:   clientName,
+		GenesisBlock: genesisBlock,
+		NetworkID:    networkID,
+		ChainID:      chainID,
+	}
+}
+
+var characters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+
+func randSeq(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = characters[rand.Intn(len(characters))]
+	}
+	return string(b)
 }
 
 func GetDBParams() postgres.ConnectionParams {
