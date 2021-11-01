@@ -31,6 +31,7 @@ import (
 	sd "github.com/ethereum/go-ethereum/statediff"
 	sdtypes "github.com/ethereum/go-ethereum/statediff/types"
 	"github.com/sirupsen/logrus"
+
 	"github.com/vulcanize/eth-statediff-service/pkg/prom"
 
 	ind "github.com/ethereum/go-ethereum/statediff/indexer"
@@ -59,8 +60,12 @@ type StateDiffService interface {
 	WriteStateDiffAt(blockNumber uint64, params sd.Params) error
 	// WriteStateDiffFor method to get state trie object at specific block
 	WriteStateDiffFor(blockHash common.Hash, params sd.Params) error
-	// WriteStateDiffsInRange method to wrtie state diff objects within the range directly to the DB
+	// WriteStateDiffsInRange method to write state diff objects within the range directly to the DB
 	WriteStateDiffsInRange(start, stop uint64, params sd.Params) error
+	// ViewCurrentRanges returns ranges from range queue.
+	ViewCurrentRanges() []RangeRequest
+	// RemoveRange removes range from range queue.
+	RemoveRange(start, stop uint64) error
 }
 
 // Service is the underlying struct for the state diffing service
@@ -73,12 +78,12 @@ type Service struct {
 	quitChan chan struct{}
 	// Interface for publishing statediffs as PG-IPLD objects
 	indexer ind.Indexer
-	// range queue
-	queue chan RangeRequest
 	// number of ranges we can work over concurrently
 	workers uint
 	// ranges configured locally
-	preruns []RangeRequest
+	preRuns []RangeRequest
+
+	blockRngQueue *blockRangeQueue
 }
 
 // NewStateDiffService creates a new Service
@@ -91,12 +96,12 @@ func NewStateDiffService(lvlDBReader Reader, indexer ind.Indexer, conf Config) (
 		conf.WorkerQueueSize = defaultQueueSize
 	}
 	return &Service{
-		lvlDBReader: lvlDBReader,
-		Builder:     builder,
-		indexer:     indexer,
-		workers:     conf.ServiceWorkers,
-		queue:       make(chan RangeRequest, conf.WorkerQueueSize),
-		preruns:     conf.PreRuns,
+		lvlDBReader:   lvlDBReader,
+		Builder:       builder,
+		indexer:       indexer,
+		workers:       conf.ServiceWorkers,
+		preRuns:       conf.PreRuns,
+		blockRngQueue: new(blockRangeQueue),
 	}, nil
 }
 
@@ -119,7 +124,7 @@ func (sds *Service) APIs() []rpc.API {
 
 // Run does a one-off processing run on the provided RangeRequests + any pre-runs, exiting afterwards
 func (sds *Service) Run(rngs []RangeRequest) error {
-	for _, preRun := range sds.preruns {
+	for _, preRun := range sds.preRuns {
 		logrus.Infof("processing prerun range (%d, %d)", preRun.Start, preRun.Stop)
 		for i := preRun.Start; i <= preRun.Stop; i++ {
 			if err := sds.WriteStateDiffAt(i, preRun.Params); err != nil {
@@ -127,7 +132,7 @@ func (sds *Service) Run(rngs []RangeRequest) error {
 			}
 		}
 	}
-	sds.preruns = nil
+	sds.preRuns = nil
 	for _, rng := range rngs {
 		logrus.Infof("processing prerun range (%d, %d)", rng.Start, rng.Stop)
 		for i := rng.Start; i <= rng.Stop; i++ {
@@ -151,25 +156,32 @@ func (sds *Service) Loop(wg *sync.WaitGroup) error {
 		go func(id int) {
 			defer wg.Done()
 			for {
+				ticker := time.NewTimer(200 * time.Millisecond)
 				select {
-				case blockRange := <-sds.queue:
-					logrus.Infof("service worker %d received range (%d, %d) off of work queue, beginning processing", id, blockRange.Start, blockRange.Stop)
+				case <-ticker.C:
+					rng, err := sds.blockRngQueue.pop()
+					if err != nil {
+						logrus.Debug("failed to get the range from queue ", err)
+						continue
+					}
+
 					prom.DecQueuedRanges()
-					for j := blockRange.Start; j <= blockRange.Stop; j++ {
-						if err := sds.WriteStateDiffAt(j, blockRange.Params); err != nil {
-							logrus.Errorf("service worker %d error writing statediff at height %d in range (%d, %d) : %v", id, j, blockRange.Start, blockRange.Stop, err)
+					for j := rng.Start; j <= rng.Stop; j++ {
+						if err = sds.WriteStateDiffAt(j, rng.Params); err != nil {
+							logrus.Errorf("service worker %d error writing statediff at height %d in range (%d, %d) : %v", id, j, rng.Start, rng.Stop, err)
+							continue
 						}
+
 						select {
 						case <-sds.quitChan:
 							logrus.Infof("closing service worker %d\n"+
 								"working in range (%d, %d)\n"+
-								"last processed height: %d", id, blockRange.Start, blockRange.Stop, j)
+								"last processed height: %d", id, rng.Start, rng.Stop, j)
 							return
 						default:
-							logrus.Infof("service worker %d finished processing statediff height %d in range (%d, %d)", id, j, blockRange.Start, blockRange.Stop)
+							logrus.Infof("service worker %d finished processing statediff height %d in range (%d, %d)", id, j, rng.Start, rng.Stop)
 						}
 					}
-					logrus.Infof("service worker %d finished processing range (%d, %d)", id, blockRange.Start, blockRange.Stop)
 				case <-sds.quitChan:
 					logrus.Infof("closing the statediff service loop worker %d", id)
 					return
@@ -177,7 +189,7 @@ func (sds *Service) Loop(wg *sync.WaitGroup) error {
 			}
 		}(i)
 	}
-	for _, preRun := range sds.preruns {
+	for _, preRun := range sds.preRuns {
 		if err := sds.WriteStateDiffsInRange(preRun.Start, preRun.Stop, preRun.Params); err != nil {
 			close(sds.quitChan)
 			return err
@@ -398,18 +410,22 @@ func (sds *Service) writeStateDiff(block *types.Block, parentRoot common.Hash, p
 	return err
 }
 
-// WriteStateDiffsInRange adds a RangeRequest to the work queue
+// WriteStateDiffsInRange adds a RangeRequest to `blockRangeQueue`.
 func (sds *Service) WriteStateDiffsInRange(start, stop uint64, params sd.Params) error {
 	if stop < start {
 		return fmt.Errorf("invalid block range (%d, %d): stop height must be greater or equal to start height", start, stop)
 	}
-	blocked := time.NewTimer(30 * time.Second)
-	select {
-	case sds.queue <- RangeRequest{Start: start, Stop: stop, Params: params}:
-		prom.IncQueuedRanges()
-		logrus.Infof("added range (%d, %d) to the worker queue", start, stop)
-		return nil
-	case <-blocked.C:
-		return fmt.Errorf("unable to add range (%d, %d) to the worker queue", start, stop)
-	}
+	sds.blockRngQueue.push(RangeRequest{start, stop, params})
+	prom.IncQueuedRanges()
+	return nil
+}
+
+// ViewCurrentRanges returns current ranges present in `blockRangeQueue`.
+func (sds *Service) ViewCurrentRanges() []RangeRequest {
+	return sds.blockRngQueue.get()
+}
+
+// RemoveRange removes range from `blockRangeQueue`.
+func (sds *Service) RemoveRange(start, stop uint64) error {
+	return sds.blockRngQueue.remove(RangeRequest{start, stop, sd.Params{}})
 }

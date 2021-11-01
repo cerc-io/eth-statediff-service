@@ -59,3 +59,13 @@ func (api *PublicStateDiffAPI) WriteStateDiffAt(ctx context.Context, blockNumber
 func (api *PublicStateDiffAPI) WriteStateDiffsInRange(ctx context.Context, start, stop uint64, params sd.Params) error {
 	return api.sds.WriteStateDiffsInRange(start, stop, params)
 }
+
+// ViewCurrentRanges returns the current ranges from queue.
+func (api *PublicStateDiffAPI) ViewCurrentRanges(ctx context.Context) ([]RangeRequest, error) {
+	return api.sds.ViewCurrentRanges(), nil
+}
+
+// RemoveRange remove range from the queue.
+func (api *PublicStateDiffAPI) RemoveRange(ctx context.Context, start, stop uint64) error {
+	return api.sds.RemoveRange(start, stop)
+}
