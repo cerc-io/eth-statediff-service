@@ -6,7 +6,8 @@ import (
 )
 
 var (
-	errEmptyQueue = errors.New("queue is empty")
+	errEmptyQueue        = errors.New("queue is empty")
+	errRangeDoesNotExist = errors.New("range does not exist in queue")
 )
 
 type blockRangeQueue struct {
@@ -38,7 +39,7 @@ func (q *blockRangeQueue) search(rngReq RangeRequest) (int, error) {
 		}
 	}
 
-	return 0, errEmptyQueue
+	return 0, errRangeDoesNotExist
 }
 
 func (q *blockRangeQueue) get() []RangeRequest {

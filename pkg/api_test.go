@@ -69,7 +69,7 @@ func TestRemoveRange(t *testing.T) {
 			name:     "invalid block range range",
 			start:    0,
 			stop:     5,
-			expected: errEmptyQueue,
+			expected: errRangeDoesNotExist,
 		},
 		{
 			name:     "valid block range",
