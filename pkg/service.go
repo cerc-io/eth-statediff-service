@@ -193,7 +193,7 @@ func (sds *Service) StateDiffAt(blockNumber uint64, params sd.Params) (*sd.Paylo
 	if err != nil {
 		return nil, err
 	}
-	logrus.Info(fmt.Sprintf("sending state diff at block %d", blockNumber))
+	logrus.Infof("sending state diff at block %d", blockNumber)
 	if blockNumber == 0 {
 		return sds.processStateDiff(currentBlock, common.Hash{}, params)
 	}
@@ -211,7 +211,7 @@ func (sds *Service) StateDiffFor(blockHash common.Hash, params sd.Params) (*sd.P
 	if err != nil {
 		return nil, err
 	}
-	logrus.Info(fmt.Sprintf("sending state diff at block %s", blockHash.Hex()))
+	logrus.Infof("sending state diff at block %s", blockHash.Hex())
 	if currentBlock.NumberU64() == 0 {
 		return sds.processStateDiff(currentBlock, common.Hash{}, params)
 	}
@@ -280,7 +280,7 @@ func (sds *Service) StateTrieAt(blockNumber uint64, params sd.Params) (*sd.Paylo
 	if err != nil {
 		return nil, err
 	}
-	logrus.Info(fmt.Sprintf("sending state trie at block %d", blockNumber))
+	logrus.Infof("sending state trie at block %d", blockNumber)
 	return sds.processStateTrie(currentBlock, params)
 }
 
@@ -314,7 +314,7 @@ func (sds *Service) Stop() error {
 // This operation cannot be performed back past the point of db pruning; it requires an archival node
 // for historical data
 func (sds *Service) WriteStateDiffAt(blockNumber uint64, params sd.Params) error {
-	logrus.Info(fmt.Sprintf("Writing state diff at block %d", blockNumber))
+	logrus.Infof("Writing state diff at block %d", blockNumber)
 	t := time.Now()
 	currentBlock, err := sds.lvlDBReader.GetBlockByNumber(blockNumber)
 	if err != nil {
@@ -335,7 +335,7 @@ func (sds *Service) WriteStateDiffAt(blockNumber uint64, params sd.Params) error
 // This operation cannot be performed back past the point of db pruning; it requires an archival node
 // for historical data
 func (sds *Service) WriteStateDiffFor(blockHash common.Hash, params sd.Params) error {
-	logrus.Info(fmt.Sprintf("Writing state diff for block %s", blockHash.Hex()))
+	logrus.Infof("Writing state diff for block %s", blockHash.Hex())
 	t := time.Now()
 	currentBlock, err := sds.lvlDBReader.GetBlockByHash(blockHash)
 	if err != nil {
@@ -392,7 +392,7 @@ func (sds *Service) writeStateDiff(block *types.Block, parentRoot common.Hash, p
 	}, params, output, codeOutput)
 	prom.SetTimeMetric(prom.T_STATE_PROCESSING, time.Now().Sub(t))
 	t = time.Now()
-	err = tx.Close(err)
+	err = tx.Close(tx, err)
 	prom.SetLastProcessedHeight(height)
 	prom.SetTimeMetric(prom.T_POSTGRES_TX_COMMIT, time.Now().Sub(t))
 	return err
