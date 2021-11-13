@@ -23,8 +23,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum/cmd/utils"
+	"github.com/ethereum/go-ethereum/statediff/indexer/database/dump"
+	"github.com/ethereum/go-ethereum/statediff/indexer/database/sql/postgres"
+	"github.com/ethereum/go-ethereum/statediff/indexer/interfaces"
 	"github.com/ethereum/go-ethereum/statediff/indexer/node"
-	"github.com/ethereum/go-ethereum/statediff/indexer/postgres"
+	"github.com/ethereum/go-ethereum/statediff/indexer/shared"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -106,6 +110,7 @@ func init() {
 	rootCmd.PersistentFlags().String("http-path", "", "vdb server http path")
 	rootCmd.PersistentFlags().String("ipc-path", "", "vdb server ipc path")
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file location")
+
 	rootCmd.PersistentFlags().String("log-file", "", "file path for logging")
 	rootCmd.PersistentFlags().String("log-level", log.InfoLevel.String(),
 		"log level (trace, debug, info, warn, error, fatal, panic")
@@ -123,9 +128,18 @@ func init() {
 	rootCmd.PersistentFlags().String("database-hostname", "localhost", "database hostname")
 	rootCmd.PersistentFlags().String("database-user", "", "database user")
 	rootCmd.PersistentFlags().String("database-password", "", "database password")
+	rootCmd.PersistentFlags().Int("database-max-idle", 0, "database max number of idle connections")
+	rootCmd.PersistentFlags().Int("database-max-open", 0, "database max number of open connections")
+	rootCmd.PersistentFlags().Int("database-min-open", 0, "database min number of open connections")
+	rootCmd.PersistentFlags().Duration("database-max-conn-lifetime", 0, "database max connection lifetime")
+	rootCmd.PersistentFlags().Duration("database-conn-timeout", 0, "database connection timeout")
+	rootCmd.PersistentFlags().Duration("database-max-idle-time", 0, "database max connection idle time")
+	rootCmd.PersistentFlags().String("database-type", "postgres", "database type (currently supported: postgres, dump)")
+	rootCmd.PersistentFlags().String("database-driver", "sqlx", "database driver type (currently supported: sqlx, pgx)")
+	rootCmd.PersistentFlags().String("database-dump-dst", "stdout", "dump destination (for database-type=dump; options: stdout, stderr, discard)")
 
 	rootCmd.PersistentFlags().String("eth-node-id", "", "eth node id")
-	rootCmd.PersistentFlags().String("eth-client-name", "Geth", "eth client name")
+	rootCmd.PersistentFlags().String("eth-client-name", "eth-statediff-service", "eth client name")
 	rootCmd.PersistentFlags().String("eth-genesis-block",
 		"0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3", "eth genesis block hash")
 	rootCmd.PersistentFlags().String("eth-network-id", "1", "eth network id")
@@ -146,31 +160,48 @@ func init() {
 
 	viper.BindPFlag("server.httpPath", rootCmd.PersistentFlags().Lookup("http-path"))
 	viper.BindPFlag("server.ipcPath", rootCmd.PersistentFlags().Lookup("ipc-path"))
+
 	viper.BindPFlag("log.file", rootCmd.PersistentFlags().Lookup("log-file"))
 	viper.BindPFlag("log.level", rootCmd.PersistentFlags().Lookup("log-level"))
+
 	viper.BindPFlag("statediff.prerun", rootCmd.PersistentFlags().Lookup("prerun"))
 	viper.BindPFlag("statediff.serviceWorkers", rootCmd.PersistentFlags().Lookup("service-workers"))
 	viper.BindPFlag("statediff.trieWorkers", rootCmd.PersistentFlags().Lookup("trie-workers"))
 	viper.BindPFlag("statediff.workerQueueSize", rootCmd.PersistentFlags().Lookup("worker-queue-size"))
+
 	viper.BindPFlag("leveldb.path", rootCmd.PersistentFlags().Lookup("leveldb-path"))
 	viper.BindPFlag("leveldb.ancient", rootCmd.PersistentFlags().Lookup("ancient-path"))
+
 	viper.BindPFlag("database.name", rootCmd.PersistentFlags().Lookup("database-name"))
 	viper.BindPFlag("database.port", rootCmd.PersistentFlags().Lookup("database-port"))
 	viper.BindPFlag("database.hostname", rootCmd.PersistentFlags().Lookup("database-hostname"))
 	viper.BindPFlag("database.user", rootCmd.PersistentFlags().Lookup("database-user"))
 	viper.BindPFlag("database.password", rootCmd.PersistentFlags().Lookup("database-password"))
+	viper.BindPFlag("database.maxIdle", rootCmd.PersistentFlags().Lookup("database-max-idle"))
+	viper.BindPFlag("database.maxOpen", rootCmd.PersistentFlags().Lookup("database-max-open"))
+	viper.BindPFlag("database.minOpen", rootCmd.PersistentFlags().Lookup("database-min-open"))
+	viper.BindPFlag("database.maxConnLifetime", rootCmd.PersistentFlags().Lookup("database-max-conn-lifetime"))
+	viper.BindPFlag("database.connTimeout", rootCmd.PersistentFlags().Lookup("database-conn-timeout"))
+	viper.BindPFlag("database.maxIdleTime", rootCmd.PersistentFlags().Lookup("database-max-idle-time"))
+	viper.BindPFlag("database.type", rootCmd.PersistentFlags().Lookup("database-type"))
+	viper.BindPFlag("database.driver", rootCmd.PersistentFlags().Lookup("database-driver"))
+	viper.BindPFlag("database.dumpDestination", rootCmd.PersistentFlags().Lookup("database-dump-dst"))
+
 	viper.BindPFlag("ethereum.nodeID", rootCmd.PersistentFlags().Lookup("eth-node-id"))
 	viper.BindPFlag("ethereum.clientName", rootCmd.PersistentFlags().Lookup("eth-client-name"))
 	viper.BindPFlag("ethereum.genesisBlock", rootCmd.PersistentFlags().Lookup("eth-genesis-block"))
 	viper.BindPFlag("ethereum.networkID", rootCmd.PersistentFlags().Lookup("eth-network-id"))
 	viper.BindPFlag("ethereum.chainID", rootCmd.PersistentFlags().Lookup("eth-chain-id"))
+
 	viper.BindPFlag("cache.database", rootCmd.PersistentFlags().Lookup("cache-db"))
 	viper.BindPFlag("cache.trie", rootCmd.PersistentFlags().Lookup("cache-trie"))
+
 	viper.BindPFlag("prom.http", rootCmd.PersistentFlags().Lookup("prom-http"))
 	viper.BindPFlag("prom.httpAddr", rootCmd.PersistentFlags().Lookup("prom-http-addr"))
 	viper.BindPFlag("prom.httpPort", rootCmd.PersistentFlags().Lookup("prom-http-port"))
 	viper.BindPFlag("prom.dbStats", rootCmd.PersistentFlags().Lookup("prom-db-stats"))
 	viper.BindPFlag("prom.metrics", rootCmd.PersistentFlags().Lookup("prom-metrics"))
+
 	viper.BindPFlag("prerun.only", rootCmd.PersistentFlags().Lookup("prerun-only"))
 	viper.BindPFlag("prerun.start", rootCmd.PersistentFlags().Lookup("prerun-start"))
 	viper.BindPFlag("prerun.stop", rootCmd.PersistentFlags().Lookup("prerun-stop"))
@@ -191,7 +222,7 @@ func initConfig() {
 	}
 }
 
-func GetEthNodeInfo() node.Info {
+func getEthNodeInfo() node.Info {
 	var nodeID, genesisBlock, networkID, clientName string
 	var chainID uint64
 	if !viper.IsSet("ethereum.nodeID") {
@@ -199,6 +230,7 @@ func GetEthNodeInfo() node.Info {
 	} else {
 		nodeID = viper.GetString("ethereum.nodeID")
 	}
+	genesisBlock = viper.GetString("ethereum.genesisBlock")
 	if !viper.IsSet("ethereum.genesisBlock") {
 		genesisBlock = "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3"
 	} else {
@@ -238,20 +270,69 @@ func randSeq(n int) string {
 	return string(b)
 }
 
-func GetDBParams() postgres.ConnectionParams {
-	return postgres.ConnectionParams{
-		Name:     viper.GetString("database.name"),
-		Hostname: viper.GetString("database.hostname"),
-		Port:     viper.GetInt("database.port"),
-		User:     viper.GetString("database.user"),
-		Password: viper.GetString("database.password"),
+// getConfig constructs and returns the appropriate config from viper params
+func getConfig(nodeInfo node.Info) (interfaces.Config, error) {
+	dbTypeStr := viper.GetString("database.type")
+	dbType, err := shared.ResolveDBType(dbTypeStr)
+	if err != nil {
+		return nil, err
 	}
-}
-
-func GetDBConfig() postgres.ConnectionConfig {
-	return postgres.ConnectionConfig{
-		MaxIdle:     viper.GetInt("database.maxIdle"),
-		MaxOpen:     viper.GetInt("database.maxOpen"),
-		MaxLifetime: viper.GetInt("database.maxLifetime"),
+	logWithCommand.Infof("configuring service for database type: %s", dbType)
+	var indexerConfig interfaces.Config
+	switch dbType {
+	case shared.DUMP:
+		dumpDstStr := viper.GetString("database.dumpDestination")
+		dumpDst, err := dump.ResolveDumpType(dumpDstStr)
+		if err != nil {
+			return nil, err
+		}
+		switch dumpDst {
+		case dump.STDERR:
+			indexerConfig = dump.Config{Dump: os.Stdout}
+		case dump.STDOUT:
+			indexerConfig = dump.Config{Dump: os.Stderr}
+		case dump.DISCARD:
+			indexerConfig = dump.Config{Dump: dump.NewDiscardWriterCloser()}
+		default:
+			return nil, fmt.Errorf("unrecognized dump destination: %s", dumpDst)
+		}
+	case shared.POSTGRES:
+		driverTypeStr := viper.GetString("database.driver")
+		driverType, err := postgres.ResolveDriverType(driverTypeStr)
+		if err != nil {
+			utils.Fatalf("%v", err)
+		}
+		pgConfig := postgres.Config{
+			Hostname:     viper.GetString("database.hostname"),
+			Port:         viper.GetInt("database.port"),
+			DatabaseName: viper.GetString("database.name"),
+			Username:     viper.GetString("database.user"),
+			Password:     viper.GetString("database.password"),
+			ID:           nodeInfo.ID,
+			ClientName:   nodeInfo.ClientName,
+			Driver:       driverType,
+		}
+		if viper.IsSet("database.maxIdle") {
+			pgConfig.MaxIdle = viper.GetInt("database.maxIdle")
+		}
+		if viper.IsSet("database.maxOpen") {
+			pgConfig.MaxConns = viper.GetInt("database.maxOpen")
+		}
+		if viper.IsSet("database.minOpen") {
+			pgConfig.MinConns = viper.GetInt("database.minOpen")
+		}
+		if viper.IsSet("database.maxConnLifetime") {
+			pgConfig.MaxConnLifetime = viper.GetDuration("database.maxConnLifetime")
+		}
+		if viper.IsSet("database.connTimeout") {
+			pgConfig.ConnTimeout = viper.GetDuration("database.connTimeout")
+		}
+		if viper.IsSet("database.maxIdleTime") {
+			pgConfig.MaxConnIdleTime = viper.GetDuration("database.maxIdleTime")
+		}
+		indexerConfig = pgConfig
+	default:
+		return nil, fmt.Errorf("unrecognized db type: %s", dbType)
 	}
+	return indexerConfig, nil
 }

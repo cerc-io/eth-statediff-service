@@ -29,11 +29,11 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
 	sd "github.com/ethereum/go-ethereum/statediff"
+	"github.com/ethereum/go-ethereum/statediff/indexer/interfaces"
 	sdtypes "github.com/ethereum/go-ethereum/statediff/types"
 	"github.com/sirupsen/logrus"
-	"github.com/vulcanize/eth-statediff-service/pkg/prom"
 
-	ind "github.com/ethereum/go-ethereum/statediff/indexer"
+	"github.com/vulcanize/eth-statediff-service/pkg/prom"
 )
 
 const defaultQueueSize = 1024
@@ -72,7 +72,7 @@ type Service struct {
 	// Used to signal shutdown of the service
 	quitChan chan struct{}
 	// Interface for publishing statediffs as PG-IPLD objects
-	indexer ind.Indexer
+	indexer interfaces.StateDiffIndexer
 	// range queue
 	queue chan RangeRequest
 	// number of ranges we can work over concurrently
@@ -82,8 +82,8 @@ type Service struct {
 }
 
 // NewStateDiffService creates a new Service
-func NewStateDiffService(lvlDBReader Reader, indexer ind.Indexer, conf Config) (*Service, error) {
-	builder, err := NewBuilder(lvlDBReader.StateDB(), conf.TrieWorkers)
+func NewStateDiffService(lvlDBReader Reader, indexer interfaces.StateDiffIndexer, conf Config) (*Service, error) {
+	b, err := NewBuilder(lvlDBReader.StateDB(), conf.TrieWorkers)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func NewStateDiffService(lvlDBReader Reader, indexer ind.Indexer, conf Config) (
 	}
 	return &Service{
 		lvlDBReader: lvlDBReader,
-		Builder:     builder,
+		Builder:     b,
 		indexer:     indexer,
 		workers:     conf.ServiceWorkers,
 		queue:       make(chan RangeRequest, conf.WorkerQueueSize),
@@ -386,13 +386,13 @@ func (sds *Service) writeStateDiff(block *types.Block, parentRoot common.Hash, p
 	}
 	prom.SetTimeMetric(prom.T_BLOCK_PROCESSING, time.Now().Sub(t))
 	t = time.Now()
-	err = sds.Builder.WriteStateDiffObject(sd.StateRoots{
+	err = sds.Builder.WriteStateDiffObject(sdtypes.StateRoots{
 		NewStateRoot: block.Root(),
 		OldStateRoot: parentRoot,
 	}, params, output, codeOutput)
 	prom.SetTimeMetric(prom.T_STATE_PROCESSING, time.Now().Sub(t))
 	t = time.Now()
-	err = tx.Close(tx, err)
+	err = tx.Submit(err)
 	prom.SetLastProcessedHeight(height)
 	prom.SetTimeMetric(prom.T_POSTGRES_TX_COMMIT, time.Now().Sub(t))
 	return err

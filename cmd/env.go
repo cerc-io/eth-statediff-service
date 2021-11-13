@@ -18,8 +18,6 @@ package cmd
 
 import (
 	"github.com/spf13/viper"
-
-	pg "github.com/ethereum/go-ethereum/statediff/indexer/postgres"
 )
 
 const (
@@ -54,6 +52,23 @@ const (
 
 	LOG_LEVEL     = "LOG_LEVEL"
 	LOG_FILE_PATH = "LOG_FILE_PATH"
+
+	DATABASE_NAME     = "DATABASE_NAME"
+	DATABASE_HOSTNAME = "DATABASE_HOSTNAME"
+	DATABASE_PORT     = "DATABASE_PORT"
+	DATABASE_USER     = "DATABASE_USER"
+	DATABASE_PASSWORD = "DATABASE_PASSWORD"
+
+	DATABASE_TYPE        = "DATABASE_TYPE"
+	DATABASE_DRIVER_TYPE = "DATABASE_DRIVER_TYPE"
+	DATABASE_DUMP_DST    = "DATABASE_DUMP_DST"
+
+	DATABASE_MAX_IDLE_CONNECTIONS = "DATABASE_MAX_IDLE_CONNECTIONS"
+	DATABASE_MAX_OPEN_CONNECTIONS = "DATABASE_MAX_OPEN_CONNECTIONS"
+	DATABASE_MIN_OPEN_CONNS       = "DATABASE_MIN_OPEN_CONNS"
+	DATABASE_MAX_CONN_LIFETIME    = "DATABASE_MAX_CONN_LIFETIME"
+	DATABASE_CONN_TIMEOUT         = "DATABSE_CONN_TIMEOUT"
+	DATABASE_MAX_CONN_IDLE_TIME   = "DATABASE_MAX_CONN_IDLE_TIME"
 )
 
 // Bind env vars for eth node and DB configuration
@@ -67,14 +82,22 @@ func init() {
 	viper.BindEnv("ethereum.networkID", ETH_NETWORK_ID)
 	viper.BindEnv("ethereum.chainID", ETH_CHAIN_ID)
 
-	viper.BindEnv("database.name", pg.DATABASE_NAME)
-	viper.BindEnv("database.hostname", pg.DATABASE_HOSTNAME)
-	viper.BindEnv("database.port", pg.DATABASE_PORT)
-	viper.BindEnv("database.user", pg.DATABASE_USER)
-	viper.BindEnv("database.password", pg.DATABASE_PASSWORD)
-	viper.BindEnv("database.maxIdle", pg.DATABASE_MAX_IDLE_CONNECTIONS)
-	viper.BindEnv("database.maxOpen", pg.DATABASE_MAX_OPEN_CONNECTIONS)
-	viper.BindEnv("database.maxLifetime", pg.DATABASE_MAX_CONN_LIFETIME)
+	viper.BindEnv("database.name", DATABASE_NAME)
+	viper.BindEnv("database.hostname", DATABASE_HOSTNAME)
+	viper.BindEnv("database.port", DATABASE_PORT)
+	viper.BindEnv("database.user", DATABASE_USER)
+	viper.BindEnv("database.password", DATABASE_PASSWORD)
+
+	viper.BindEnv("database.maxIdle", DATABASE_MAX_IDLE_CONNECTIONS)
+	viper.BindEnv("database.maxOpen", DATABASE_MAX_OPEN_CONNECTIONS)
+	viper.BindEnv("database.minOpen", DATABASE_MIN_OPEN_CONNS)
+	viper.BindEnv("database.maxConnLifetime", DATABASE_MAX_CONN_LIFETIME)
+	viper.BindEnv("database.connTimeout", DATABASE_CONN_TIMEOUT)
+	viper.BindEnv("database.maxIdleTime", DATABASE_MAX_CONN_IDLE_TIME)
+
+	viper.BindEnv("database.type", DATABASE_TYPE)
+	viper.BindEnv("database.driver", DATABASE_DRIVER_TYPE)
+	viper.BindEnv("database.dumpDestination", DATABASE_DUMP_DST)
 
 	viper.BindEnv("cache.database", DB_CACHE_SIZE_MB)
 	viper.BindEnv("cache.trie", TRIE_CACHE_SIZE_MB)

@@ -40,6 +40,9 @@
     port     = 5432
     user     = "vulcanize"
     password = "..."
+    type = "postgres"
+    driver = "sqlx"
+    dumpDestination = ""
 
 [cache]
     database = 1024

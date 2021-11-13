@@ -1,19 +1,17 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/params"
 	gethsd "github.com/ethereum/go-ethereum/statediff"
 	ind "github.com/ethereum/go-ethereum/statediff/indexer"
-	"github.com/ethereum/go-ethereum/statediff/indexer/node"
-	"github.com/ethereum/go-ethereum/statediff/indexer/postgres"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/spf13/viper"
 
 	sd "github.com/vulcanize/eth-statediff-service/pkg"
-	"github.com/vulcanize/eth-statediff-service/pkg/prom"
 )
 
 type blockRange [2]uint64
@@ -27,7 +25,7 @@ func createStateDiffService() (sd.StateDiffService, error) {
 		logWithCommand.Fatal("require a valid eth leveldb primary datastore path and ancient datastore path")
 	}
 
-	nodeInfo := GetEthNodeInfo()
+	nodeInfo := getEthNodeInfo()
 	chainConf, err := chainConfig(nodeInfo.ChainID)
 	if err != nil {
 		logWithCommand.Fatal(err)
@@ -52,13 +50,13 @@ func createStateDiffService() (sd.StateDiffService, error) {
 	}
 
 	// create statediff service
-	logWithCommand.Info("Setting up Postgres DB")
-	db, err := setupPostgres(nodeInfo)
+	logWithCommand.Info("Setting up database")
+	conf, err := getConfig(nodeInfo)
 	if err != nil {
 		logWithCommand.Fatal(err)
 	}
 	logWithCommand.Info("Creating statediff indexer")
-	indexer, err := ind.NewStateDiffIndexer(chainConf, db)
+	indexer, err := ind.NewStateDiffIndexer(context.Background(), chainConf, nodeInfo, conf)
 	if err != nil {
 		logWithCommand.Fatal(err)
 	}
@@ -70,20 +68,6 @@ func createStateDiffService() (sd.StateDiffService, error) {
 		PreRuns:         setupPreRunRanges(),
 	}
 	return sd.NewStateDiffService(lvlDBReader, indexer, sdConf)
-}
-
-func setupPostgres(nodeInfo node.Info) (*postgres.DB, error) {
-	p := GetDBParams()
-	logWithCommand.Info("initializing DB connection pool")
-	db, err := postgres.NewDB(postgres.DbConnectionString(p), GetDBConfig(), nodeInfo)
-	if err != nil {
-		return nil, err
-	}
-	if viper.GetBool("prom.dbStats") {
-		logWithCommand.Info("registering DB collector")
-		prom.RegisterDBCollector(p.Name, db.DB)
-	}
-	return db, nil
 }
 
 func setupPreRunRanges() []sd.RangeRequest {

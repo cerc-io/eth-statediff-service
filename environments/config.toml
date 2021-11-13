@@ -38,6 +38,9 @@
     port     = 5432
     user     = ""
     password = ""
+    type = "postgres"
+    driver = "sqlx"
+    dumpDestination = ""
 
 [cache]
     database = 1024
