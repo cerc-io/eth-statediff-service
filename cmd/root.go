@@ -25,6 +25,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/cmd/utils"
 	"github.com/ethereum/go-ethereum/statediff/indexer/database/dump"
+	"github.com/ethereum/go-ethereum/statediff/indexer/database/file"
 	"github.com/ethereum/go-ethereum/statediff/indexer/database/sql/postgres"
 	"github.com/ethereum/go-ethereum/statediff/indexer/interfaces"
 	"github.com/ethereum/go-ethereum/statediff/indexer/node"
@@ -137,6 +138,7 @@ func init() {
 	rootCmd.PersistentFlags().String("database-type", "postgres", "database type (currently supported: postgres, dump)")
 	rootCmd.PersistentFlags().String("database-driver", "sqlx", "database driver type (currently supported: sqlx, pgx)")
 	rootCmd.PersistentFlags().String("database-dump-dst", "stdout", "dump destination (for database-type=dump; options: stdout, stderr, discard)")
+	rootCmd.PersistentFlags().String("database-file-path", "", "full file path (for database-type=file)")
 
 	rootCmd.PersistentFlags().String("eth-node-id", "", "eth node id")
 	rootCmd.PersistentFlags().String("eth-client-name", "eth-statediff-service", "eth client name")
@@ -280,7 +282,15 @@ func getConfig(nodeInfo node.Info) (interfaces.Config, error) {
 	logWithCommand.Infof("configuring service for database type: %s", dbType)
 	var indexerConfig interfaces.Config
 	switch dbType {
+	case shared.FILE:
+		logWithCommand.Info("starting in sql file writing mode")
+		filePathStr := viper.GetString("database.filePath")
+		if filePathStr == "" {
+			logWithCommand.Fatal("when operating in sql file writing mode a file path must be provided")
+		}
+		indexerConfig = file.Config{FilePath: filePathStr}
 	case shared.DUMP:
+		logWithCommand.Info("starting in data dump mode")
 		dumpDstStr := viper.GetString("database.dumpDestination")
 		dumpDst, err := dump.ResolveDumpType(dumpDstStr)
 		if err != nil {
@@ -297,6 +307,7 @@ func getConfig(nodeInfo node.Info) (interfaces.Config, error) {
 			return nil, fmt.Errorf("unrecognized dump destination: %s", dumpDst)
 		}
 	case shared.POSTGRES:
+		logWithCommand.Info("starting in postgres mode")
 		driverTypeStr := viper.GetString("database.driver")
 		driverType, err := postgres.ResolveDriverType(driverTypeStr)
 		if err != nil {

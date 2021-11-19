@@ -62,6 +62,7 @@ const (
 	DATABASE_TYPE        = "DATABASE_TYPE"
 	DATABASE_DRIVER_TYPE = "DATABASE_DRIVER_TYPE"
 	DATABASE_DUMP_DST    = "DATABASE_DUMP_DST"
+	DATABASE_FILE_PATH   = "DATABASE_FILE_PATH"
 
 	DATABASE_MAX_IDLE_CONNECTIONS = "DATABASE_MAX_IDLE_CONNECTIONS"
 	DATABASE_MAX_OPEN_CONNECTIONS = "DATABASE_MAX_OPEN_CONNECTIONS"
@@ -98,6 +99,7 @@ func init() {
 	viper.BindEnv("database.type", DATABASE_TYPE)
 	viper.BindEnv("database.driver", DATABASE_DRIVER_TYPE)
 	viper.BindEnv("database.dumpDestination", DATABASE_DUMP_DST)
+	viper.BindEnv("database.filePath", DATABASE_FILE_PATH)
 
 	viper.BindEnv("cache.database", DB_CACHE_SIZE_MB)
 	viper.BindEnv("cache.trie", TRIE_CACHE_SIZE_MB)
