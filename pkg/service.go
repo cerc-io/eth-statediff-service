@@ -379,7 +379,7 @@ func (sds *Service) writeStateDiff(block *types.Block, parentRoot common.Hash, p
 	}
 	// defer handling of commit/rollback for any return case
 	output := func(node sdtypes.StateNode) error {
-		return sds.indexer.PushStateNode(tx, node)
+		return sds.indexer.PushStateNode(tx, node, block.Hash().String())
 	}
 	codeOutput := func(c sdtypes.CodeAndCodeHash) error {
 		return sds.indexer.PushCodeAndCodeHash(tx, c)

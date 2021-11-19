@@ -43,6 +43,7 @@
     type = "postgres"
     driver = "sqlx"
     dumpDestination = ""
+    filePath = ""
 
 [cache]
     database = 1024
