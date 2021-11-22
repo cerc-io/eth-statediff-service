@@ -188,6 +188,7 @@ func init() {
 	viper.BindPFlag("database.type", rootCmd.PersistentFlags().Lookup("database-type"))
 	viper.BindPFlag("database.driver", rootCmd.PersistentFlags().Lookup("database-driver"))
 	viper.BindPFlag("database.dumpDestination", rootCmd.PersistentFlags().Lookup("database-dump-dst"))
+	viper.BindPFlag("database.filePath", rootCmd.PersistentFlags().Lookup("database-file-path"))
 
 	viper.BindPFlag("ethereum.nodeID", rootCmd.PersistentFlags().Lookup("eth-node-id"))
 	viper.BindPFlag("ethereum.clientName", rootCmd.PersistentFlags().Lookup("eth-client-name"))
