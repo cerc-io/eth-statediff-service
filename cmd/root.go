@@ -159,6 +159,13 @@ func init() {
 	rootCmd.PersistentFlags().Bool("prerun-only", false, "only process pre-configured ranges; exit afterwards")
 	rootCmd.PersistentFlags().Int("prerun-start", 0, "start height for a prerun range")
 	rootCmd.PersistentFlags().Int("prerun-stop", 0, "stop height for a prerun range")
+	rootCmd.PersistentFlags().Bool("prerun-intermediate-state-nodes", true, "include intermediate state nodes in state diff")
+	rootCmd.PersistentFlags().Bool("prerun-intermediate-storage-nodes", true, "include intermediate storage nodes in state diff")
+	rootCmd.PersistentFlags().Bool("prerun-include-block", true, "include block data in the statediff payload")
+	rootCmd.PersistentFlags().Bool("prerun-include-receipts", true, "include receipts in the statediff payload")
+	rootCmd.PersistentFlags().Bool("prerun-include-td", true, "include td in the statediff payload")
+	rootCmd.PersistentFlags().Bool("prerun-include-code", true, "include code and codehash mappings in statediff payload")
+
 
 	viper.BindPFlag("server.httpPath", rootCmd.PersistentFlags().Lookup("http-path"))
 	viper.BindPFlag("server.ipcPath", rootCmd.PersistentFlags().Lookup("ipc-path"))
@@ -208,6 +215,12 @@ func init() {
 	viper.BindPFlag("prerun.only", rootCmd.PersistentFlags().Lookup("prerun-only"))
 	viper.BindPFlag("prerun.start", rootCmd.PersistentFlags().Lookup("prerun-start"))
 	viper.BindPFlag("prerun.stop", rootCmd.PersistentFlags().Lookup("prerun-stop"))
+	viper.BindPFlag("prerun.params.intermediateStateNodes", rootCmd.PersistentFlags().Lookup("prerun-intermediate-state-nodes"))
+	viper.BindPFlag("prerun.params.intermediateStorageNodes", rootCmd.PersistentFlags().Lookup("prerun-intermediate-storage-nodes"))
+	viper.BindPFlag("prerun.params.includeBlock", rootCmd.PersistentFlags().Lookup("prerun-include-block"))
+	viper.BindPFlag("prerun.params.includeReceipts", rootCmd.PersistentFlags().Lookup("prerun-include-receipts"))
+	viper.BindPFlag("prerun.params.includeTD", rootCmd.PersistentFlags().Lookup("prerun-include-td"))
+	viper.BindPFlag("prerun.params.includeCode", rootCmd.PersistentFlags().Lookup("prerun-include-code"))
 
 	rand.Seed(time.Now().UnixNano())
 }

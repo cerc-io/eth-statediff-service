@@ -29,9 +29,6 @@
     file = ""
     level = "info"
 
-[eth]
-    chainID = 1
-
 [database]
     name     = ""
     hostname = ""

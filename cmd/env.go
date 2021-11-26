@@ -49,6 +49,12 @@ const (
 	PRERUN_ONLY        = "PRERUN_ONLY"
 	PRERUN_RANGE_START = "PRERUN_RANGE_START"
 	PRERUN_RANGE_STOP  = "PRERUN_RANGE_STOP"
+	PRERUN_INTERMEDIATE_STATE_NODES = "PRERUN_INTERMEDIATE_STATE_NODES"
+	PRERUN_INTERMEDIATE_STORAGE_NODES = "PRERUN_INTERMEDIATE_STORAGE_NODES"
+	PRERUN_INCLUDE_BLOCK = "PRERUN_INCLUDE_BLOCK"
+	PRERUN_INCLUDE_RECEIPTS = "PRERUN_INCLUDE_RECEIPTS"
+	PRERUN_INCLUDE_TD = "PRERUN_INCLUDE_TD"
+	PRERUN_INCLUDE_CODE = "PRERUN_INCLUDE_CODE"
 
 	LOG_LEVEL     = "LOG_LEVEL"
 	LOG_FILE_PATH = "LOG_FILE_PATH"
@@ -121,6 +127,12 @@ func init() {
 	viper.BindEnv("prerun.only", PRERUN_ONLY)
 	viper.BindEnv("prerun.start", PRERUN_RANGE_START)
 	viper.BindEnv("prerun.stop", PRERUN_RANGE_STOP)
+	viper.BindEnv("prerun.params.intermediateStateNodes", PRERUN_INTERMEDIATE_STATE_NODES)
+	viper.BindEnv("prerun.params.intermediateStorageNodes", PRERUN_INTERMEDIATE_STORAGE_NODES)
+	viper.BindEnv("prerun.params.includeBlock", PRERUN_INCLUDE_BLOCK)
+	viper.BindEnv("prerun.params.includeReceipts", PRERUN_INCLUDE_RECEIPTS)
+	viper.BindEnv("prerun.params.includeTD", PRERUN_INCLUDE_TD)
+	viper.BindEnv("prerun.params.includeCode", PRERUN_INCLUDE_CODE)
 
 	viper.BindEnv("log.level", LOG_LEVEL)
 	viper.BindEnv("log.file", LOG_FILE_PATH)
