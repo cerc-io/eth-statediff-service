@@ -31,9 +31,6 @@
     file = ""
     level = "info"
 
-[eth]
-    chainID = 1
-
 [database]
     name     = "vulcanize_test"
     hostname = "localhost"
