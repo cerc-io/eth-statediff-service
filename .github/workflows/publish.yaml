@@ -9,10 +9,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Get the version
-        id: vars
         run: |
           echo ::set-output name=tag::$(echo ${GITHUB_REF#refs/tags/})
-          echo ::set-output name=branch::$(echo ${GITHUB_REF#refs/heads/})
+          echo "::set-output name=branch::$(echo ${github.event.release.target_commitish})"
+        id: vars
       - name: Docker Login
         run: echo ${{ secrets.GITHUB_TOKEN }} | docker login https://docker.pkg.github.com -u vulcanize --password-stdin
       - name: Build and push
