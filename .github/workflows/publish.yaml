@@ -15,11 +15,11 @@ jobs:
           echo ::set-output name=branch::$(echo ${GITHUB_REF##*/})
       - name: Docker Login
         run: echo ${{ secrets.GITHUB_TOKEN }} | docker login https://docker.pkg.github.com -u vulcanize --password-stdin
-    - name: Build and push
-      uses: docker/build-push-action@v2
-      with:
-        context: .
-        push: true
-        tags: vulcanize/eth-statediff-service:${{ steps.vars.outputs.tag }}
-        build-args: |
-          BRANCH=${{ steps.vars.outputs.branch }}
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          push: true
+          tags: vulcanize/eth-statediff-service:${{ steps.vars.outputs.tag }}
+          build-args: |
+            BRANCH=${{ steps.vars.outputs.branch }}
