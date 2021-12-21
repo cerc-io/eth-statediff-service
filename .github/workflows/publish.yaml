@@ -9,10 +9,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Get the version
+        run: echo ::set-output name=tag::$(echo ${GITHUB_REF#refs/tags/})
         id: vars
-        run: |
-          echo ::set-output name=tag::$(echo ${GITHUB_REF#refs/tags/})
-          echo ::set-output name=branch::$(echo ${GITHUB_REF#refs/heads/})
+      - name: Extract branch name
+        shell: bash
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+        id: extract_branch
       - name: Docker Login
         run: echo ${{ secrets.GITHUB_TOKEN }} | docker login https://docker.pkg.github.com -u vulcanize --password-stdin
       - name: Build and push
@@ -22,4 +24,4 @@ jobs:
           push: true
           tags: vulcanize/eth-statediff-service:${{ steps.vars.outputs.tag }}
           build-args: |
-            BRANCH=${{ steps.vars.outputs.branch }}
+            BRANCH=${{ steps.extract_branch.outputs.branch }}
