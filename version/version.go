@@ -21,7 +21,7 @@ import "fmt"
 const (
 	major = 0  // major version component of the current release
 	minor = 2  // minor version component of the current release
-	patch = 10 // patch version component of the current release
+	patch = 11 // patch version component of the current release
 )
 
 // Version holds the textual version string.
