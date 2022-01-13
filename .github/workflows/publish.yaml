@@ -7,19 +7,23 @@ jobs:
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
       - name: Get the version
-        id: vars
         run: |
-          echo ::set-output name=sha::$(echo ${GITHUB_SHA:0:7})
           echo ::set-output name=tag::$(echo ${GITHUB_REF#refs/tags/})
-      - name: Docker Login to Github Registry
-        run: echo ${{ secrets.GITHUB_TOKEN }} | docker login https://docker.pkg.github.com -u vulcanize --password-stdin
-      - name: Docker Pull
-        run: docker pull docker.pkg.github.com/vulcanize/eth-statediff-service/eth-statediff-service:${{steps.vars.outputs.sha}}
+          echo ::set-output name=sha::$(echo ${GITHUB_SHA})
+        id: vars
       - name: Docker Login to Docker Registry
-        run: echo ${{ secrets.VULCANIZEJENKINS_PAT }} | docker login -u vulcanizejenkins --password-stdin
-      - name: Tag docker image
-        run: docker tag docker.pkg.github.com/vulcanize/eth-statediff-service/eth-statediff-service:${{steps.vars.outputs.sha}} vulcanize/eth-statediff-service:${{steps.vars.outputs.tag}}
-      - name: Docker Push to Docker Hub
-        run: docker push vulcanize/eth-statediff-service:${{steps.vars.outputs.tag}}
+        uses: docker/login-action@v1
+        with:
+          username: vulcanizejenkins
+          password: ${{ secrets.VULCANIZEJENKINS_PAT }}
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          push: true
+          tags: vulcanize/eth-statediff-service:${{ steps.vars.outputs.tag }}
+          build-args: |
+            GIT_COMMIT=${{ steps.vars.outputs.sha }}
 
