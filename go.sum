@@ -674,8 +674,8 @@ github.com/valyala/fasttemplate v1.0.1/go.mod h1:UQGH1tvbgY+Nz5t2n7tXsz52dQxojPU
 github.com/valyala/fasttemplate v1.2.1/go.mod h1:KHLXt3tVN2HBp8eijSv/kGJopbvo7S+qRAEEKiv+SiQ=
 github.com/vulcanize/go-eth-state-node-iterator v0.0.1-alpha.0.20211014064906-d23d01ed8191 h1:+xSwb0xOLCAhejoai2BQZPTJW5Z+tU9xkTaOBwGnPoU=
 github.com/vulcanize/go-eth-state-node-iterator v0.0.1-alpha.0.20211014064906-d23d01ed8191/go.mod h1:FBMQp69PTnRg3kLx9qeWGfKYfVq4fpfbr69X8lEvvfs=
-github.com/vulcanize/go-ethereum v1.10.13-statediff-0.0.29 h1:jU0msLliD4Ms4Ae2fK6ktKcqoaynmSmDkRDJg3XNqkQ=
-github.com/vulcanize/go-ethereum v1.10.13-statediff-0.0.29/go.mod h1:9L+QY31AnWnX2/2HDOySCjQoYUdWNGBRMezFJVfH73E=
+github.com/vulcanize/go-ethereum v1.10.15-statediff-2.0.0 h1:/BiYPUHnubh46YVtASGt4MPlFR96Rc+iJuTyOI8KZa4=
+github.com/vulcanize/go-ethereum v1.10.15-statediff-2.0.0/go.mod h1:9L+QY31AnWnX2/2HDOySCjQoYUdWNGBRMezFJVfH73E=
 github.com/whyrusleeping/go-logging v0.0.0-20170515211332-0457bb6b88fc h1:9lDbC6Rz4bwmou+oE6Dt4Cb2BGMur5eR/GYptkKUVHo=
 github.com/whyrusleeping/go-logging v0.0.0-20170515211332-0457bb6b88fc/go.mod h1:bopw91TMyo8J3tvftk8xmU2kPmlrt4nScJQZU2hE5EM=
 github.com/willf/bitset v1.1.3/go.mod h1:RjeCKbqT1RxIR/KWY6phxZiaY1IyutSBfGjNPySAYV4=
