@@ -479,7 +479,7 @@ func TestBuilder(t *testing.T) {
 	var tests = []struct {
 		name              string
 		startingArguments statediff.Args
-		expected          *statediff.StateObject
+		expected          *sdtypes.StateObject
 	}{
 		{
 			"testEmptyDiff",
@@ -489,7 +489,7 @@ func TestBuilder(t *testing.T) {
 				BlockNumber:  block0.Number(),
 				BlockHash:    block0.Hash(),
 			},
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block0.Number(),
 				BlockHash:   block0.Hash(),
 				Nodes:       emptyDiffs,
@@ -504,7 +504,7 @@ func TestBuilder(t *testing.T) {
 				BlockNumber:  block0.Number(),
 				BlockHash:    block0.Hash(),
 			},
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block0.Number(),
 				BlockHash:   block0.Hash(),
 				Nodes: []sdtypes.StateNode{
@@ -527,7 +527,7 @@ func TestBuilder(t *testing.T) {
 				BlockNumber:  block1.Number(),
 				BlockHash:    block1.Hash(),
 			},
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block1.Number(),
 				BlockHash:   block1.Hash(),
 				Nodes: []sdtypes.StateNode{
@@ -566,7 +566,7 @@ func TestBuilder(t *testing.T) {
 				BlockNumber:  block2.Number(),
 				BlockHash:    block2.Hash(),
 			},
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block2.Number(),
 				BlockHash:   block2.Hash(),
 				Nodes: []sdtypes.StateNode{
@@ -637,7 +637,7 @@ func TestBuilder(t *testing.T) {
 				BlockNumber:  block3.Number(),
 				BlockHash:    block3.Hash(),
 			},
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block3.Number(),
 				BlockHash:   block3.Hash(),
 				Nodes: []sdtypes.StateNode{
@@ -716,7 +716,7 @@ func TestBuilderWithIntermediateNodes(t *testing.T) {
 	var tests = []struct {
 		name              string
 		startingArguments statediff.Args
-		expected          *statediff.StateObject
+		expected          *sdtypes.StateObject
 	}{
 		{
 			"testEmptyDiff",
@@ -726,7 +726,7 @@ func TestBuilderWithIntermediateNodes(t *testing.T) {
 				BlockNumber:  block0.Number(),
 				BlockHash:    block0.Hash(),
 			},
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block0.Number(),
 				BlockHash:   block0.Hash(),
 				Nodes:       emptyDiffs,
@@ -741,7 +741,7 @@ func TestBuilderWithIntermediateNodes(t *testing.T) {
 				BlockNumber:  block0.Number(),
 				BlockHash:    block0.Hash(),
 			},
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block0.Number(),
 				BlockHash:   block0.Hash(),
 				Nodes: []sdtypes.StateNode{
@@ -764,7 +764,7 @@ func TestBuilderWithIntermediateNodes(t *testing.T) {
 				BlockNumber:  block1.Number(),
 				BlockHash:    block1.Hash(),
 			},
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block1.Number(),
 				BlockHash:   block1.Hash(),
 				Nodes: []sdtypes.StateNode{
@@ -809,7 +809,7 @@ func TestBuilderWithIntermediateNodes(t *testing.T) {
 				BlockNumber:  block2.Number(),
 				BlockHash:    block2.Hash(),
 			},
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block2.Number(),
 				BlockHash:   block2.Hash(),
 				Nodes: []sdtypes.StateNode{
@@ -891,7 +891,7 @@ func TestBuilderWithIntermediateNodes(t *testing.T) {
 				BlockNumber:  block3.Number(),
 				BlockHash:    block3.Hash(),
 			},
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block3.Number(),
 				BlockHash:   block3.Hash(),
 				Nodes: []sdtypes.StateNode{
@@ -993,7 +993,7 @@ func TestBuilderWithWatchedAddressList(t *testing.T) {
 	var tests = []struct {
 		name              string
 		startingArguments statediff.Args
-		expected          *statediff.StateObject
+		expected          *sdtypes.StateObject
 	}{
 		{
 			"testEmptyDiff",
@@ -1003,7 +1003,7 @@ func TestBuilderWithWatchedAddressList(t *testing.T) {
 				BlockNumber:  block0.Number(),
 				BlockHash:    block0.Hash(),
 			},
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block0.Number(),
 				BlockHash:   block0.Hash(),
 				Nodes:       emptyDiffs,
@@ -1018,7 +1018,7 @@ func TestBuilderWithWatchedAddressList(t *testing.T) {
 				BlockNumber:  block0.Number(),
 				BlockHash:    block0.Hash(),
 			},
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block0.Number(),
 				BlockHash:   block0.Hash(),
 				Nodes:       emptyDiffs,
@@ -1033,7 +1033,7 @@ func TestBuilderWithWatchedAddressList(t *testing.T) {
 				BlockNumber:  block1.Number(),
 				BlockHash:    block1.Hash(),
 			},
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block1.Number(),
 				BlockHash:   block1.Hash(),
 				Nodes: []sdtypes.StateNode{
@@ -1057,7 +1057,7 @@ func TestBuilderWithWatchedAddressList(t *testing.T) {
 				BlockNumber:  block2.Number(),
 				BlockHash:    block2.Hash(),
 			},
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block2.Number(),
 				BlockHash:   block2.Hash(),
 				Nodes: []sdtypes.StateNode{
@@ -1107,7 +1107,7 @@ func TestBuilderWithWatchedAddressList(t *testing.T) {
 				BlockNumber:  block3.Number(),
 				BlockHash:    block3.Hash(),
 			},
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block3.Number(),
 				BlockHash:   block3.Hash(),
 				Nodes: []sdtypes.StateNode{
@@ -1171,7 +1171,7 @@ func TestBuilderWithWatchedAddressAndStorageKeyList(t *testing.T) {
 	var tests = []struct {
 		name              string
 		startingArguments statediff.Args
-		expected          *statediff.StateObject
+		expected          *sdtypes.StateObject
 	}{
 		{
 			"testEmptyDiff",
@@ -1181,7 +1181,7 @@ func TestBuilderWithWatchedAddressAndStorageKeyList(t *testing.T) {
 				BlockNumber:  block0.Number(),
 				BlockHash:    block0.Hash(),
 			},
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block0.Number(),
 				BlockHash:   block0.Hash(),
 				Nodes:       emptyDiffs,
@@ -1196,7 +1196,7 @@ func TestBuilderWithWatchedAddressAndStorageKeyList(t *testing.T) {
 				BlockNumber:  block0.Number(),
 				BlockHash:    block0.Hash(),
 			},
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block0.Number(),
 				BlockHash:   block0.Hash(),
 				Nodes:       emptyDiffs,
@@ -1211,7 +1211,7 @@ func TestBuilderWithWatchedAddressAndStorageKeyList(t *testing.T) {
 				BlockNumber:  block1.Number(),
 				BlockHash:    block1.Hash(),
 			},
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block1.Number(),
 				BlockHash:   block1.Hash(),
 				Nodes: []sdtypes.StateNode{
@@ -1235,7 +1235,7 @@ func TestBuilderWithWatchedAddressAndStorageKeyList(t *testing.T) {
 				BlockNumber:  block2.Number(),
 				BlockHash:    block2.Hash(),
 			},
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block2.Number(),
 				BlockHash:   block2.Hash(),
 				Nodes: []sdtypes.StateNode{
@@ -1279,7 +1279,7 @@ func TestBuilderWithWatchedAddressAndStorageKeyList(t *testing.T) {
 				BlockNumber:  block3.Number(),
 				BlockHash:    block3.Hash(),
 			},
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block3.Number(),
 				BlockHash:   block3.Hash(),
 				Nodes: []sdtypes.StateNode{
@@ -1336,7 +1336,7 @@ func TestBuilderWithRemovedAccountAndStorage(t *testing.T) {
 	var tests = []struct {
 		name              string
 		startingArguments statediff.Args
-		expected          *statediff.StateObject
+		expected          *sdtypes.StateObject
 	}{
 		// blocks 0-3 are the same as in TestBuilderWithIntermediateNodes
 		{
@@ -1347,7 +1347,7 @@ func TestBuilderWithRemovedAccountAndStorage(t *testing.T) {
 				BlockNumber:  block4.Number(),
 				BlockHash:    block4.Hash(),
 			},
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block4.Number(),
 				BlockHash:   block4.Hash(),
 				Nodes: []sdtypes.StateNode{
@@ -1413,7 +1413,7 @@ func TestBuilderWithRemovedAccountAndStorage(t *testing.T) {
 				BlockNumber:  block5.Number(),
 				BlockHash:    block5.Hash(),
 			},
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block5.Number(),
 				BlockHash:   block5.Hash(),
 				Nodes: []sdtypes.StateNode{
@@ -1474,7 +1474,7 @@ func TestBuilderWithRemovedAccountAndStorage(t *testing.T) {
 				BlockNumber:  block6.Number(),
 				BlockHash:    block6.Hash(),
 			},
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block6.Number(),
 				BlockHash:   block6.Hash(),
 				Nodes: []sdtypes.StateNode{
@@ -1550,7 +1550,7 @@ func TestBuilderWithRemovedAccountAndStorageWithoutIntermediateNodes(t *testing.
 	var tests = []struct {
 		name              string
 		startingArguments statediff.Args
-		expected          *statediff.StateObject
+		expected          *sdtypes.StateObject
 	}{
 		// blocks 0-3 are the same as in TestBuilderWithIntermediateNodes
 		{
@@ -1561,7 +1561,7 @@ func TestBuilderWithRemovedAccountAndStorageWithoutIntermediateNodes(t *testing.
 				BlockNumber:  block4.Number(),
 				BlockHash:    block4.Hash(),
 			},
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block4.Number(),
 				BlockHash:   block4.Hash(),
 				Nodes: []sdtypes.StateNode{
@@ -1616,7 +1616,7 @@ func TestBuilderWithRemovedAccountAndStorageWithoutIntermediateNodes(t *testing.
 				BlockNumber:  block5.Number(),
 				BlockHash:    block5.Hash(),
 			},
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block5.Number(),
 				BlockHash:   block5.Hash(),
 				Nodes: []sdtypes.StateNode{
@@ -1671,7 +1671,7 @@ func TestBuilderWithRemovedAccountAndStorageWithoutIntermediateNodes(t *testing.
 				BlockNumber:  block6.Number(),
 				BlockHash:    block6.Hash(),
 			},
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block6.Number(),
 				BlockHash:   block6.Hash(),
 				Nodes: []sdtypes.StateNode{
@@ -1821,7 +1821,7 @@ func TestBuilderWithMovedAccount(t *testing.T) {
 	var tests = []struct {
 		name              string
 		startingArguments statediff.Args
-		expected          *statediff.StateObject
+		expected          *sdtypes.StateObject
 	}{
 		{
 			"testBlock1",
@@ -1831,7 +1831,7 @@ func TestBuilderWithMovedAccount(t *testing.T) {
 				BlockNumber:  block1.Number(),
 				BlockHash:    block1.Hash(),
 			},
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block1.Number(),
 				BlockHash:   block1.Hash(),
 				Nodes: []sdtypes.StateNode{
@@ -1890,7 +1890,7 @@ func TestBuilderWithMovedAccount(t *testing.T) {
 				BlockNumber:  block2.Number(),
 				BlockHash:    block2.Hash(),
 			},
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block2.Number(),
 				BlockHash:   block2.Hash(),
 				Nodes: []sdtypes.StateNode{
@@ -1958,7 +1958,7 @@ func TestBuilderWithMovedAccountOnlyLeafs(t *testing.T) {
 	var tests = []struct {
 		name              string
 		startingArguments statediff.Args
-		expected          *statediff.StateObject
+		expected          *sdtypes.StateObject
 	}{
 		{
 			"testBlock1",
@@ -1968,7 +1968,7 @@ func TestBuilderWithMovedAccountOnlyLeafs(t *testing.T) {
 				BlockNumber:  block1.Number(),
 				BlockHash:    block1.Hash(),
 			},
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block1.Number(),
 				BlockHash:   block1.Hash(),
 				Nodes: []sdtypes.StateNode{
@@ -2016,7 +2016,7 @@ func TestBuilderWithMovedAccountOnlyLeafs(t *testing.T) {
 				BlockNumber:  block2.Number(),
 				BlockHash:    block2.Hash(),
 			},
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block2.Number(),
 				BlockHash:   block2.Hash(),
 				Nodes: []sdtypes.StateNode{
@@ -2080,12 +2080,12 @@ func TestBuildStateTrie(t *testing.T) {
 	var tests = []struct {
 		name     string
 		block    *types.Block
-		expected *statediff.StateObject
+		expected *sdtypes.StateObject
 	}{
 		{
 			"testBlock1",
 			block1,
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block1.Number(),
 				BlockHash:   block1.Hash(),
 				Nodes: []sdtypes.StateNode{
@@ -2122,7 +2122,7 @@ func TestBuildStateTrie(t *testing.T) {
 		{
 			"testBlock2",
 			block2,
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block2.Number(),
 				BlockHash:   block2.Hash(),
 				Nodes: []sdtypes.StateNode{
@@ -2197,7 +2197,7 @@ func TestBuildStateTrie(t *testing.T) {
 		{
 			"testBlock3",
 			block3,
-			&statediff.StateObject{
+			&sdtypes.StateObject{
 				BlockNumber: block3.Number(),
 				BlockHash:   block3.Hash(),
 				Nodes: []sdtypes.StateNode{

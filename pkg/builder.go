@@ -32,7 +32,7 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 	sd "github.com/ethereum/go-ethereum/statediff"
-	sdtrie "github.com/ethereum/go-ethereum/statediff/trie"
+	sdtrie "github.com/ethereum/go-ethereum/statediff/trie_helpers"
 	sdtypes "github.com/ethereum/go-ethereum/statediff/types"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/sirupsen/logrus"
@@ -49,9 +49,9 @@ var (
 
 // Builder interface exposes the method for building a state diff between two blocks
 type Builder interface {
-	BuildStateDiffObject(args sd.Args, params sd.Params) (sd.StateObject, error)
-	BuildStateTrieObject(current *types.Block) (sd.StateObject, error)
-	WriteStateDiffObject(args sd.StateRoots, params sd.Params, output sdtypes.StateNodeSink, codeOutput sdtypes.CodeSink) error
+	BuildStateDiffObject(args sd.Args, params sd.Params) (sdtypes.StateObject, error)
+	BuildStateTrieObject(current *types.Block) (sdtypes.StateObject, error)
+	WriteStateDiffObject(args sdtypes.StateRoots, params sd.Params, output sdtypes.StateNodeSink, codeOutput sdtypes.CodeSink) error
 }
 
 type builder struct {
@@ -120,17 +120,17 @@ func NewBuilder(stateCache state.Database, workers uint) (Builder, error) {
 }
 
 // BuildStateTrieObject builds a state trie object from the provided block
-func (sdb *builder) BuildStateTrieObject(current *types.Block) (sd.StateObject, error) {
+func (sdb *builder) BuildStateTrieObject(current *types.Block) (sdtypes.StateObject, error) {
 	currentTrie, err := sdb.stateCache.OpenTrie(current.Root())
 	if err != nil {
-		return sd.StateObject{}, fmt.Errorf("error creating trie for block %d: %v", current.Number(), err)
+		return sdtypes.StateObject{}, fmt.Errorf("error creating trie for block %d: %v", current.Number(), err)
 	}
 	it := currentTrie.NodeIterator([]byte{})
 	stateNodes, codeAndCodeHashes, err := sdb.buildStateTrie(it)
 	if err != nil {
-		return sd.StateObject{}, fmt.Errorf("error collecting state nodes for block %d: %v", current.Number(), err)
+		return sdtypes.StateObject{}, fmt.Errorf("error collecting state nodes for block %d: %v", current.Number(), err)
 	}
-	return sd.StateObject{
+	return sdtypes.StateObject{
 		BlockNumber:       current.Number(),
 		BlockHash:         current.Hash(),
 		Nodes:             stateNodes,
@@ -190,16 +190,16 @@ func (sdb *builder) buildStateTrie(it trie.NodeIterator) ([]sdtypes.StateNode, [
 }
 
 // BuildStateDiffObject builds a statediff object from two blocks and the provided parameters
-func (sdb *builder) BuildStateDiffObject(args sd.Args, params sd.Params) (sd.StateObject, error) {
+func (sdb *builder) BuildStateDiffObject(args sd.Args, params sd.Params) (sdtypes.StateObject, error) {
 	var stateNodes []sdtypes.StateNode
 	var codeAndCodeHashes []sdtypes.CodeAndCodeHash
 	err := sdb.WriteStateDiffObject(
-		sd.StateRoots{OldStateRoot: args.OldStateRoot, NewStateRoot: args.NewStateRoot},
+		sdtypes.StateRoots{OldStateRoot: args.OldStateRoot, NewStateRoot: args.NewStateRoot},
 		params, stateNodeAppender(&stateNodes), codeMappingAppender(&codeAndCodeHashes))
 	if err != nil {
-		return sd.StateObject{}, err
+		return sdtypes.StateObject{}, err
 	}
-	return sd.StateObject{
+	return sdtypes.StateObject{
 		BlockHash:         args.BlockHash,
 		BlockNumber:       args.BlockNumber,
 		Nodes:             stateNodes,
@@ -208,7 +208,7 @@ func (sdb *builder) BuildStateDiffObject(args sd.Args, params sd.Params) (sd.Sta
 }
 
 // WriteStateDiffObject writes a statediff object to output callback
-func (sdb *builder) WriteStateDiffObject(args sd.StateRoots, params sd.Params, output sdtypes.StateNodeSink, codeOutput sdtypes.CodeSink) error {
+func (sdb *builder) WriteStateDiffObject(args sdtypes.StateRoots, params sd.Params, output sdtypes.StateNodeSink, codeOutput sdtypes.CodeSink) error {
 	if len(params.WatchedAddresses) > 0 {
 		// if we are watching only specific accounts then we are only diffing leaf nodes
 		log.Info("Ignoring intermediate state nodes because WatchedAddresses was passed")

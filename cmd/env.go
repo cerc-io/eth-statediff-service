@@ -18,8 +18,6 @@ package cmd
 
 import (
 	"github.com/spf13/viper"
-
-	pg "github.com/ethereum/go-ethereum/statediff/indexer/postgres"
 )
 
 const (
@@ -51,9 +49,33 @@ const (
 	PRERUN_ONLY        = "PRERUN_ONLY"
 	PRERUN_RANGE_START = "PRERUN_RANGE_START"
 	PRERUN_RANGE_STOP  = "PRERUN_RANGE_STOP"
+	PRERUN_INTERMEDIATE_STATE_NODES = "PRERUN_INTERMEDIATE_STATE_NODES"
+	PRERUN_INTERMEDIATE_STORAGE_NODES = "PRERUN_INTERMEDIATE_STORAGE_NODES"
+	PRERUN_INCLUDE_BLOCK = "PRERUN_INCLUDE_BLOCK"
+	PRERUN_INCLUDE_RECEIPTS = "PRERUN_INCLUDE_RECEIPTS"
+	PRERUN_INCLUDE_TD = "PRERUN_INCLUDE_TD"
+	PRERUN_INCLUDE_CODE = "PRERUN_INCLUDE_CODE"
 
 	LOG_LEVEL     = "LOG_LEVEL"
 	LOG_FILE_PATH = "LOG_FILE_PATH"
+
+	DATABASE_NAME     = "DATABASE_NAME"
+	DATABASE_HOSTNAME = "DATABASE_HOSTNAME"
+	DATABASE_PORT     = "DATABASE_PORT"
+	DATABASE_USER     = "DATABASE_USER"
+	DATABASE_PASSWORD = "DATABASE_PASSWORD"
+
+	DATABASE_TYPE        = "DATABASE_TYPE"
+	DATABASE_DRIVER_TYPE = "DATABASE_DRIVER_TYPE"
+	DATABASE_DUMP_DST    = "DATABASE_DUMP_DST"
+	DATABASE_FILE_PATH   = "DATABASE_FILE_PATH"
+
+	DATABASE_MAX_IDLE_CONNECTIONS = "DATABASE_MAX_IDLE_CONNECTIONS"
+	DATABASE_MAX_OPEN_CONNECTIONS = "DATABASE_MAX_OPEN_CONNECTIONS"
+	DATABASE_MIN_OPEN_CONNS       = "DATABASE_MIN_OPEN_CONNS"
+	DATABASE_MAX_CONN_LIFETIME    = "DATABASE_MAX_CONN_LIFETIME"
+	DATABASE_CONN_TIMEOUT         = "DATABSE_CONN_TIMEOUT"
+	DATABASE_MAX_CONN_IDLE_TIME   = "DATABASE_MAX_CONN_IDLE_TIME"
 )
 
 // Bind env vars for eth node and DB configuration
@@ -67,14 +89,23 @@ func init() {
 	viper.BindEnv("ethereum.networkID", ETH_NETWORK_ID)
 	viper.BindEnv("ethereum.chainID", ETH_CHAIN_ID)
 
-	viper.BindEnv("database.name", pg.DATABASE_NAME)
-	viper.BindEnv("database.hostname", pg.DATABASE_HOSTNAME)
-	viper.BindEnv("database.port", pg.DATABASE_PORT)
-	viper.BindEnv("database.user", pg.DATABASE_USER)
-	viper.BindEnv("database.password", pg.DATABASE_PASSWORD)
-	viper.BindEnv("database.maxIdle", pg.DATABASE_MAX_IDLE_CONNECTIONS)
-	viper.BindEnv("database.maxOpen", pg.DATABASE_MAX_OPEN_CONNECTIONS)
-	viper.BindEnv("database.maxLifetime", pg.DATABASE_MAX_CONN_LIFETIME)
+	viper.BindEnv("database.name", DATABASE_NAME)
+	viper.BindEnv("database.hostname", DATABASE_HOSTNAME)
+	viper.BindEnv("database.port", DATABASE_PORT)
+	viper.BindEnv("database.user", DATABASE_USER)
+	viper.BindEnv("database.password", DATABASE_PASSWORD)
+
+	viper.BindEnv("database.maxIdle", DATABASE_MAX_IDLE_CONNECTIONS)
+	viper.BindEnv("database.maxOpen", DATABASE_MAX_OPEN_CONNECTIONS)
+	viper.BindEnv("database.minOpen", DATABASE_MIN_OPEN_CONNS)
+	viper.BindEnv("database.maxConnLifetime", DATABASE_MAX_CONN_LIFETIME)
+	viper.BindEnv("database.connTimeout", DATABASE_CONN_TIMEOUT)
+	viper.BindEnv("database.maxIdleTime", DATABASE_MAX_CONN_IDLE_TIME)
+
+	viper.BindEnv("database.type", DATABASE_TYPE)
+	viper.BindEnv("database.driver", DATABASE_DRIVER_TYPE)
+	viper.BindEnv("database.dumpDestination", DATABASE_DUMP_DST)
+	viper.BindEnv("database.filePath", DATABASE_FILE_PATH)
 
 	viper.BindEnv("cache.database", DB_CACHE_SIZE_MB)
 	viper.BindEnv("cache.trie", TRIE_CACHE_SIZE_MB)
@@ -96,6 +127,12 @@ func init() {
 	viper.BindEnv("prerun.only", PRERUN_ONLY)
 	viper.BindEnv("prerun.start", PRERUN_RANGE_START)
 	viper.BindEnv("prerun.stop", PRERUN_RANGE_STOP)
+	viper.BindEnv("prerun.params.intermediateStateNodes", PRERUN_INTERMEDIATE_STATE_NODES)
+	viper.BindEnv("prerun.params.intermediateStorageNodes", PRERUN_INTERMEDIATE_STORAGE_NODES)
+	viper.BindEnv("prerun.params.includeBlock", PRERUN_INCLUDE_BLOCK)
+	viper.BindEnv("prerun.params.includeReceipts", PRERUN_INCLUDE_RECEIPTS)
+	viper.BindEnv("prerun.params.includeTD", PRERUN_INCLUDE_TD)
+	viper.BindEnv("prerun.params.includeCode", PRERUN_INCLUDE_CODE)
 
 	viper.BindEnv("log.level", LOG_LEVEL)
 	viper.BindEnv("log.file", LOG_FILE_PATH)

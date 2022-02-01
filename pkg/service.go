@@ -29,11 +29,11 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
 	sd "github.com/ethereum/go-ethereum/statediff"
+	"github.com/ethereum/go-ethereum/statediff/indexer/interfaces"
 	sdtypes "github.com/ethereum/go-ethereum/statediff/types"
 	"github.com/sirupsen/logrus"
-	"github.com/vulcanize/eth-statediff-service/pkg/prom"
 
-	ind "github.com/ethereum/go-ethereum/statediff/indexer"
+	"github.com/vulcanize/eth-statediff-service/pkg/prom"
 )
 
 const defaultQueueSize = 1024
@@ -72,7 +72,7 @@ type Service struct {
 	// Used to signal shutdown of the service
 	quitChan chan struct{}
 	// Interface for publishing statediffs as PG-IPLD objects
-	indexer ind.Indexer
+	indexer interfaces.StateDiffIndexer
 	// range queue
 	queue chan RangeRequest
 	// number of ranges we can work over concurrently
@@ -82,8 +82,8 @@ type Service struct {
 }
 
 // NewStateDiffService creates a new Service
-func NewStateDiffService(lvlDBReader Reader, indexer ind.Indexer, conf Config) (*Service, error) {
-	builder, err := NewBuilder(lvlDBReader.StateDB(), conf.TrieWorkers)
+func NewStateDiffService(lvlDBReader Reader, indexer interfaces.StateDiffIndexer, conf Config) (*Service, error) {
+	b, err := NewBuilder(lvlDBReader.StateDB(), conf.TrieWorkers)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func NewStateDiffService(lvlDBReader Reader, indexer ind.Indexer, conf Config) (
 	}
 	return &Service{
 		lvlDBReader: lvlDBReader,
-		Builder:     builder,
+		Builder:     b,
 		indexer:     indexer,
 		workers:     conf.ServiceWorkers,
 		queue:       make(chan RangeRequest, conf.WorkerQueueSize),
@@ -193,7 +193,7 @@ func (sds *Service) StateDiffAt(blockNumber uint64, params sd.Params) (*sd.Paylo
 	if err != nil {
 		return nil, err
 	}
-	logrus.Info(fmt.Sprintf("sending state diff at block %d", blockNumber))
+	logrus.Infof("sending state diff at block %d", blockNumber)
 	if blockNumber == 0 {
 		return sds.processStateDiff(currentBlock, common.Hash{}, params)
 	}
@@ -211,7 +211,7 @@ func (sds *Service) StateDiffFor(blockHash common.Hash, params sd.Params) (*sd.P
 	if err != nil {
 		return nil, err
 	}
-	logrus.Info(fmt.Sprintf("sending state diff at block %s", blockHash.Hex()))
+	logrus.Infof("sending state diff at block %s", blockHash.Hex())
 	if currentBlock.NumberU64() == 0 {
 		return sds.processStateDiff(currentBlock, common.Hash{}, params)
 	}
@@ -280,7 +280,7 @@ func (sds *Service) StateTrieAt(blockNumber uint64, params sd.Params) (*sd.Paylo
 	if err != nil {
 		return nil, err
 	}
-	logrus.Info(fmt.Sprintf("sending state trie at block %d", blockNumber))
+	logrus.Infof("sending state trie at block %d", blockNumber)
 	return sds.processStateTrie(currentBlock, params)
 }
 
@@ -314,7 +314,7 @@ func (sds *Service) Stop() error {
 // This operation cannot be performed back past the point of db pruning; it requires an archival node
 // for historical data
 func (sds *Service) WriteStateDiffAt(blockNumber uint64, params sd.Params) error {
-	logrus.Info(fmt.Sprintf("Writing state diff at block %d", blockNumber))
+	logrus.Infof("Writing state diff at block %d", blockNumber)
 	t := time.Now()
 	currentBlock, err := sds.lvlDBReader.GetBlockByNumber(blockNumber)
 	if err != nil {
@@ -335,7 +335,7 @@ func (sds *Service) WriteStateDiffAt(blockNumber uint64, params sd.Params) error
 // This operation cannot be performed back past the point of db pruning; it requires an archival node
 // for historical data
 func (sds *Service) WriteStateDiffFor(blockHash common.Hash, params sd.Params) error {
-	logrus.Info(fmt.Sprintf("Writing state diff for block %s", blockHash.Hex()))
+	logrus.Infof("Writing state diff for block %s", blockHash.Hex())
 	t := time.Now()
 	currentBlock, err := sds.lvlDBReader.GetBlockByHash(blockHash)
 	if err != nil {
@@ -379,20 +379,20 @@ func (sds *Service) writeStateDiff(block *types.Block, parentRoot common.Hash, p
 	}
 	// defer handling of commit/rollback for any return case
 	output := func(node sdtypes.StateNode) error {
-		return sds.indexer.PushStateNode(tx, node)
+		return sds.indexer.PushStateNode(tx, node, block.Hash().String())
 	}
 	codeOutput := func(c sdtypes.CodeAndCodeHash) error {
 		return sds.indexer.PushCodeAndCodeHash(tx, c)
 	}
 	prom.SetTimeMetric(prom.T_BLOCK_PROCESSING, time.Now().Sub(t))
 	t = time.Now()
-	err = sds.Builder.WriteStateDiffObject(sd.StateRoots{
+	err = sds.Builder.WriteStateDiffObject(sdtypes.StateRoots{
 		NewStateRoot: block.Root(),
 		OldStateRoot: parentRoot,
 	}, params, output, codeOutput)
 	prom.SetTimeMetric(prom.T_STATE_PROCESSING, time.Now().Sub(t))
 	t = time.Now()
-	err = tx.Close(err)
+	err = tx.Submit(err)
 	prom.SetLastProcessedHeight(height)
 	prom.SetTimeMetric(prom.T_POSTGRES_TX_COMMIT, time.Now().Sub(t))
 	return err

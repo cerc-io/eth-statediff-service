@@ -6,7 +6,7 @@ services:
       context: ./
       cache_from:
       - alpine:latest
-      - golang:1.13
+      - golang:1.16
       dockerfile: ./Dockerfile
       args:
         USER: "vdbm"

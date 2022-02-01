@@ -23,14 +23,13 @@ Available RPC methods are:
   * `statediff_streamCodeAndCodeHash()`
   * `statediff_stateDiffAt()`
   * `statediff_writeStateDiffAt()`
+  * `statediff_writeStateDiffsInRange()`
 
-### `write`
+e.g. `curl -X POST -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"statediff_writeStateDiffsInRange","params":['"$BEGIN"', '"$END"', {"intermediateStateNodes":true,"intermediateStorageNodes":true,"includeBlock":true,"includeReceipts":true,"includeTD":true,"includeCode":true}],"id":1}' "$HOST":"$PORT"`
 
-To write state diffs directly to a database:
-
-`eth-statediff-service write --config=<config path>`
-
-This depends on the `database` settings being properly configured.
+The process can be configured locally with sets of ranges to process as a "prerun" to processing directed by the server endpoints.
+This is done by turning "prerun" on in the config (`statediff.prerun = true`) and defining ranged and params in the
+`prerun` section of the config as shown below.
 
 ## Configuration
 
@@ -42,27 +41,63 @@ An example config file:
     ancient = "/Users/user/Library/Ethereum/geth/chaindata/ancient"
 
 [server]
-    ipcPath = "~/.vulcanize/vulcanize.ipc"
+    ipcPath = ".ipc"
     httpPath = "127.0.0.1:8545"
 
-[write]
-    ranges = [[1, 2], [3, 4]]
-[write.params]
-    IntermediateStateNodes   = true
-    IntermediateStorageNodes = false
-    IncludeBlock             = true
-    IncludeReceipts          = true
-    IncludeTD                = true
-    IncludeCode              = false
-
 [statediff]
-    workers = 4
+    prerun = true
+    serviceWorkers = 1
+    workerQueueSize = 1024
+    trieWorkers = 4
+
+[prerun]
+    only = false
+    ranges = [
+        [0, 1000]
+    ]
+    [prerun.params]
+        intermediateStateNodes = true
+        intermediateStorageNodes = true
+        includeBlock = true
+        includeReceipts = true
+        includeTD = true
+        includeCode = true
+        watchedAddresses = []
+        watchedStorageKeys = []
 
 [log]
-    file = "~/.vulcanize/statediff.log"
+    file = ""
     level = "info"
 
 [eth]
     chainID = 1
 
+[database]
+    name     = "vulcanize_test"
+    hostname = "localhost"
+    port     = 5432
+    user     = "vulcanize"
+    password = "..."
+    type = "postgres"
+    driver = "sqlx"
+    dumpDestination = ""
+    filePath = ""
+
+[cache]
+    database = 1024
+    trie = 1024
+
+[prom]
+    dbStats = false
+    metrics = true
+    http = true
+    httpAddr = "localhost"
+    httpPort = "8889"
+
+[ethereum]
+    nodeID = ""
+    clientName = "eth-statediff-service"
+    genesisBlock = "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3"
+    networkID = 1
+    chainID = 1
 ```
