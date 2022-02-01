@@ -19,7 +19,7 @@ package version
 import "fmt"
 
 const (
-	major = 2 // major version component of the current release
+	major = 3 // major version component of the current release
 	minor = 0 // minor version component of the current release
 	patch = 0 // patch version component of the current release
 )
