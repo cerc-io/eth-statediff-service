@@ -166,7 +166,6 @@ func init() {
 	rootCmd.PersistentFlags().Bool("prerun-include-td", true, "include td in the statediff payload")
 	rootCmd.PersistentFlags().Bool("prerun-include-code", true, "include code and codehash mappings in statediff payload")
 
-
 	viper.BindPFlag("server.httpPath", rootCmd.PersistentFlags().Lookup("http-path"))
 	viper.BindPFlag("server.ipcPath", rootCmd.PersistentFlags().Lookup("ipc-path"))
 

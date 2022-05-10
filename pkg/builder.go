@@ -163,7 +163,7 @@ func (sdb *builder) buildStateTrie(it trie.NodeIterator) ([]sdtypes.StateNode, [
 			node.LeafKey = leafKey
 			if !bytes.Equal(account.CodeHash, nullCodeHash) {
 				var storageNodes []sdtypes.StorageNode
-				err := sdb.buildStorageNodesEventual(account.Root, nil, true, storageNodeAppender(&storageNodes))
+				err := sdb.buildStorageNodesEventual(account.Root, true, storageNodeAppender(&storageNodes))
 				if err != nil {
 					return nil, nil, fmt.Errorf("failed building eventual storage diffs for account %+v\r\nerror: %v", account, err)
 				}
@@ -323,13 +323,12 @@ func (sdb *builder) buildStateDiff(args []iterPair, params sd.Params, output sdt
 
 	// build the diff nodes for the updated accounts using the mappings at both A and B as directed by the keys found as the intersection of the two
 	err = sdb.buildAccountUpdates(
-		diffAccountsAtB, diffAccountsAtA, updatedKeys,
-		params.WatchedStorageSlots, params.IntermediateStorageNodes, output)
+		diffAccountsAtB, diffAccountsAtA, updatedKeys, params.IntermediateStorageNodes, output)
 	if err != nil {
 		return fmt.Errorf("error building diff for updated accounts: %v", err)
 	}
 	// build the diff nodes for created accounts
-	err = sdb.buildAccountCreations(diffAccountsAtB, params.WatchedStorageSlots, params.IntermediateStorageNodes, output, codeOutput)
+	err = sdb.buildAccountCreations(diffAccountsAtB, params.IntermediateStorageNodes, output, codeOutput)
 	if err != nil {
 		return fmt.Errorf("error building diff for created accounts: %v", err)
 	}
@@ -502,7 +501,7 @@ func (sdb *builder) deletedOrUpdatedState(iters iterPair, diffPathsAtB map[strin
 // to generate the statediff node objects for all of the accounts that existed at both A and B but in different states
 // needs to be called before building account creations and deletions as this mutates
 // those account maps to remove the accounts which were updated
-func (sdb *builder) buildAccountUpdates(creations, deletions AccountMap, updatedKeys []string, watchedStorageKeys []common.Hash, intermediateStorageNodes bool, output sdtypes.StateNodeSink) error {
+func (sdb *builder) buildAccountUpdates(creations, deletions AccountMap, updatedKeys []string, intermediateStorageNodes bool, output sdtypes.StateNodeSink) error {
 	var err error
 	for _, key := range updatedKeys {
 		createdAcc := creations[key]
@@ -511,7 +510,7 @@ func (sdb *builder) buildAccountUpdates(creations, deletions AccountMap, updated
 		if deletedAcc.Account != nil && createdAcc.Account != nil {
 			oldSR := deletedAcc.Account.Root
 			newSR := createdAcc.Account.Root
-			err = sdb.buildStorageNodesIncremental(oldSR, newSR, watchedStorageKeys, intermediateStorageNodes, storageNodeAppender(&storageDiffs))
+			err = sdb.buildStorageNodesIncremental(oldSR, newSR, intermediateStorageNodes, storageNodeAppender(&storageDiffs))
 			if err != nil {
 				return fmt.Errorf("failed building incremental storage diffs for account with leafkey %s\r\nerror: %v", key, err)
 			}
@@ -534,7 +533,7 @@ func (sdb *builder) buildAccountUpdates(creations, deletions AccountMap, updated
 
 // buildAccountCreations returns the statediff node objects for all the accounts that exist at B but not at A
 // it also returns the code and codehash for created contract accounts
-func (sdb *builder) buildAccountCreations(accounts AccountMap, watchedStorageKeys []common.Hash, intermediateStorageNodes bool, output sdtypes.StateNodeSink, codeOutput sdtypes.CodeSink) error {
+func (sdb *builder) buildAccountCreations(accounts AccountMap, intermediateStorageNodes bool, output sdtypes.StateNodeSink, codeOutput sdtypes.CodeSink) error {
 	for _, val := range accounts {
 		diff := sdtypes.StateNode{
 			NodeType:  val.NodeType,
@@ -545,7 +544,7 @@ func (sdb *builder) buildAccountCreations(accounts AccountMap, watchedStorageKey
 		if !bytes.Equal(val.Account.CodeHash, nullCodeHash) {
 			// For contract creations, any storage node contained is a diff
 			var storageDiffs []sdtypes.StorageNode
-			err := sdb.buildStorageNodesEventual(val.Account.Root, watchedStorageKeys, intermediateStorageNodes, storageNodeAppender(&storageDiffs))
+			err := sdb.buildStorageNodesEventual(val.Account.Root, intermediateStorageNodes, storageNodeAppender(&storageDiffs))
 			if err != nil {
 				return fmt.Errorf("failed building eventual storage diffs for node %x\r\nerror: %v", val.Path, err)
 			}
@@ -573,7 +572,7 @@ func (sdb *builder) buildAccountCreations(accounts AccountMap, watchedStorageKey
 
 // buildStorageNodesEventual builds the storage diff node objects for a created account
 // i.e. it returns all the storage nodes at this state, since there is no previous state
-func (sdb *builder) buildStorageNodesEventual(sr common.Hash, watchedStorageKeys []common.Hash, intermediateNodes bool, output sdtypes.StorageNodeSink) error {
+func (sdb *builder) buildStorageNodesEventual(sr common.Hash, intermediateNodes bool, output sdtypes.StorageNodeSink) error {
 	if bytes.Equal(sr.Bytes(), emptyContractRoot.Bytes()) {
 		return nil
 	}
@@ -584,7 +583,7 @@ func (sdb *builder) buildStorageNodesEventual(sr common.Hash, watchedStorageKeys
 		return err
 	}
 	it := sTrie.NodeIterator(make([]byte, 0))
-	err = sdb.buildStorageNodesFromTrie(it, watchedStorageKeys, intermediateNodes, output)
+	err = sdb.buildStorageNodesFromTrie(it, intermediateNodes, output)
 	if err != nil {
 		return err
 	}
@@ -594,7 +593,7 @@ func (sdb *builder) buildStorageNodesEventual(sr common.Hash, watchedStorageKeys
 // buildStorageNodesFromTrie returns all the storage diff node objects in the provided node iterator
 // if any storage keys are provided it will only return those leaf nodes
 // including intermediate nodes can be turned on or off
-func (sdb *builder) buildStorageNodesFromTrie(it trie.NodeIterator, watchedStorageKeys []common.Hash, intermediateNodes bool, output sdtypes.StorageNodeSink) error {
+func (sdb *builder) buildStorageNodesFromTrie(it trie.NodeIterator, intermediateNodes bool, output sdtypes.StorageNodeSink) error {
 	for it.Next(true) {
 		if it.Leaf() || bytes.Equal(nullHashBytes, it.Hash().Bytes()) {
 			continue
@@ -609,15 +608,13 @@ func (sdb *builder) buildStorageNodesFromTrie(it trie.NodeIterator, watchedStora
 			valueNodePath := append(node.Path, partialPath...)
 			encodedPath := trie.HexToCompact(valueNodePath)
 			leafKey := encodedPath[1:]
-			if isWatchedStorageKey(watchedStorageKeys, leafKey) {
-				if err := output(sdtypes.StorageNode{
-					NodeType:  node.NodeType,
-					Path:      node.Path,
-					NodeValue: node.NodeValue,
-					LeafKey:   leafKey,
-				}); err != nil {
-					return err
-				}
+			if err := output(sdtypes.StorageNode{
+				NodeType:  node.NodeType,
+				Path:      node.Path,
+				NodeValue: node.NodeValue,
+				LeafKey:   leafKey,
+			}); err != nil {
+				return err
 			}
 		case sdtypes.Extension, sdtypes.Branch:
 			if intermediateNodes {
@@ -637,7 +634,7 @@ func (sdb *builder) buildStorageNodesFromTrie(it trie.NodeIterator, watchedStora
 }
 
 // buildStorageNodesIncremental builds the storage diff node objects for all nodes that exist in a different state at B than A
-func (sdb *builder) buildStorageNodesIncremental(oldSR common.Hash, newSR common.Hash, watchedStorageKeys []common.Hash, intermediateNodes bool, output sdtypes.StorageNodeSink) error {
+func (sdb *builder) buildStorageNodesIncremental(oldSR common.Hash, newSR common.Hash, intermediateNodes bool, output sdtypes.StorageNodeSink) error {
 	if bytes.Equal(newSR.Bytes(), oldSR.Bytes()) {
 		return nil
 	}
@@ -651,18 +648,18 @@ func (sdb *builder) buildStorageNodesIncremental(oldSR common.Hash, newSR common
 		return err
 	}
 
-	diffPathsAtB, err := sdb.createdAndUpdatedStorage(oldTrie.NodeIterator([]byte{}), newTrie.NodeIterator([]byte{}), watchedStorageKeys, intermediateNodes, output)
+	diffPathsAtB, err := sdb.createdAndUpdatedStorage(oldTrie.NodeIterator([]byte{}), newTrie.NodeIterator([]byte{}), intermediateNodes, output)
 	if err != nil {
 		return err
 	}
-	err = sdb.deletedOrUpdatedStorage(oldTrie.NodeIterator([]byte{}), newTrie.NodeIterator([]byte{}), diffPathsAtB, watchedStorageKeys, intermediateNodes, output)
+	err = sdb.deletedOrUpdatedStorage(oldTrie.NodeIterator([]byte{}), newTrie.NodeIterator([]byte{}), diffPathsAtB, intermediateNodes, output)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (sdb *builder) createdAndUpdatedStorage(a, b trie.NodeIterator, watchedKeys []common.Hash, intermediateNodes bool, output sdtypes.StorageNodeSink) (map[string]bool, error) {
+func (sdb *builder) createdAndUpdatedStorage(a, b trie.NodeIterator, intermediateNodes bool, output sdtypes.StorageNodeSink) (map[string]bool, error) {
 	diffPathsAtB := make(map[string]bool)
 	it, _ := trie.NewDifferenceIterator(a, b)
 	for it.Next(true) {
@@ -679,15 +676,13 @@ func (sdb *builder) createdAndUpdatedStorage(a, b trie.NodeIterator, watchedKeys
 			valueNodePath := append(node.Path, partialPath...)
 			encodedPath := trie.HexToCompact(valueNodePath)
 			leafKey := encodedPath[1:]
-			if isWatchedStorageKey(watchedKeys, leafKey) {
-				if err := output(sdtypes.StorageNode{
-					NodeType:  node.NodeType,
-					Path:      node.Path,
-					NodeValue: node.NodeValue,
-					LeafKey:   leafKey,
-				}); err != nil {
-					return nil, err
-				}
+			if err := output(sdtypes.StorageNode{
+				NodeType:  node.NodeType,
+				Path:      node.Path,
+				NodeValue: node.NodeValue,
+				LeafKey:   leafKey,
+			}); err != nil {
+				return nil, err
 			}
 		case sdtypes.Extension, sdtypes.Branch:
 			if intermediateNodes {
@@ -707,7 +702,7 @@ func (sdb *builder) createdAndUpdatedStorage(a, b trie.NodeIterator, watchedKeys
 	return diffPathsAtB, it.Error()
 }
 
-func (sdb *builder) deletedOrUpdatedStorage(a, b trie.NodeIterator, diffPathsAtB map[string]bool, watchedKeys []common.Hash, intermediateNodes bool, output sdtypes.StorageNodeSink) error {
+func (sdb *builder) deletedOrUpdatedStorage(a, b trie.NodeIterator, diffPathsAtB map[string]bool, intermediateNodes bool, output sdtypes.StorageNodeSink) error {
 	it, _ := trie.NewDifferenceIterator(b, a)
 	for it.Next(true) {
 		if it.Leaf() || bytes.Equal(nullHashBytes, it.Hash().Bytes()) {
@@ -729,15 +724,13 @@ func (sdb *builder) deletedOrUpdatedStorage(a, b trie.NodeIterator, diffPathsAtB
 			valueNodePath := append(node.Path, partialPath...)
 			encodedPath := trie.HexToCompact(valueNodePath)
 			leafKey := encodedPath[1:]
-			if isWatchedStorageKey(watchedKeys, leafKey) {
-				if err := output(sdtypes.StorageNode{
-					NodeType:  sdtypes.Removed,
-					Path:      node.Path,
-					NodeValue: []byte{},
-					LeafKey:   leafKey,
-				}); err != nil {
-					return err
-				}
+			if err := output(sdtypes.StorageNode{
+				NodeType:  node.NodeType,
+				Path:      node.Path,
+				NodeValue: node.NodeValue,
+				LeafKey:   leafKey,
+			}); err != nil {
+				return err
 			}
 		case sdtypes.Extension, sdtypes.Branch:
 			if intermediateNodes {

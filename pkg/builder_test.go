@@ -1164,8 +1164,7 @@ func TestBuilderWithWatchedAddressAndStorageKeyList(t *testing.T) {
 	block2 = blocks[1]
 	block3 = blocks[2]
 	params := statediff.Params{
-		WatchedAddresses:    []common.Address{testhelpers.Account1Addr, testhelpers.ContractAddr},
-		WatchedStorageSlots: []common.Hash{slot1StorageKey},
+		WatchedAddresses: []common.Address{testhelpers.Account1Addr, testhelpers.ContractAddr},
 	}
 
 	var tests = []struct {

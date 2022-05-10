@@ -56,7 +56,7 @@ func createStateDiffService() (sd.StateDiffService, error) {
 		logWithCommand.Fatal(err)
 	}
 	logWithCommand.Info("Creating statediff indexer")
-	indexer, err := ind.NewStateDiffIndexer(context.Background(), chainConf, nodeInfo, conf)
+	_, indexer, err := ind.NewStateDiffIndexer(context.Background(), chainConf, nodeInfo, conf)
 	if err != nil {
 		logWithCommand.Fatal(err)
 	}
@@ -95,7 +95,6 @@ func setupPreRunRanges() []sd.RangeRequest {
 	for i, keyStr := range storageKeyStrs {
 		keys[i] = common.HexToHash(keyStr)
 	}
-	preRunParams.WatchedStorageSlots = keys
 	var rawRanges []blockRange
 	viper.UnmarshalKey("prerun.ranges", &rawRanges)
 	blockRanges := make([]sd.RangeRequest, len(rawRanges))
