@@ -46,15 +46,15 @@ type LvlDBReader struct {
 
 // LvLDBReaderConfig struct for initializing a LvlDBReader
 type LvLDBReaderConfig struct {
-	TrieConfig        *trie.Config
-	ChainConfig       *params.ChainConfig
-	Path, AncientPath string
-	DBCacheSize       int
+	TrieConfig             *trie.Config
+	ChainConfig            *params.ChainConfig
+	Path, AncientPath, Url string
+	DBCacheSize            int
 }
 
 // NewLvlDBReader creates a new Read using LevelDB
 func NewLvlDBReader(conf LvLDBReaderConfig) (*LvlDBReader, error) {
-	edb, err := rawdb.NewLevelDBDatabaseWithFreezer(conf.Path, conf.DBCacheSize, 256, conf.AncientPath, "eth-statediff-service", true)
+	edb, err := NewDatabase(conf.Url)
 	if err != nil {
 		return nil, err
 	}

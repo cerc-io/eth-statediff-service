@@ -118,6 +118,7 @@ func init() {
 
 	rootCmd.PersistentFlags().String("leveldb-path", "", "path to primary datastore")
 	rootCmd.PersistentFlags().String("ancient-path", "", "path to ancient datastore")
+	rootCmd.PersistentFlags().String("leveldb-url", "", "url to primary leveldb-ethdb-rpc server")
 
 	rootCmd.PersistentFlags().Bool("prerun", false, "turn on prerun of toml configured ranges")
 	rootCmd.PersistentFlags().Int("service-workers", 0, "number of range requests to process concurrently")
@@ -179,6 +180,7 @@ func init() {
 
 	viper.BindPFlag("leveldb.path", rootCmd.PersistentFlags().Lookup("leveldb-path"))
 	viper.BindPFlag("leveldb.ancient", rootCmd.PersistentFlags().Lookup("ancient-path"))
+	viper.BindPFlag("leveldb.url", rootCmd.PersistentFlags().Lookup("leveldb-url"))
 
 	viper.BindPFlag("database.name", rootCmd.PersistentFlags().Lookup("database-name"))
 	viper.BindPFlag("database.port", rootCmd.PersistentFlags().Lookup("database-port"))

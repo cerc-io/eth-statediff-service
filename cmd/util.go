@@ -21,6 +21,7 @@ func createStateDiffService() (sd.StateDiffService, error) {
 	logWithCommand.Info("Loading statediff service parameters")
 	path := viper.GetString("leveldb.path")
 	ancientPath := viper.GetString("leveldb.ancient")
+	url := viper.GetString("leveldb.url")
 	if path == "" || ancientPath == "" {
 		logWithCommand.Fatal("require a valid eth leveldb primary datastore path and ancient datastore path")
 	}
@@ -52,6 +53,7 @@ func createStateDiffService() (sd.StateDiffService, error) {
 		ChainConfig: chainConf,
 		Path:        path,
 		AncientPath: ancientPath,
+		Url:         url,
 		DBCacheSize: viper.GetInt("cache.database"),
 	}
 	lvlDBReader, err := sd.NewLvlDBReader(readerConf)
