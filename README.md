@@ -46,6 +46,7 @@ make build
 
     ```toml
     [leveldb]
+        mode = "local"
         # Path to geth leveldb data
         path = "/path-to-local-geth-data/chaindata"
         ancient = "/path-to-local-geth-data/chaindata/ancient"
@@ -71,6 +72,13 @@ make build
         ranges = [
             [8, 15] # Block number range for which to write statediff.
         ]
+    ```
+
+* To use remote leveldb RPC endpoint change the following in [config file](./environments/config.toml)
+    ```toml
+    [leveldb]
+        mode = "remote"
+        url = "http://127.0.0.1:8082/" # Remote leveldb RPC url
     ```
 
 ## Usage

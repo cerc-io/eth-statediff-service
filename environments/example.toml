@@ -1,6 +1,8 @@
 [leveldb]
+    mode = "local"
     path = "/Users/user/Library/Ethereum/geth/chaindata"
     ancient = "/Users/user/Library/Ethereum/geth/chaindata/ancient"
+    url = "http://127.0.0.1:8082/"
 
 [server]
     ipcPath = ".ipc"

@@ -19,11 +19,19 @@ type blockRange [2]uint64
 func createStateDiffService() (sd.StateDiffService, error) {
 	// load some necessary params
 	logWithCommand.Info("Loading statediff service parameters")
+	mode := viper.GetString("leveldb.mode")
 	path := viper.GetString("leveldb.path")
 	ancientPath := viper.GetString("leveldb.ancient")
 	url := viper.GetString("leveldb.url")
-	if path == "" || ancientPath == "" {
-		logWithCommand.Fatal("require a valid eth leveldb primary datastore path and ancient datastore path")
+
+	if mode == "remote" {
+		if url == "" {
+			logWithCommand.Fatal("require a valid RPC url for accessing leveldb")
+		}
+	} else {
+		if path == "" || ancientPath == "" {
+			logWithCommand.Fatal("require a valid eth leveldb primary datastore path and ancient datastore path")
+		}
 	}
 
 	nodeInfo := getEthNodeInfo()
@@ -51,6 +59,7 @@ func createStateDiffService() (sd.StateDiffService, error) {
 			Preimages: false,
 		},
 		ChainConfig: chainConf,
+		Mode:        mode,
 		Path:        path,
 		AncientPath: ancientPath,
 		Url:         url,

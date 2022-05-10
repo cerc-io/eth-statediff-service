@@ -116,6 +116,7 @@ func init() {
 	rootCmd.PersistentFlags().String("log-level", log.InfoLevel.String(),
 		"log level (trace, debug, info, warn, error, fatal, panic")
 
+	rootCmd.PersistentFlags().String("leveldb-mode", "", "leveldb access mode")
 	rootCmd.PersistentFlags().String("leveldb-path", "", "path to primary datastore")
 	rootCmd.PersistentFlags().String("ancient-path", "", "path to ancient datastore")
 	rootCmd.PersistentFlags().String("leveldb-url", "", "url to primary leveldb-ethdb-rpc server")
@@ -178,6 +179,7 @@ func init() {
 	viper.BindPFlag("statediff.trieWorkers", rootCmd.PersistentFlags().Lookup("trie-workers"))
 	viper.BindPFlag("statediff.workerQueueSize", rootCmd.PersistentFlags().Lookup("worker-queue-size"))
 
+	viper.BindPFlag("leveldb.mode", rootCmd.PersistentFlags().Lookup("leveldb-mode"))
 	viper.BindPFlag("leveldb.path", rootCmd.PersistentFlags().Lookup("leveldb-path"))
 	viper.BindPFlag("leveldb.ancient", rootCmd.PersistentFlags().Lookup("ancient-path"))
 	viper.BindPFlag("leveldb.url", rootCmd.PersistentFlags().Lookup("leveldb-url"))

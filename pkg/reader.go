@@ -48,13 +48,22 @@ type LvlDBReader struct {
 type LvLDBReaderConfig struct {
 	TrieConfig             *trie.Config
 	ChainConfig            *params.ChainConfig
+	Mode                   string
 	Path, AncientPath, Url string
 	DBCacheSize            int
 }
 
 // NewLvlDBReader creates a new Read using LevelDB
 func NewLvlDBReader(conf LvLDBReaderConfig) (*LvlDBReader, error) {
-	edb, err := NewDatabase(conf.Url)
+	var edb ethdb.Database
+	var err error
+
+	if conf.Mode == "remote" {
+		edb, err = NewDatabase(conf.Url)
+	} else {
+		edb, err = rawdb.NewLevelDBDatabaseWithFreezer(conf.Path, conf.DBCacheSize, 256, conf.AncientPath, "eth-statediff-service", true)
+	}
+
 	if err != nil {
 		return nil, err
 	}
