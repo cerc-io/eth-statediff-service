@@ -168,7 +168,7 @@ func (sdb *builder) buildStateTrie(it trie.NodeIterator) ([]sdtypes.StateNode, [
 					return nil, nil, fmt.Errorf("failed building eventual storage diffs for account %+v\r\nerror: %v", account, err)
 				}
 				node.StorageNodes = storageNodes
-				// emit codehash => code mappings for cod
+				// emit codehash => code mappings for code
 				codeHash := common.BytesToHash(account.CodeHash)
 				code, err := sdb.stateCache.ContractCode(common.Hash{}, codeHash)
 				if err != nil {
@@ -576,7 +576,7 @@ func (sdb *builder) buildAccountCreations(accounts AccountMap, intermediateStora
 				return fmt.Errorf("failed building eventual storage diffs for node %x\r\nerror: %v", val.Path, err)
 			}
 			diff.StorageNodes = storageDiffs
-			// emit codehash => code mappings for cod
+			// emit codehash => code mappings for code
 			codeHash := common.BytesToHash(val.Account.CodeHash)
 			code, err := sdb.stateCache.ContractCode(common.Hash{}, codeHash)
 			if err != nil {
