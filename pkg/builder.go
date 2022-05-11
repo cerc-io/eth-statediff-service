@@ -42,7 +42,7 @@ import (
 
 var (
 	nullHashBytes     = common.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000000")
-	emptyNode, _      = rlp.EncodeToBytes([]byte{})
+	emptyNode, _      = rlp.EncodeToBytes(&[]byte{})
 	emptyContractRoot = crypto.Keccak256Hash(emptyNode)
 	nullCodeHash      = crypto.Keccak256Hash([]byte{}).Bytes()
 )
@@ -218,16 +218,18 @@ func (sdb *builder) WriteStateDiffObject(args sdtypes.StateRoots, params sd.Para
 	// Load tries for old and new states
 	oldTrie, err := sdb.stateCache.OpenTrie(args.OldStateRoot)
 	if err != nil {
-		return fmt.Errorf("error creating trie for old state root: %v", err)
+		return fmt.Errorf("error creating trie for oldStateRoot: %v", err)
 	}
 	newTrie, err := sdb.stateCache.OpenTrie(args.NewStateRoot)
 	if err != nil {
-		return fmt.Errorf("error creating trie for new state root: %v", err)
+		return fmt.Errorf("error creating trie for newStateRoot: %v", err)
 	}
 
 	// Split old and new tries into corresponding subtrie iterators
-	oldIters := iter.SubtrieIterators(oldTrie, sdb.numWorkers)
-	newIters := iter.SubtrieIterators(newTrie, sdb.numWorkers)
+	oldIters1 := iter.SubtrieIterators(oldTrie, sdb.numWorkers)
+	oldIters2 := iter.SubtrieIterators(oldTrie, sdb.numWorkers)
+	newIters1 := iter.SubtrieIterators(newTrie, sdb.numWorkers)
+	newIters2 := iter.SubtrieIterators(newTrie, sdb.numWorkers)
 
 	// Create iterators ahead of time to avoid race condition in state.Trie access
 	// We do two state iterations per subtrie: one for new/updated nodes,
@@ -235,8 +237,8 @@ func (sdb *builder) WriteStateDiffObject(args sdtypes.StateRoots, params sd.Para
 	var iterPairs [][]iterPair
 	for i := uint(0); i < sdb.numWorkers; i++ {
 		iterPairs = append(iterPairs, []iterPair{
-			{older: oldIters[i], newer: newIters[i]},
-			{older: oldIters[i], newer: newIters[i]},
+			{older: oldIters1[i], newer: newIters1[i]},
+			{older: oldIters2[i], newer: newIters2[i]},
 		})
 	}
 
@@ -311,13 +313,13 @@ func (sdb *builder) buildStateDiff(args []iterPair, params sd.Params, output sdt
 		return fmt.Errorf("error collecting deletedOrUpdatedNodes: %v", err)
 	}
 
-	// collect and sort the leafkey keys for both account mappings into a slice
+	// collect and sort the leafkeys for both account mappings into a slice
 	createKeys := sortKeys(diffAccountsAtB)
 	deleteKeys := sortKeys(diffAccountsAtA)
 
 	// and then find the intersection of these keys
 	// these are the leafkeys for the accounts which exist at both A and B but are different
-	// this also mutates the passed in createKeys and deleteKeys, removing the intersection keys
+	// this also mutates the passed in createKeys and deleteKeys, removing in intersection keys
 	// and leaving the truly created or deleted keys in place
 	updatedKeys := findIntersection(createKeys, deleteKeys)
 
@@ -346,7 +348,7 @@ func (sdb *builder) createdAndUpdatedState(iters iterPair, watchedAddressesLeafK
 		if it.Leaf() || bytes.Equal(nullHashBytes, it.Hash().Bytes()) {
 			continue
 		}
-		node, nodeElements, err := resolveNode(it, sdb.stateCache.TrieDB())
+		node, nodeElements, err := sdtrie.ResolveNode(it, sdb.stateCache.TrieDB())
 		if err != nil {
 			return nil, nil, err
 		}
@@ -438,10 +440,11 @@ func (sdb *builder) deletedOrUpdatedState(iters iterPair, diffAccountsAtB Accoun
 	diffAccountAtA := make(AccountMap)
 	it, _ := trie.NewDifferenceIterator(iters.newer, iters.older)
 	for it.Next(true) {
+		// skip value nodes
 		if it.Leaf() || bytes.Equal(nullHashBytes, it.Hash().Bytes()) {
 			continue
 		}
-		node, nodeElements, err := resolveNode(it, sdb.stateCache.TrieDB())
+		node, nodeElements, err := sdtrie.ResolveNode(it, sdb.stateCache.TrieDB())
 		if err != nil {
 			return nil, err
 		}
@@ -573,7 +576,7 @@ func (sdb *builder) buildAccountCreations(accounts AccountMap, intermediateStora
 				return fmt.Errorf("failed building eventual storage diffs for node %x\r\nerror: %v", val.Path, err)
 			}
 			diff.StorageNodes = storageDiffs
-			// emit codehash => code mappings for code
+			// emit codehash => code mappings for cod
 			codeHash := common.BytesToHash(val.Account.CodeHash)
 			code, err := sdb.stateCache.ContractCode(common.Hash{}, codeHash)
 			if err != nil {
@@ -793,19 +796,15 @@ func (sdb *builder) createdAndUpdatedStorage(a, b trie.NodeIterator, intermediat
 func (sdb *builder) deletedOrUpdatedStorage(a, b trie.NodeIterator, diffSlotsAtB, diffPathsAtB map[string]bool, intermediateNodes bool, output sdtypes.StorageNodeSink) error {
 	it, _ := trie.NewDifferenceIterator(b, a)
 	for it.Next(true) {
+		// skip value nodes
 		if it.Leaf() || bytes.Equal(nullHashBytes, it.Hash().Bytes()) {
 			continue
 		}
-		node, nodeElements, err := resolveNode(it, sdb.stateCache.TrieDB())
+		node, nodeElements, err := sdtrie.ResolveNode(it, sdb.stateCache.TrieDB())
 		if err != nil {
 			return err
 		}
-		// if this node path showed up in diffPathsAtB
-		// that means this node was updated at B and we already have the updated diff for it
-		// otherwise that means this node was deleted in B and we need to add a "removed" diff to represent that event
-		if _, ok := diffPathsAtB[common.Bytes2Hex(node.Path)]; ok {
-			continue
-		}
+
 		switch node.NodeType {
 		case sdtypes.Leaf:
 			partialPath := trie.CompactToHex(nodeElements[0].([]byte))

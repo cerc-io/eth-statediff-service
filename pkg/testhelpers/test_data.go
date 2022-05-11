@@ -62,6 +62,6 @@ var (
 	CodeHash                = common.HexToHash("0xaaea5efba4fd7b45d7ec03918ac5d8b31aa93b48986af0e6b591f0f087c80127")
 	ContractAddr            common.Address
 
-	EmptyRootNode, _  = rlp.EncodeToBytes([]byte{})
+	EmptyRootNode, _  = rlp.EncodeToBytes(&[]byte{})
 	EmptyContractRoot = crypto.Keccak256Hash(EmptyRootNode)
 )

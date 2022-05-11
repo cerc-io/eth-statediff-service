@@ -233,7 +233,7 @@ func (sds *Service) processStateDiff(currentBlock *types.Block, parentRoot commo
 	if err != nil {
 		return nil, err
 	}
-	stateDiffRlp, err := rlp.EncodeToBytes(stateDiff)
+	stateDiffRlp, err := rlp.EncodeToBytes(&stateDiff)
 	if err != nil {
 		return nil, err
 	}
@@ -289,7 +289,7 @@ func (sds *Service) processStateTrie(block *types.Block, params sd.Params) (*sd.
 	if err != nil {
 		return nil, err
 	}
-	stateTrieRlp, err := rlp.EncodeToBytes(stateNodes)
+	stateTrieRlp, err := rlp.EncodeToBytes(&stateNodes)
 	if err != nil {
 		return nil, err
 	}
