@@ -299,7 +299,7 @@ func (sdb *builder) buildStateDiff(args []iterPair, params sd.Params, output sdt
 	if params.IntermediateStateNodes {
 		diffAccountsAtB, diffPathsAtB, err = sdb.createdAndUpdatedStateWithIntermediateNodes(args[0], output)
 	} else {
-		diffAccountsAtB, diffPathsAtB, err = sdb.createdAndUpdatedState(args[0], params.WatchedAddressesLeafKeys)
+		diffAccountsAtB, diffPathsAtB, err = sdb.createdAndUpdatedState(args[0], params.WatchedAddressesLeafKeys())
 	}
 
 	if err != nil {
@@ -308,7 +308,7 @@ func (sdb *builder) buildStateDiff(args []iterPair, params sd.Params, output sdt
 
 	// collect a slice of all the nodes that existed at a path in A that doesn't exist in B
 	// a map of their leafkey to all the accounts that were touched and exist at A
-	diffAccountsAtA, err := sdb.deletedOrUpdatedState(args[1], diffAccountsAtB, diffPathsAtB, params.WatchedAddressesLeafKeys, params.IntermediateStorageNodes, output)
+	diffAccountsAtA, err := sdb.deletedOrUpdatedState(args[1], diffAccountsAtB, diffPathsAtB, params.WatchedAddressesLeafKeys(), params.IntermediateStorageNodes, output)
 	if err != nil {
 		return fmt.Errorf("error collecting deletedOrUpdatedNodes: %v", err)
 	}
