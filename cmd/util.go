@@ -2,10 +2,10 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/ethereum/go-ethereum/statediff"
 	gethsd "github.com/ethereum/go-ethereum/statediff"
 	ind "github.com/ethereum/go-ethereum/statediff/indexer"
 	"github.com/ethereum/go-ethereum/trie"
@@ -26,7 +26,17 @@ func createStateDiffService() (sd.StateDiffService, error) {
 	}
 
 	nodeInfo := getEthNodeInfo()
-	chainConf, err := chainConfig(nodeInfo.ChainID)
+
+	var chainConf *params.ChainConfig
+	var err error
+	chainConfigPath := viper.GetString("ethereum.chainConfig")
+
+	if chainConfigPath != "" {
+		chainConf, err = statediff.LoadConfig(chainConfigPath)
+	} else {
+		chainConf, err = statediff.ChainConfig(nodeInfo.ChainID)
+	}
+
 	if err != nil {
 		logWithCommand.Fatal(err)
 	}
@@ -116,19 +126,4 @@ func setupPreRunRanges() []sd.RangeRequest {
 	}
 
 	return blockRanges
-}
-
-func chainConfig(chainID uint64) (*params.ChainConfig, error) {
-	switch chainID {
-	case 1:
-		return params.MainnetChainConfig, nil
-	case 3:
-		return params.RopstenChainConfig, nil // Ropsten
-	case 4:
-		return params.RinkebyChainConfig, nil
-	case 5:
-		return params.GoerliChainConfig, nil
-	default:
-		return nil, fmt.Errorf("chain config for chainid %d not available", chainID)
-	}
 }

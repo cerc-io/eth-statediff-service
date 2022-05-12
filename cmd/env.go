@@ -26,6 +26,7 @@ const (
 	ETH_GENESIS_BLOCK = "ETH_GENESIS_BLOCK"
 	ETH_NETWORK_ID    = "ETH_NETWORK_ID"
 	ETH_CHAIN_ID      = "ETH_CHAIN_ID"
+	ETH_CHAIN_CONFIG  = "ETH_CHAIN_CONFIG"
 
 	DB_CACHE_SIZE_MB   = "DB_CACHE_SIZE_MB"
 	TRIE_CACHE_SIZE_MB = "TRIE_CACHE_SIZE_MB"
@@ -88,6 +89,7 @@ func init() {
 	viper.BindEnv("ethereum.genesisBlock", ETH_GENESIS_BLOCK)
 	viper.BindEnv("ethereum.networkID", ETH_NETWORK_ID)
 	viper.BindEnv("ethereum.chainID", ETH_CHAIN_ID)
+	viper.BindEnv("ethereum.chainConfig", ETH_CHAIN_CONFIG)
 
 	viper.BindEnv("database.name", DATABASE_NAME)
 	viper.BindEnv("database.hostname", DATABASE_HOSTNAME)
