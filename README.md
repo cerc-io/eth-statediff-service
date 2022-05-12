@@ -51,7 +51,7 @@ make build
         ancient = "/path-to-local-geth-data/chaindata/ancient"
 
     [ethereum]
-        chainConfig = "./chain.json" # Path to custom chain  config file
+        chainConfig = "./chain.json" # Path to custom chain config file
         chainID = 41337 # Same chain ID as in chain.json
 
     [database]
