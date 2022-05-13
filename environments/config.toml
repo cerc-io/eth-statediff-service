@@ -23,7 +23,6 @@
         includeTD = true
         includeCode = true
         watchedAddresses = []
-        watchedStorageKeys = []
 
 [log]
     file = ""

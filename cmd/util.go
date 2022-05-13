@@ -99,12 +99,6 @@ func setupPreRunRanges() []sd.RangeRequest {
 		addrs[i] = common.HexToAddress(addrStr)
 	}
 	preRunParams.WatchedAddresses = addrs
-	var storageKeyStrs []string
-	viper.UnmarshalKey("prerun.params.watchedStorageKeys", &storageKeyStrs)
-	keys := make([]common.Hash, len(storageKeyStrs))
-	for i, keyStr := range storageKeyStrs {
-		keys[i] = common.HexToHash(keyStr)
-	}
 	var rawRanges []blockRange
 	viper.UnmarshalKey("prerun.ranges", &rawRanges)
 	blockRanges := make([]sd.RangeRequest, len(rawRanges))

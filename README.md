@@ -20,7 +20,27 @@ make build
 
 ### Local Setup
 
-* Change values in [chain config file](./chain.json) according to chain config in genesis json file used by local geth.
+* Create a chain config file `chain.json` according to chain config in genesis json file used by local geth.
+
+  Example:
+  ```json
+  {
+    "chainId": 41337,
+    "homesteadBlock": 0,
+    "eip150Block": 0,
+    "eip150Hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "eip155Block": 0,
+    "eip158Block": 0,
+    "byzantiumBlock": 0,
+    "constantinopleBlock": 0,
+    "petersburgBlock": 0,
+    "istanbulBlock": 0,
+    "clique": {
+      "period": 5,
+      "epoch": 30000
+    }
+  }
+  ```
 
 * Change the following in [config file](./environments/config.toml)
 
@@ -31,7 +51,7 @@ make build
         ancient = "/path-to-local-geth-data/chaindata/ancient"
 
     [ethereum]
-        chainConfig = "./chain.json" # Path to custom chain config file
+        chainConfig = "./chain.json" # Path to custom chain  config file
         chainID = 41337 # Same chain ID as in chain.json
 
     [database]
@@ -112,7 +132,6 @@ An example config file:
         includeTD = true
         includeCode = true
         watchedAddresses = []
-        watchedStorageKeys = []
 
 [log]
     file = ""
