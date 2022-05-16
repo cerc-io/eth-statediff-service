@@ -10,6 +10,69 @@ Stand up a statediffing service directly on top of a go-ethereum leveldb instanc
 This service can serve historical state data over the same rpc interface as
 [statediffing geth](https://github.com/vulcanize/go-ethereum/releases/tag/v1.9.11-statediff-0.0.5) without needing to run a full node
 
+## Setup
+
+Build the binary:
+
+```bash
+make build
+```
+
+### Local Setup
+
+* Create a chain config file `chain.json` according to chain config in genesis json file used by local geth.
+
+  Example:
+  ```json
+  {
+    "chainId": 41337,
+    "homesteadBlock": 0,
+    "eip150Block": 0,
+    "eip150Hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "eip155Block": 0,
+    "eip158Block": 0,
+    "byzantiumBlock": 0,
+    "constantinopleBlock": 0,
+    "petersburgBlock": 0,
+    "istanbulBlock": 0,
+    "clique": {
+      "period": 5,
+      "epoch": 30000
+    }
+  }
+  ```
+
+* Change the following in [config file](./environments/config.toml)
+
+    ```toml
+    [leveldb]
+        # Path to geth leveldb data
+        path = "/path-to-local-geth-data/chaindata"
+        ancient = "/path-to-local-geth-data/chaindata/ancient"
+
+    [ethereum]
+        chainConfig = "./chain.json" # Path to custom chain  config file
+        chainID = 41337 # Same chain ID as in chain.json
+
+    [database]
+        # Update database config
+        name     = "vulcanize_testing"
+        hostname = "localhost"
+        port     = 5432
+        user     = "postgres"
+        password = "postgres"
+        type = "postgres"
+    ```
+
+* To write statediff for a range of block make changes in [config file](./environments/config.toml)
+    ```toml
+    [prerun]
+        only = false
+        ranges = [
+            [8, 15] # Block number range for which to write statediff.
+        ]
+    ```
+
 ## Usage
 
 ### `serve`
@@ -17,6 +80,12 @@ This service can serve historical state data over the same rpc interface as
 To serve state diffs over RPC:
 
 `eth-statediff-service serve --config=<config path>`
+
+Example:
+
+```bash
+./eth-statediff-service serve --config environments/config.toml
+```
 
 Available RPC methods are:
   * `statediff_stateTrieAt()`
@@ -63,7 +132,6 @@ An example config file:
         includeTD = true
         includeCode = true
         watchedAddresses = []
-        watchedStorageKeys = []
 
 [log]
     file = ""

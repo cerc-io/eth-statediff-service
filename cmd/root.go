@@ -166,7 +166,6 @@ func init() {
 	rootCmd.PersistentFlags().Bool("prerun-include-td", true, "include td in the statediff payload")
 	rootCmd.PersistentFlags().Bool("prerun-include-code", true, "include code and codehash mappings in statediff payload")
 
-
 	viper.BindPFlag("server.httpPath", rootCmd.PersistentFlags().Lookup("http-path"))
 	viper.BindPFlag("server.ipcPath", rootCmd.PersistentFlags().Lookup("ipc-path"))
 
@@ -202,6 +201,7 @@ func init() {
 	viper.BindPFlag("ethereum.genesisBlock", rootCmd.PersistentFlags().Lookup("eth-genesis-block"))
 	viper.BindPFlag("ethereum.networkID", rootCmd.PersistentFlags().Lookup("eth-network-id"))
 	viper.BindPFlag("ethereum.chainID", rootCmd.PersistentFlags().Lookup("eth-chain-id"))
+	viper.BindPFlag("ethereum.chainConfig", rootCmd.PersistentFlags().Lookup("eth-chain-config"))
 
 	viper.BindPFlag("cache.database", rootCmd.PersistentFlags().Lookup("cache-db"))
 	viper.BindPFlag("cache.trie", rootCmd.PersistentFlags().Lookup("cache-trie"))
