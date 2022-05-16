@@ -39,7 +39,6 @@ func (d *Database) ModifyAncients(f func(ethdb.AncientWriteOp) error) (int64, er
 // NewDatabase returns a ethdb.Database interface
 func NewDatabase(url string) (ethdb.Database, error) {
 	rpcClient, err := rpc.Dial(url)
-
 	if err != nil {
 		return nil, err
 	}

@@ -114,8 +114,12 @@ An example config file:
 
 ```toml
 [leveldb]
+    mode = "local"
+    # path and ancient leveldb paths required in local mode
     path = "/Users/user/Library/Ethereum/geth/chaindata"
     ancient = "/Users/user/Library/Ethereum/geth/chaindata/ancient"
+    # url for leveldb-ethdb-rpc endpoint required in remote mode
+    url = "http://127.0.0.1:8082/"
 
 [server]
     ipcPath = ".ipc"
