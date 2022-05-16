@@ -67,7 +67,7 @@ type StateDiffService interface {
 type Service struct {
 	// Used to build the state diff objects
 	Builder Builder
-	// Used to read data from leveldb
+	// Used to read data from LevelDB
 	lvlDBReader Reader
 	// Used to signal shutdown of the service
 	quitChan chan struct{}

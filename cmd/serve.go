@@ -32,7 +32,7 @@ import (
 // serveCmd represents the serve command
 var serveCmd = &cobra.Command{
 	Use:   "serve",
-	Short: "Stand up a standalone statediffing RPC service on top of leveldb",
+	Short: "Stand up a standalone statediffing RPC service on top of LevelDB",
 	Long: `Usage
 
 ./eth-statediff-service serve --config={path to toml config file}`,

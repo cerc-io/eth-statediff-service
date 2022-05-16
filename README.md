@@ -2,11 +2,11 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/vulcanize/eth-statediff-service)](https://goreportcard.com/report/github.com/vulcanize/eth-statediff-service)
 
->> standalone statediffing service ontop of leveldb
+>> standalone statediffing service ontop of LevelDB
 
 Purpose:
 
-Stand up a statediffing service directly on top of a go-ethereum leveldb instance.
+Stand up a statediffing service directly on top of a go-ethereum LevelDB instance.
 This service can serve historical state data over the same rpc interface as
 [statediffing geth](https://github.com/vulcanize/go-ethereum/releases/tag/v1.9.11-statediff-0.0.5) without needing to run a full node
 
@@ -47,7 +47,7 @@ make build
     ```toml
     [leveldb]
         mode = "local"
-        # Path to geth leveldb data
+        # Path to geth LevelDB data
         path = "/path-to-local-geth-data/chaindata"
         ancient = "/path-to-local-geth-data/chaindata/ancient"
 
@@ -74,11 +74,11 @@ make build
         ]
     ```
 
-* To use remote leveldb RPC endpoint change the following in [config file](./environments/config.toml)
+* To use remote LevelDB RPC endpoint change the following in [config file](./environments/config.toml)
     ```toml
     [leveldb]
         mode = "remote"
-        url = "http://127.0.0.1:8082/" # Remote leveldb RPC url
+        url = "http://127.0.0.1:8082/" # Remote LevelDB RPC url
     ```
 
 ## Usage
@@ -115,7 +115,7 @@ An example config file:
 ```toml
 [leveldb]
     mode = "local"
-    # path and ancient leveldb paths required in local mode
+    # path and ancient LevelDB paths required in local mode
     path = "/Users/user/Library/Ethereum/geth/chaindata"
     ancient = "/Users/user/Library/Ethereum/geth/chaindata/ancient"
     # url for leveldb-ethdb-rpc endpoint required in remote mode
