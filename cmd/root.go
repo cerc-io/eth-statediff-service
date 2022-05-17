@@ -116,7 +116,7 @@ func init() {
 	rootCmd.PersistentFlags().String("log-level", log.InfoLevel.String(),
 		"log level (trace, debug, info, warn, error, fatal, panic")
 
-	rootCmd.PersistentFlags().String("leveldb-mode", "local", "LevelDB access mode (currently supported: local, remote)")
+	rootCmd.PersistentFlags().String("leveldb-mode", "local", "LevelDB access mode (local, remote)")
 	rootCmd.PersistentFlags().String("leveldb-path", "", "path to primary datastore")
 	rootCmd.PersistentFlags().String("ancient-path", "", "path to ancient datastore")
 	rootCmd.PersistentFlags().String("leveldb-url", "", "url to primary leveldb-ethdb-rpc server")

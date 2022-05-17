@@ -10,7 +10,7 @@ require (
 	github.com/spf13/cobra v1.3.0
 	github.com/spf13/viper v1.10.1
 	github.com/vulcanize/go-eth-state-node-iterator v1.0.1
-	github.com/vulcanize/leveldb-ethdb-rpc v0.1.0
+	github.com/vulcanize/leveldb-ethdb-rpc v0.1.1
 )
 
 replace github.com/ethereum/go-ethereum v1.10.17 => github.com/vulcanize/go-ethereum v1.10.17-statediff-3.2.1
