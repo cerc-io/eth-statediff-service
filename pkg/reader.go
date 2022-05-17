@@ -26,6 +26,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/trie"
+	"github.com/vulcanize/leveldb-ethdb-rpc/pkg/client"
 )
 
 // Reader interface required by the statediffing service
@@ -46,15 +47,26 @@ type LvlDBReader struct {
 
 // LvLDBReaderConfig struct for initializing a LvlDBReader
 type LvLDBReaderConfig struct {
-	TrieConfig        *trie.Config
-	ChainConfig       *params.ChainConfig
-	Path, AncientPath string
-	DBCacheSize       int
+	TrieConfig             *trie.Config
+	ChainConfig            *params.ChainConfig
+	Mode                   string
+	Path, AncientPath, Url string
+	DBCacheSize            int
 }
 
 // NewLvlDBReader creates a new Read using LevelDB
 func NewLvlDBReader(conf LvLDBReaderConfig) (*LvlDBReader, error) {
-	edb, err := rawdb.NewLevelDBDatabaseWithFreezer(conf.Path, conf.DBCacheSize, 256, conf.AncientPath, "eth-statediff-service", true)
+	var edb ethdb.Database
+	var err error
+
+	if conf.Mode == "local" {
+		edb, err = rawdb.NewLevelDBDatabaseWithFreezer(conf.Path, conf.DBCacheSize, 256, conf.AncientPath, "eth-statediff-service", true)
+	}
+
+	if conf.Mode == "remote" {
+		edb, err = client.NewDatabaseClient(conf.Url)
+	}
+
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,8 @@
 [leveldb]
+    mode = "local"
     path = "/app/geth-rw/chaindata"
     ancient = "/app/geth-rw/chaindata/ancient"
+    url = "http://127.0.0.1:8082/"
 
 [server]
     ipcPath = ""

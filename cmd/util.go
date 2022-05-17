@@ -19,10 +19,21 @@ type blockRange [2]uint64
 func createStateDiffService() (sd.StateDiffService, error) {
 	// load some necessary params
 	logWithCommand.Info("Loading statediff service parameters")
+	mode := viper.GetString("leveldb.mode")
 	path := viper.GetString("leveldb.path")
 	ancientPath := viper.GetString("leveldb.ancient")
-	if path == "" || ancientPath == "" {
-		logWithCommand.Fatal("require a valid eth leveldb primary datastore path and ancient datastore path")
+	url := viper.GetString("leveldb.url")
+
+	if mode == "local" {
+		if path == "" || ancientPath == "" {
+			logWithCommand.Fatal("Require a valid eth LevelDB primary datastore path and ancient datastore path")
+		}
+	} else if mode == "remote" {
+		if url == "" {
+			logWithCommand.Fatal("Require a valid RPC url for accessing LevelDB")
+		}
+	} else {
+		logWithCommand.Fatal("Invalid mode provided for LevelDB access")
 	}
 
 	nodeInfo := getEthNodeInfo()
@@ -41,8 +52,8 @@ func createStateDiffService() (sd.StateDiffService, error) {
 		logWithCommand.Fatal(err)
 	}
 
-	// create leveldb reader
-	logWithCommand.Info("Creating leveldb reader")
+	// create LevelDB reader
+	logWithCommand.Info("Creating LevelDB reader")
 	readerConf := sd.LvLDBReaderConfig{
 		TrieConfig: &trie.Config{
 			Cache:     viper.GetInt("cache.trie"),
@@ -50,8 +61,10 @@ func createStateDiffService() (sd.StateDiffService, error) {
 			Preimages: false,
 		},
 		ChainConfig: chainConf,
+		Mode:        mode,
 		Path:        path,
 		AncientPath: ancientPath,
+		Url:         url,
 		DBCacheSize: viper.GetInt("cache.database"),
 	}
 	lvlDBReader, err := sd.NewLvlDBReader(readerConf)

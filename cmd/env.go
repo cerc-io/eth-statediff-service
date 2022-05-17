@@ -30,8 +30,10 @@ const (
 
 	DB_CACHE_SIZE_MB   = "DB_CACHE_SIZE_MB"
 	TRIE_CACHE_SIZE_MB = "TRIE_CACHE_SIZE_MB"
+	LVLDB_MODE         = "LVLDB_MODE"
 	LVLDB_PATH         = "LVLDB_PATH"
 	LVLDB_ANCIENT      = "LVLDB_ANCIENT"
+	LVLDB_URL          = "LVLDB_URL"
 
 	STATEDIFF_PRERUN            = "STATEDIFF_PRERUN"
 	STATEDIFF_TRIE_WORKERS      = "STATEDIFF_TRIE_WORKERS"
@@ -112,8 +114,10 @@ func init() {
 	viper.BindEnv("cache.database", DB_CACHE_SIZE_MB)
 	viper.BindEnv("cache.trie", TRIE_CACHE_SIZE_MB)
 
+	viper.BindEnv("leveldb.mode", LVLDB_MODE)
 	viper.BindEnv("leveldb.path", LVLDB_PATH)
 	viper.BindEnv("leveldb.ancient", LVLDB_ANCIENT)
+	viper.BindEnv("leveldb.url", LVLDB_URL)
 
 	viper.BindEnv("prom.metrics", PROM_METRICS)
 	viper.BindEnv("prom.http", PROM_HTTP)
