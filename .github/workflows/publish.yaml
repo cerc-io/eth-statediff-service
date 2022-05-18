@@ -1,7 +1,7 @@
 name: Publish Docker image
 on:
   release:
-    types: [published]
+    types: [published, edited]
 jobs:
   build:
     name: Run docker build
@@ -24,22 +24,18 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/checkout@v2
       - name: Get the version
-        run: |
-          echo ::set-output name=tag::$(echo ${GITHUB_REF#refs/tags/})
-          echo ::set-output name=sha::$(echo ${GITHUB_SHA})
         id: vars
+        run: |
+          echo ::set-output name=sha::$(echo ${GITHUB_SHA:0:7})
+          echo ::set-output name=tag::$(echo ${GITHUB_REF#refs/tags/})
+      - name: Docker Login to Github Registry
+        run: echo ${{ secrets.GITHUB_TOKEN }} | docker login https://docker.pkg.github.com -u vulcanize --password-stdin
+      - name: Docker Pull
+        run: docker pull docker.pkg.github.com/vulcanize/ipld-eth-db/ipld-eth-db:${{steps.vars.outputs.sha}}
       - name: Docker Login to Docker Registry
-        uses: docker/login-action@v1
-        with:
-          username: vulcanizejenkins
-          password: ${{ secrets.VULCANIZEJENKINS_PAT }}
-      - name: Build and push
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          push: true
-          tags: vulcanize/eth-statediff-service:${{ steps.vars.outputs.tag }}
-          build-args: |
-            GIT_COMMIT=${{ steps.vars.outputs.sha }}
+        run: echo ${{ secrets.VULCANIZEJENKINS_PAT }} | docker login -u vulcanizejenkins --password-stdin
+      - name: Tag docker image
+        run: docker tag docker.pkg.github.com/vulcanize/ipld-eth-db/ipld-eth-db:${{steps.vars.outputs.sha}} vulcanize/ipld-eth-db:${{steps.vars.outputs.tag}}
+      - name: Docker Push to Docker Hub
+        run: docker push vulcanize/ipld-eth-db:${{steps.vars.outputs.tag}}
