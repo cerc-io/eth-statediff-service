@@ -1,7 +1,7 @@
 name: Publish Docker image
 on:
   release:
-    types: [published, edited]
+    types: [published]
 jobs:
   build:
     name: Run docker build
@@ -32,10 +32,10 @@ jobs:
       - name: Docker Login to Github Registry
         run: echo ${{ secrets.GITHUB_TOKEN }} | docker login https://docker.pkg.github.com -u vulcanize --password-stdin
       - name: Docker Pull
-        run: docker pull docker.pkg.github.com/vulcanize/ipld-eth-db/ipld-eth-db:${{steps.vars.outputs.sha}}
+        run: docker pull docker.pkg.github.com/vulcanize/eth-statediff-service/eth-statediff-service:${{steps.vars.outputs.sha}}
       - name: Docker Login to Docker Registry
         run: echo ${{ secrets.VULCANIZEJENKINS_PAT }} | docker login -u vulcanizejenkins --password-stdin
       - name: Tag docker image
-        run: docker tag docker.pkg.github.com/vulcanize/ipld-eth-db/ipld-eth-db:${{steps.vars.outputs.sha}} vulcanize/ipld-eth-db:${{steps.vars.outputs.tag}}
+        run: docker tag docker.pkg.github.com/vulcanize/eth-statediff-service/eth-statediff-service:${{steps.vars.outputs.sha}} vulcanize/eth-statediff-service:${{steps.vars.outputs.tag}}
       - name: Docker Push to Docker Hub
-        run: docker push vulcanize/ipld-eth-db:${{steps.vars.outputs.tag}}
+        run: docker push vulcanize/eth-statediff-service:${{steps.vars.outputs.tag}}
