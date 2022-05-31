@@ -775,8 +775,8 @@ github.com/valyala/fasttemplate v1.0.1/go.mod h1:UQGH1tvbgY+Nz5t2n7tXsz52dQxojPU
 github.com/valyala/fasttemplate v1.2.1/go.mod h1:KHLXt3tVN2HBp8eijSv/kGJopbvo7S+qRAEEKiv+SiQ=
 github.com/vulcanize/go-eth-state-node-iterator v1.0.3 h1:gtkU0aP7aW0tPBfzxVSymRhX9eyIQv7HiGkGVGwoh8I=
 github.com/vulcanize/go-eth-state-node-iterator v1.0.3/go.mod h1:a1aRW1/fEmcpY8AAU47p9TNL3QNjpeqCJd/hLtFKVL8=
-github.com/vulcanize/go-ethereum v1.10.18-statediff-3.2.1 h1:XgCj40pL5hADIl7ov4NpSK6MMFThUJrPuRnOSjEIae0=
-github.com/vulcanize/go-ethereum v1.10.18-statediff-3.2.1/go.mod h1:HelXH7UT1uWdb+St6UAj4pPf93GOggjIV7pVbrWIZ3o=
+github.com/vulcanize/go-ethereum v1.10.18-statediff-4.0.2-alpha h1:gTcfBHoaRpsRbP1/dnurg5LFUaqsQMTNqs4R4S2wm9U=
+github.com/vulcanize/go-ethereum v1.10.18-statediff-4.0.2-alpha/go.mod h1:HelXH7UT1uWdb+St6UAj4pPf93GOggjIV7pVbrWIZ3o=
 github.com/vulcanize/leveldb-ethdb-rpc v0.1.2 h1:ws/CsvxsPQh6IOQGsUDCPaNuPzcDjtVW1sT8o20Nfg4=
 github.com/vulcanize/leveldb-ethdb-rpc v0.1.2/go.mod h1:lksnBYanEe9GuDDeYMtpbc0JnPy4mOKImw4M8vkqJDw=
 github.com/whyrusleeping/go-logging v0.0.0-20170515211332-0457bb6b88fc h1:9lDbC6Rz4bwmou+oE6Dt4Cb2BGMur5eR/GYptkKUVHo=
