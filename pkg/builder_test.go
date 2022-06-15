@@ -26,20 +26,19 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/statediff"
+	sd "github.com/ethereum/go-ethereum/statediff"
 	"github.com/ethereum/go-ethereum/statediff/test_helpers"
 	sdtypes "github.com/ethereum/go-ethereum/statediff/types"
 
 	pkg "github.com/vulcanize/eth-statediff-service/pkg"
 )
 
-// TODO: add test that filters on address
 var (
 	contractLeafKey                                        []byte
 	emptyDiffs                                             = make([]sdtypes.StateNode, 0)
 	emptyStorage                                           = make([]sdtypes.StorageNode, 0)
 	block0, block1, block2, block3, block4, block5, block6 *types.Block
-	builder                                                pkg.Builder
+	builder                                                sd.Builder
 	miningReward                                           = int64(2000000000000000000)
 	minerAddress                                           = common.HexToAddress("0x0")
 	minerLeafKey                                           = test_helpers.AddressToLeafKey(minerAddress)
@@ -487,16 +486,16 @@ func TestBuilder(t *testing.T) {
 	block1 = blocks[0]
 	block2 = blocks[1]
 	block3 = blocks[2]
-	params := statediff.Params{}
+	params := sd.Params{}
 
 	var tests = []struct {
 		name              string
-		startingArguments statediff.Args
+		startingArguments sd.Args
 		expected          *sdtypes.StateObject
 	}{
 		{
 			"testEmptyDiff",
-			statediff.Args{
+			sd.Args{
 				OldStateRoot: block0.Root(),
 				NewStateRoot: block0.Root(),
 				BlockNumber:  block0.Number(),
@@ -511,7 +510,7 @@ func TestBuilder(t *testing.T) {
 		{
 			"testBlock0",
 			//10000 transferred from testBankAddress to account1Addr
-			statediff.Args{
+			sd.Args{
 				OldStateRoot: test_helpers.NullHash,
 				NewStateRoot: block0.Root(),
 				BlockNumber:  block0.Number(),
@@ -534,7 +533,7 @@ func TestBuilder(t *testing.T) {
 		{
 			"testBlock1",
 			//10000 transferred from testBankAddress to account1Addr
-			statediff.Args{
+			sd.Args{
 				OldStateRoot: block0.Root(),
 				NewStateRoot: block1.Root(),
 				BlockNumber:  block1.Number(),
@@ -573,7 +572,7 @@ func TestBuilder(t *testing.T) {
 			// 1000 transferred from testBankAddress to account1Addr
 			// 1000 transferred from account1Addr to account2Addr
 			// account1addr creates a new contract
-			statediff.Args{
+			sd.Args{
 				OldStateRoot: block1.Root(),
 				NewStateRoot: block2.Root(),
 				BlockNumber:  block2.Number(),
@@ -644,7 +643,7 @@ func TestBuilder(t *testing.T) {
 			"testBlock3",
 			//the contract's storage is changed
 			//and the block is mined by account 2
-			statediff.Args{
+			sd.Args{
 				OldStateRoot: block2.Root(),
 				NewStateRoot: block3.Root(),
 				BlockNumber:  block3.Number(),
@@ -721,19 +720,19 @@ func TestBuilderWithIntermediateNodes(t *testing.T) {
 	block2 = blocks[1]
 	block3 = blocks[2]
 	blocks = append([]*types.Block{block0}, blocks...)
-	params := statediff.Params{
+	params := sd.Params{
 		IntermediateStateNodes:   true,
 		IntermediateStorageNodes: true,
 	}
 
 	var tests = []struct {
 		name              string
-		startingArguments statediff.Args
+		startingArguments sd.Args
 		expected          *sdtypes.StateObject
 	}{
 		{
 			"testEmptyDiff",
-			statediff.Args{
+			sd.Args{
 				OldStateRoot: block0.Root(),
 				NewStateRoot: block0.Root(),
 				BlockNumber:  block0.Number(),
@@ -748,7 +747,7 @@ func TestBuilderWithIntermediateNodes(t *testing.T) {
 		{
 			"testBlock0",
 			//10000 transferred from testBankAddress to account1Addr
-			statediff.Args{
+			sd.Args{
 				OldStateRoot: test_helpers.NullHash,
 				NewStateRoot: block0.Root(),
 				BlockNumber:  block0.Number(),
@@ -771,7 +770,7 @@ func TestBuilderWithIntermediateNodes(t *testing.T) {
 		{
 			"testBlock1",
 			//10000 transferred from testBankAddress to account1Addr
-			statediff.Args{
+			sd.Args{
 				OldStateRoot: block0.Root(),
 				NewStateRoot: block1.Root(),
 				BlockNumber:  block1.Number(),
@@ -816,7 +815,7 @@ func TestBuilderWithIntermediateNodes(t *testing.T) {
 			// 1000 transferred from testBankAddress to account1Addr
 			// 1000 transferred from account1Addr to account2Addr
 			// account1addr creates a new contract
-			statediff.Args{
+			sd.Args{
 				OldStateRoot: block1.Root(),
 				NewStateRoot: block2.Root(),
 				BlockNumber:  block2.Number(),
@@ -898,7 +897,7 @@ func TestBuilderWithIntermediateNodes(t *testing.T) {
 			"testBlock3",
 			//the contract's storage is changed
 			//and the block is mined by account 2
-			statediff.Args{
+			sd.Args{
 				OldStateRoot: block2.Root(),
 				NewStateRoot: block3.Root(),
 				BlockNumber:  block3.Number(),
@@ -999,19 +998,19 @@ func TestBuilderWithWatchedAddressList(t *testing.T) {
 	block1 = blocks[0]
 	block2 = blocks[1]
 	block3 = blocks[2]
-	params := statediff.Params{
+	params := sd.Params{
 		WatchedAddresses: []common.Address{test_helpers.Account1Addr, test_helpers.ContractAddr},
 	}
 	params.ComputeWatchedAddressesLeafKeys()
 
 	var tests = []struct {
 		name              string
-		startingArguments statediff.Args
+		startingArguments sd.Args
 		expected          *sdtypes.StateObject
 	}{
 		{
 			"testEmptyDiff",
-			statediff.Args{
+			sd.Args{
 				OldStateRoot: block0.Root(),
 				NewStateRoot: block0.Root(),
 				BlockNumber:  block0.Number(),
@@ -1026,7 +1025,7 @@ func TestBuilderWithWatchedAddressList(t *testing.T) {
 		{
 			"testBlock0",
 			//10000 transferred from testBankAddress to account1Addr
-			statediff.Args{
+			sd.Args{
 				OldStateRoot: test_helpers.NullHash,
 				NewStateRoot: block0.Root(),
 				BlockNumber:  block0.Number(),
@@ -1041,7 +1040,7 @@ func TestBuilderWithWatchedAddressList(t *testing.T) {
 		{
 			"testBlock1",
 			//10000 transferred from testBankAddress to account1Addr
-			statediff.Args{
+			sd.Args{
 				OldStateRoot: block0.Root(),
 				NewStateRoot: block1.Root(),
 				BlockNumber:  block1.Number(),
@@ -1065,7 +1064,7 @@ func TestBuilderWithWatchedAddressList(t *testing.T) {
 			"testBlock2",
 			//1000 transferred from testBankAddress to account1Addr
 			//1000 transferred from account1Addr to account2Addr
-			statediff.Args{
+			sd.Args{
 				OldStateRoot: block1.Root(),
 				NewStateRoot: block2.Root(),
 				BlockNumber:  block2.Number(),
@@ -1115,7 +1114,7 @@ func TestBuilderWithWatchedAddressList(t *testing.T) {
 			"testBlock3",
 			//the contract's storage is changed
 			//and the block is mined by account 2
-			statediff.Args{
+			sd.Args{
 				OldStateRoot: block2.Root(),
 				NewStateRoot: block3.Root(),
 				BlockNumber:  block3.Number(),
@@ -1177,20 +1176,20 @@ func TestBuilderWithRemovedAccountAndStorage(t *testing.T) {
 	block4 = blocks[3]
 	block5 = blocks[4]
 	block6 = blocks[5]
-	params := statediff.Params{
+	params := sd.Params{
 		IntermediateStateNodes:   true,
 		IntermediateStorageNodes: true,
 	}
 
 	var tests = []struct {
 		name              string
-		startingArguments statediff.Args
+		startingArguments sd.Args
 		expected          *sdtypes.StateObject
 	}{
 		// blocks 0-3 are the same as in TestBuilderWithIntermediateNodes
 		{
 			"testBlock4",
-			statediff.Args{
+			sd.Args{
 				OldStateRoot: block3.Root(),
 				NewStateRoot: block4.Root(),
 				BlockNumber:  block4.Number(),
@@ -1256,7 +1255,7 @@ func TestBuilderWithRemovedAccountAndStorage(t *testing.T) {
 		},
 		{
 			"testBlock5",
-			statediff.Args{
+			sd.Args{
 				OldStateRoot: block4.Root(),
 				NewStateRoot: block5.Root(),
 				BlockNumber:  block5.Number(),
@@ -1316,7 +1315,7 @@ func TestBuilderWithRemovedAccountAndStorage(t *testing.T) {
 		},
 		{
 			"testBlock6",
-			statediff.Args{
+			sd.Args{
 				OldStateRoot: block5.Root(),
 				NewStateRoot: block6.Root(),
 				BlockNumber:  block6.Number(),
@@ -1412,20 +1411,20 @@ func TestBuilderWithRemovedAccountAndStorageWithoutIntermediateNodes(t *testing.
 	block4 = blocks[3]
 	block5 = blocks[4]
 	block6 = blocks[5]
-	params := statediff.Params{
+	params := sd.Params{
 		IntermediateStateNodes:   false,
 		IntermediateStorageNodes: false,
 	}
 
 	var tests = []struct {
 		name              string
-		startingArguments statediff.Args
+		startingArguments sd.Args
 		expected          *sdtypes.StateObject
 	}{
 		// blocks 0-3 are the same as in TestBuilderWithIntermediateNodes
 		{
 			"testBlock4",
-			statediff.Args{
+			sd.Args{
 				OldStateRoot: block3.Root(),
 				NewStateRoot: block4.Root(),
 				BlockNumber:  block4.Number(),
@@ -1480,7 +1479,7 @@ func TestBuilderWithRemovedAccountAndStorageWithoutIntermediateNodes(t *testing.
 		},
 		{
 			"testBlock5",
-			statediff.Args{
+			sd.Args{
 				OldStateRoot: block4.Root(),
 				NewStateRoot: block5.Root(),
 				BlockNumber:  block5.Number(),
@@ -1529,7 +1528,7 @@ func TestBuilderWithRemovedAccountAndStorageWithoutIntermediateNodes(t *testing.
 		},
 		{
 			"testBlock6",
-			statediff.Args{
+			sd.Args{
 				OldStateRoot: block5.Root(),
 				NewStateRoot: block6.Root(),
 				BlockNumber:  block6.Number(),
@@ -1611,19 +1610,19 @@ func TestBuilderWithRemovedNonWatchedAccount(t *testing.T) {
 	block4 = blocks[3]
 	block5 = blocks[4]
 	block6 = blocks[5]
-	params := statediff.Params{
+	params := sd.Params{
 		WatchedAddresses: []common.Address{test_helpers.Account1Addr, test_helpers.Account2Addr},
 	}
 	params.ComputeWatchedAddressesLeafKeys()
 
 	var tests = []struct {
 		name              string
-		startingArguments statediff.Args
+		startingArguments sd.Args
 		expected          *sdtypes.StateObject
 	}{
 		{
 			"testBlock4",
-			statediff.Args{
+			sd.Args{
 				OldStateRoot: block3.Root(),
 				NewStateRoot: block4.Root(),
 				BlockNumber:  block4.Number(),
@@ -1645,7 +1644,7 @@ func TestBuilderWithRemovedNonWatchedAccount(t *testing.T) {
 		},
 		{
 			"testBlock5",
-			statediff.Args{
+			sd.Args{
 				OldStateRoot: block4.Root(),
 				NewStateRoot: block5.Root(),
 				BlockNumber:  block5.Number(),
@@ -1667,7 +1666,7 @@ func TestBuilderWithRemovedNonWatchedAccount(t *testing.T) {
 		},
 		{
 			"testBlock6",
-			statediff.Args{
+			sd.Args{
 				OldStateRoot: block5.Root(),
 				NewStateRoot: block6.Root(),
 				BlockNumber:  block6.Number(),
@@ -1729,19 +1728,19 @@ func TestBuilderWithRemovedWatchedAccount(t *testing.T) {
 	block4 = blocks[3]
 	block5 = blocks[4]
 	block6 = blocks[5]
-	params := statediff.Params{
+	params := sd.Params{
 		WatchedAddresses: []common.Address{test_helpers.Account1Addr, test_helpers.ContractAddr},
 	}
 	params.ComputeWatchedAddressesLeafKeys()
 
 	var tests = []struct {
 		name              string
-		startingArguments statediff.Args
+		startingArguments sd.Args
 		expected          *sdtypes.StateObject
 	}{
 		{
 			"testBlock4",
-			statediff.Args{
+			sd.Args{
 				OldStateRoot: block3.Root(),
 				NewStateRoot: block4.Root(),
 				BlockNumber:  block4.Number(),
@@ -1782,7 +1781,7 @@ func TestBuilderWithRemovedWatchedAccount(t *testing.T) {
 		},
 		{
 			"testBlock5",
-			statediff.Args{
+			sd.Args{
 				OldStateRoot: block4.Root(),
 				NewStateRoot: block5.Root(),
 				BlockNumber:  block5.Number(),
@@ -1824,7 +1823,7 @@ func TestBuilderWithRemovedWatchedAccount(t *testing.T) {
 		},
 		{
 			"testBlock6",
-			statediff.Args{
+			sd.Args{
 				OldStateRoot: block5.Root(),
 				NewStateRoot: block6.Root(),
 				BlockNumber:  block6.Number(),
@@ -1979,19 +1978,19 @@ func TestBuilderWithMovedAccount(t *testing.T) {
 	block0 = test_helpers.Genesis
 	block1 = blocks[0]
 	block2 = blocks[1]
-	params := statediff.Params{
+	params := sd.Params{
 		IntermediateStateNodes:   true,
 		IntermediateStorageNodes: true,
 	}
 
 	var tests = []struct {
 		name              string
-		startingArguments statediff.Args
+		startingArguments sd.Args
 		expected          *sdtypes.StateObject
 	}{
 		{
 			"testBlock1",
-			statediff.Args{
+			sd.Args{
 				OldStateRoot: block0.Root(),
 				NewStateRoot: block1.Root(),
 				BlockNumber:  block1.Number(),
@@ -2050,7 +2049,7 @@ func TestBuilderWithMovedAccount(t *testing.T) {
 		},
 		{
 			"testBlock2",
-			statediff.Args{
+			sd.Args{
 				OldStateRoot: block1.Root(),
 				NewStateRoot: block2.Root(),
 				BlockNumber:  block2.Number(),
@@ -2131,19 +2130,19 @@ func TestBuilderWithMovedAccountOnlyLeafs(t *testing.T) {
 	block0 = test_helpers.Genesis
 	block1 = blocks[0]
 	block2 = blocks[1]
-	params := statediff.Params{
+	params := sd.Params{
 		IntermediateStateNodes:   false,
 		IntermediateStorageNodes: false,
 	}
 
 	var tests = []struct {
 		name              string
-		startingArguments statediff.Args
+		startingArguments sd.Args
 		expected          *sdtypes.StateObject
 	}{
 		{
 			"testBlock1",
-			statediff.Args{
+			sd.Args{
 				OldStateRoot: block0.Root(),
 				NewStateRoot: block1.Root(),
 				BlockNumber:  block1.Number(),
@@ -2191,7 +2190,7 @@ func TestBuilderWithMovedAccountOnlyLeafs(t *testing.T) {
 		},
 		{
 			"testBlock2",
-			statediff.Args{
+			sd.Args{
 				OldStateRoot: block1.Root(),
 				NewStateRoot: block2.Root(),
 				BlockNumber:  block2.Number(),
