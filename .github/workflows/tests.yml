@@ -9,8 +9,6 @@ env:
 jobs:
   build:
     name: Run docker build
-    needs: pre_job
-    if: ${{ needs.pre_job.outputs.should_skip != 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
