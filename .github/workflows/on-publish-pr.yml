@@ -2,12 +2,33 @@ name: Publish Docker image
 on:
   release:
     types: [published]
+  pull_request:
 jobs:
+  pre_job:
+    # continue-on-error: true # Uncomment once integration is finished
+    runs-on: ubuntu-latest
+    # Map a step output to a job output
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+    steps:
+      - id: skip_check
+        uses: fkirc/skip-duplicate-actions@v4
+        with:
+          # All of these options are optional, so you can remove them if you are happy with the defaults
+          concurrent_skipping: "never"
+          skip_after_successful_duplicate: "true"
+          do_not_skip: '["workflow_dispatch", "schedule"]'
   run-tests:
+    if: ${{ needs.pre_job.outputs.should_skip != 'true' }}
+    needs: pre_job
     uses: ./.github/workflows/tests.yml
   build:
     name: Run docker build
     runs-on: ubuntu-latest
+    if: |
+      always() &&
+      (needs.run-tests.result == 'success' || needs.run-tests.result == 'skipped') &&
+      github.event_name == 'release'
     needs: run-tests
     steps:
       - uses: actions/checkout@v2
@@ -25,6 +46,10 @@ jobs:
   push_to_registries:
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
+    if: |
+      always() &&
+      (needs.build.result == 'success') &&
+      github.event_name == 'release'
     needs: build
     steps:
       - name: Get the version
