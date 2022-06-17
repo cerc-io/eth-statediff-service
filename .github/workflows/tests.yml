@@ -18,8 +18,6 @@ jobs:
   statediff-unit-test:
     name: Run statediff unit tests
     runs-on: ubuntu-latest
-    needs: pre_job
-    if: ${{ needs.pre_job.outputs.should_skip != 'true' }}
     env:
       GO111MODULE: on
     steps:
