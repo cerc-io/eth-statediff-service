@@ -66,7 +66,7 @@ type StateDiffService interface {
 // Service is the underlying struct for the state diffing service
 type Service struct {
 	// Used to build the state diff objects
-	Builder Builder
+	Builder sd.Builder
 	// Used to read data from LevelDB
 	lvlDBReader Reader
 	// Used to signal shutdown of the service
