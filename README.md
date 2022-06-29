@@ -161,6 +161,8 @@ An example config file:
     type = "postgres"
     driver = "sqlx"
     dumpDestination = ""
+    fileMode = "csv"
+    fileCsvDir = ""
     filePath = ""
 
 [cache]
