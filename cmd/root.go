@@ -140,7 +140,7 @@ func init() {
 	rootCmd.PersistentFlags().String("database-type", "postgres", "database type (currently supported: postgres, dump)")
 	rootCmd.PersistentFlags().String("database-driver", "sqlx", "database driver type (currently supported: sqlx, pgx)")
 	rootCmd.PersistentFlags().String("database-dump-dst", "stdout", "dump destination (for database-type=dump; options: stdout, stderr, discard)")
-	rootCmd.PersistentFlags().String("database-file-mode", "csv", "mode for writing file (for database-type=file)")
+	rootCmd.PersistentFlags().String("database-file-mode", "csv", "mode for writing file (for database-type=file; options: csv, sql)")
 	rootCmd.PersistentFlags().String("database-file-csv-dir", "", "full directory path (for database-file-mode=csv)")
 	rootCmd.PersistentFlags().String("database-file-path", "", "full file path (for database-file-mode=sql)")
 
