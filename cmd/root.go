@@ -140,7 +140,9 @@ func init() {
 	rootCmd.PersistentFlags().String("database-type", "postgres", "database type (currently supported: postgres, dump)")
 	rootCmd.PersistentFlags().String("database-driver", "sqlx", "database driver type (currently supported: sqlx, pgx)")
 	rootCmd.PersistentFlags().String("database-dump-dst", "stdout", "dump destination (for database-type=dump; options: stdout, stderr, discard)")
-	rootCmd.PersistentFlags().String("database-file-path", "", "full file path (for database-type=file)")
+	rootCmd.PersistentFlags().String("database-file-mode", "csv", "mode for writing file (for database-type=file; options: csv, sql)")
+	rootCmd.PersistentFlags().String("database-file-csv-dir", "", "full directory path (for database-file-mode=csv)")
+	rootCmd.PersistentFlags().String("database-file-path", "", "full file path (for database-file-mode=sql)")
 
 	rootCmd.PersistentFlags().String("eth-node-id", "", "eth node id")
 	rootCmd.PersistentFlags().String("eth-client-name", "eth-statediff-service", "eth client name")
@@ -198,6 +200,8 @@ func init() {
 	viper.BindPFlag("database.type", rootCmd.PersistentFlags().Lookup("database-type"))
 	viper.BindPFlag("database.driver", rootCmd.PersistentFlags().Lookup("database-driver"))
 	viper.BindPFlag("database.dumpDestination", rootCmd.PersistentFlags().Lookup("database-dump-dst"))
+	viper.BindPFlag("database.fileMode", rootCmd.PersistentFlags().Lookup("database-file-mode"))
+	viper.BindPFlag("database.fileCsvDir", rootCmd.PersistentFlags().Lookup("database-file-csv-dir"))
 	viper.BindPFlag("database.filePath", rootCmd.PersistentFlags().Lookup("database-file-path"))
 
 	viper.BindPFlag("ethereum.nodeID", rootCmd.PersistentFlags().Lookup("eth-node-id"))
@@ -302,11 +306,28 @@ func getConfig(nodeInfo node.Info) (interfaces.Config, error) {
 	switch dbType {
 	case shared.FILE:
 		logWithCommand.Info("starting in sql file writing mode")
+
+		fileModeStr := viper.GetString("database.fileMode")
+		fileMode, err := file.ResolveFileMode(fileModeStr)
+		if err != nil {
+			utils.Fatalf("%v", err)
+		}
+
 		filePathStr := viper.GetString("database.filePath")
-		if filePathStr == "" {
+		if fileMode == file.SQL && filePathStr == "" {
 			logWithCommand.Fatal("when operating in sql file writing mode a file path must be provided")
 		}
-		indexerConfig = file.Config{FilePath: filePathStr}
+
+		fileCsvDirStr := viper.GetString("database.fileCsvDir")
+		if fileMode == file.CSV && fileCsvDirStr == "" {
+			logWithCommand.Fatal("when operating in csv file writing mode a directory path must be provided")
+		}
+
+		indexerConfig = file.Config{
+			Mode:      fileMode,
+			OutputDir: fileCsvDirStr,
+			FilePath:  filePathStr,
+		}
 	case shared.DUMP:
 		logWithCommand.Info("starting in data dump mode")
 		dumpDstStr := viper.GetString("database.dumpDestination")

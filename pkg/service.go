@@ -196,7 +196,7 @@ func (sds *Service) StateDiffAt(blockNumber uint64, params sd.Params) (*sd.Paylo
 	logrus.Infof("sending state diff at block %d", blockNumber)
 
 	// compute leaf keys of watched addresses in the params
-	params.ComputeWatchedAddressesLeafKeys()
+	params.ComputeWatchedAddressesLeafPaths()
 
 	if blockNumber == 0 {
 		return sds.processStateDiff(currentBlock, common.Hash{}, params)
@@ -218,7 +218,7 @@ func (sds *Service) StateDiffFor(blockHash common.Hash, params sd.Params) (*sd.P
 	logrus.Infof("sending state diff at block %s", blockHash.Hex())
 
 	// compute leaf keys of watched addresses in the params
-	params.ComputeWatchedAddressesLeafKeys()
+	params.ComputeWatchedAddressesLeafPaths()
 
 	if currentBlock.NumberU64() == 0 {
 		return sds.processStateDiff(currentBlock, common.Hash{}, params)
@@ -291,7 +291,7 @@ func (sds *Service) StateTrieAt(blockNumber uint64, params sd.Params) (*sd.Paylo
 	logrus.Infof("sending state trie at block %d", blockNumber)
 
 	// compute leaf keys of watched addresses in the params
-	params.ComputeWatchedAddressesLeafKeys()
+	params.ComputeWatchedAddressesLeafPaths()
 
 	return sds.processStateTrie(currentBlock, params)
 }
@@ -334,7 +334,7 @@ func (sds *Service) WriteStateDiffAt(blockNumber uint64, params sd.Params) error
 	}
 
 	// compute leaf keys of watched addresses in the params
-	params.ComputeWatchedAddressesLeafKeys()
+	params.ComputeWatchedAddressesLeafPaths()
 
 	parentRoot := common.Hash{}
 	if blockNumber != 0 {
@@ -359,7 +359,7 @@ func (sds *Service) WriteStateDiffFor(blockHash common.Hash, params sd.Params) e
 	}
 
 	// compute leaf keys of watched addresses in the params
-	params.ComputeWatchedAddressesLeafKeys()
+	params.ComputeWatchedAddressesLeafPaths()
 
 	parentRoot := common.Hash{}
 	if currentBlock.NumberU64() != 0 {

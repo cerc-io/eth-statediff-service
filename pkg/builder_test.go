@@ -1001,7 +1001,7 @@ func TestBuilderWithWatchedAddressList(t *testing.T) {
 	params := sd.Params{
 		WatchedAddresses: []common.Address{test_helpers.Account1Addr, test_helpers.ContractAddr},
 	}
-	params.ComputeWatchedAddressesLeafKeys()
+	params.ComputeWatchedAddressesLeafPaths()
 
 	var tests = []struct {
 		name              string
@@ -1613,7 +1613,7 @@ func TestBuilderWithRemovedNonWatchedAccount(t *testing.T) {
 	params := sd.Params{
 		WatchedAddresses: []common.Address{test_helpers.Account1Addr, test_helpers.Account2Addr},
 	}
-	params.ComputeWatchedAddressesLeafKeys()
+	params.ComputeWatchedAddressesLeafPaths()
 
 	var tests = []struct {
 		name              string
@@ -1731,7 +1731,7 @@ func TestBuilderWithRemovedWatchedAccount(t *testing.T) {
 	params := sd.Params{
 		WatchedAddresses: []common.Address{test_helpers.Account1Addr, test_helpers.ContractAddr},
 	}
-	params.ComputeWatchedAddressesLeafKeys()
+	params.ComputeWatchedAddressesLeafPaths()
 
 	var tests = []struct {
 		name              string
