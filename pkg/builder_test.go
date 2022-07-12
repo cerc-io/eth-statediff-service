@@ -999,7 +999,9 @@ func TestBuilderWithWatchedAddressList(t *testing.T) {
 	block2 = blocks[1]
 	block3 = blocks[2]
 	params := sd.Params{
-		WatchedAddresses: []common.Address{test_helpers.Account1Addr, test_helpers.ContractAddr},
+		IntermediateStateNodes:   true,
+		IntermediateStorageNodes: true,
+		WatchedAddresses:         []common.Address{test_helpers.Account1Addr, test_helpers.ContractAddr},
 	}
 	params.ComputeWatchedAddressesLeafPaths()
 
@@ -1051,6 +1053,12 @@ func TestBuilderWithWatchedAddressList(t *testing.T) {
 				BlockHash:   block1.Hash(),
 				Nodes: []sdtypes.StateNode{
 					{
+						Path:         []byte{},
+						NodeType:     sdtypes.Branch,
+						NodeValue:    block1BranchRootNode,
+						StorageNodes: emptyStorage,
+					},
+					{
 						Path:         []byte{'\x0e'},
 						NodeType:     sdtypes.Leaf,
 						LeafKey:      test_helpers.Account1LeafKey,
@@ -1075,11 +1083,22 @@ func TestBuilderWithWatchedAddressList(t *testing.T) {
 				BlockHash:   block2.Hash(),
 				Nodes: []sdtypes.StateNode{
 					{
+						Path:         []byte{},
+						NodeType:     sdtypes.Branch,
+						NodeValue:    block2BranchRootNode,
+						StorageNodes: emptyStorage,
+					},
+					{
 						Path:      []byte{'\x06'},
 						NodeType:  sdtypes.Leaf,
 						LeafKey:   contractLeafKey,
 						NodeValue: contractAccountAtBlock2LeafNode,
 						StorageNodes: []sdtypes.StorageNode{
+							{
+								Path:      []byte{},
+								NodeType:  sdtypes.Branch,
+								NodeValue: block2StorageBranchRootNode,
+							},
 							{
 								Path:      []byte{'\x02'},
 								NodeType:  sdtypes.Leaf,
@@ -1125,11 +1144,22 @@ func TestBuilderWithWatchedAddressList(t *testing.T) {
 				BlockHash:   block3.Hash(),
 				Nodes: []sdtypes.StateNode{
 					{
+						Path:         []byte{},
+						NodeType:     sdtypes.Branch,
+						NodeValue:    block3BranchRootNode,
+						StorageNodes: emptyStorage,
+					},
+					{
 						Path:      []byte{'\x06'},
 						NodeType:  sdtypes.Leaf,
 						LeafKey:   contractLeafKey,
 						NodeValue: contractAccountAtBlock3LeafNode,
 						StorageNodes: []sdtypes.StorageNode{
+							{
+								Path:      []byte{},
+								NodeType:  sdtypes.Branch,
+								NodeValue: block3StorageBranchRootNode,
+							},
 							{
 								Path:      []byte{'\x0c'},
 								NodeType:  sdtypes.Leaf,
@@ -1611,7 +1641,9 @@ func TestBuilderWithRemovedNonWatchedAccount(t *testing.T) {
 	block5 = blocks[4]
 	block6 = blocks[5]
 	params := sd.Params{
-		WatchedAddresses: []common.Address{test_helpers.Account1Addr, test_helpers.Account2Addr},
+		IntermediateStateNodes:   true,
+		IntermediateStorageNodes: true,
+		WatchedAddresses:         []common.Address{test_helpers.Account1Addr, test_helpers.Account2Addr},
 	}
 	params.ComputeWatchedAddressesLeafPaths()
 
@@ -1632,6 +1664,12 @@ func TestBuilderWithRemovedNonWatchedAccount(t *testing.T) {
 				BlockNumber: block4.Number(),
 				BlockHash:   block4.Hash(),
 				Nodes: []sdtypes.StateNode{
+					{
+						Path:         []byte{},
+						NodeType:     sdtypes.Branch,
+						NodeValue:    block4BranchRootNode,
+						StorageNodes: emptyStorage,
+					},
 					{
 						Path:         []byte{'\x0c'},
 						NodeType:     sdtypes.Leaf,
@@ -1655,6 +1693,12 @@ func TestBuilderWithRemovedNonWatchedAccount(t *testing.T) {
 				BlockHash:   block5.Hash(),
 				Nodes: []sdtypes.StateNode{
 					{
+						Path:         []byte{},
+						NodeType:     sdtypes.Branch,
+						NodeValue:    block5BranchRootNode,
+						StorageNodes: emptyStorage,
+					},
+					{
 						Path:         []byte{'\x0e'},
 						NodeType:     sdtypes.Leaf,
 						LeafKey:      test_helpers.Account1LeafKey,
@@ -1676,6 +1720,12 @@ func TestBuilderWithRemovedNonWatchedAccount(t *testing.T) {
 				BlockNumber: block6.Number(),
 				BlockHash:   block6.Hash(),
 				Nodes: []sdtypes.StateNode{
+					{
+						Path:         []byte{},
+						NodeType:     sdtypes.Branch,
+						NodeValue:    block6BranchRootNode,
+						StorageNodes: emptyStorage,
+					},
 					{
 						Path:         []byte{'\x0c'},
 						NodeType:     sdtypes.Leaf,
@@ -1729,7 +1779,9 @@ func TestBuilderWithRemovedWatchedAccount(t *testing.T) {
 	block5 = blocks[4]
 	block6 = blocks[5]
 	params := sd.Params{
-		WatchedAddresses: []common.Address{test_helpers.Account1Addr, test_helpers.ContractAddr},
+		IntermediateStateNodes:   true,
+		IntermediateStorageNodes: true,
+		WatchedAddresses:         []common.Address{test_helpers.Account1Addr, test_helpers.ContractAddr},
 	}
 	params.ComputeWatchedAddressesLeafPaths()
 
@@ -1751,11 +1803,22 @@ func TestBuilderWithRemovedWatchedAccount(t *testing.T) {
 				BlockHash:   block4.Hash(),
 				Nodes: []sdtypes.StateNode{
 					{
+						Path:         []byte{},
+						NodeType:     sdtypes.Branch,
+						NodeValue:    block4BranchRootNode,
+						StorageNodes: emptyStorage,
+					},
+					{
 						Path:      []byte{'\x06'},
 						NodeType:  sdtypes.Leaf,
 						LeafKey:   contractLeafKey,
 						NodeValue: contractAccountAtBlock4LeafNode,
 						StorageNodes: []sdtypes.StorageNode{
+							{
+								Path:      []byte{},
+								NodeType:  sdtypes.Branch,
+								NodeValue: block4StorageBranchRootNode,
+							},
 							{
 								Path:      []byte{'\x04'},
 								NodeType:  sdtypes.Leaf,
@@ -1792,11 +1855,22 @@ func TestBuilderWithRemovedWatchedAccount(t *testing.T) {
 				BlockHash:   block5.Hash(),
 				Nodes: []sdtypes.StateNode{
 					{
+						Path:         []byte{},
+						NodeType:     sdtypes.Branch,
+						NodeValue:    block5BranchRootNode,
+						StorageNodes: emptyStorage,
+					},
+					{
 						Path:      []byte{'\x06'},
 						NodeType:  sdtypes.Leaf,
 						LeafKey:   contractLeafKey,
 						NodeValue: contractAccountAtBlock5LeafNode,
 						StorageNodes: []sdtypes.StorageNode{
+							{
+								Path:      []byte{},
+								NodeType:  sdtypes.Branch,
+								NodeValue: block5StorageBranchRootNode,
+							},
 							{
 								Path:      []byte{'\x0c'},
 								NodeType:  sdtypes.Leaf,
@@ -1834,11 +1908,22 @@ func TestBuilderWithRemovedWatchedAccount(t *testing.T) {
 				BlockHash:   block6.Hash(),
 				Nodes: []sdtypes.StateNode{
 					{
+						Path:         []byte{},
+						NodeType:     sdtypes.Branch,
+						NodeValue:    block6BranchRootNode,
+						StorageNodes: emptyStorage,
+					},
+					{
 						Path:      []byte{'\x06'},
 						NodeType:  sdtypes.Removed,
 						LeafKey:   contractLeafKey,
 						NodeValue: []byte{},
 						StorageNodes: []sdtypes.StorageNode{
+							{
+								Path:      []byte{},
+								NodeType:  sdtypes.Removed,
+								NodeValue: []byte{},
+							},
 							{
 								Path:      []byte{'\x02'},
 								NodeType:  sdtypes.Removed,

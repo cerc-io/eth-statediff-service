@@ -115,7 +115,6 @@ func (sdb *builder) WriteStateDiffObject(args sdtypes.StateRoots, params sd.Para
 				defer wg.Done()
 				var err error
 				if !params.IntermediateStateNodes {
-					// if we are watching only specific accounts then we are only diffing leaf nodes
 					err = sdb.BuildStateDiffWithoutIntermediateStateNodes(iterPairs[worker], params, nodeSender, codeSender)
 				} else {
 					err = sdb.BuildStateDiffWithIntermediateStateNodes(iterPairs[worker], params, nodeSender, codeSender)
