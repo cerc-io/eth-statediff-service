@@ -2,7 +2,6 @@
     mode = "local"
     path = "/app/geth-rw/chaindata"
     ancient = "/app/geth-rw/chaindata/ancient"
-    url = "http://127.0.0.1:8082/"
 
 [server]
     ipcPath = ""
@@ -31,33 +30,28 @@
     level = "info"
 
 [database]
+    type = "postgres"
     name     = ""
     hostname = ""
     port     = 5432
     user     = ""
     password = ""
-    type = "postgres"
     driver = "sqlx"
-    dumpDestination = ""
-    fileMode = "csv"
-    fileCsvDir = ""
-    filePath = ""
 
 [cache]
     database = 1024
     trie = 4096
 
 [prom]
-    dbStats = false
     metrics = true
     http = true
     httpAddr = "0.0.0.0"
     httpPort = 9100
 
 [ethereum]
-    chainConfig = ""
     nodeID = ""
     clientName = "eth-statediff-service"
     genesisBlock = "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3"
     networkID = 1
     chainID = 1
+    chainConfig = ""
