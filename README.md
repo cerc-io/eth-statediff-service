@@ -114,9 +114,9 @@ An example config file:
     # node info
     nodeID       = ""                       # ETH_NODE_ID
     clientName   = "eth-statediff-service"  # ETH_CLIENT_NAME
-    genesisBlock = "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3" # ETH_GENESIS_BLOCK
     networkID    = 1                        # ETH_NETWORK_ID
     chainID      = 1                        # ETH_CHAIN_ID
+    genesisBlock = "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3" # ETH_GENESIS_BLOCK
 
     # path to custom chain config file (optional)
     # keep chainID same as that in chain config file
@@ -187,24 +187,39 @@ An example config file:
     * Set the range using `prerun.start` and `prerun.stop`. Use `prerun.ranges` if prerun on more than one range is required.
     * Currently, `prerun.params.includeTD` must be set to `true`.
 
+## Monitoring
+
+* Enable metrics using config parameters `prom.metrics` and `prom.http`.
+* `eth-statediff-service` exposes following prometheus metrics at `/metrics` endpoint:
+    * `ranges_queued`: Number of range requests currently queued.
+    * `loaded_height`: The last block that was loaded for processing.
+    * `processed_height`: The last block that was processed.
+    * `stats.t_block_load`: Block loading time.
+    * `stats.t_block_processing`: Block (header, uncles, txs, rcts, tx trie, rct trie) processing time.
+    * `stats.t_state_processing`: State (state trie, storage tries, and code) processing time.
+    * `stats.t_postgres_tx_commit`: Postgres tx commit time.
+    * `http.count`: HTTP request count.
+    * `http.duration`: HTTP request duration.
+    * `ipc.count`: Unix socket connection count.
+
+## Tests
+
+* Run unit tests:
+
+    ```bash
+    make test
+    ```
+
 ## Import output data in file mode into a database
 
 * When `eth-statediff-service` is run in file mode (`database.type`) the output is in form of a SQL file or multiple CSV files.
 
-* Assuming the output files are located in `./output_dir` directory, if the DB is running in docker we need to mount the directory containing the files as a volume in the DB service. Eg:
+* Assuming the output files are located in host's `./output_dir` directory.
 
-    ```yaml
-    # In docker-compose file
-    services:
-      ipld-eth-db:
-        volumes:
-          - ./output_dir:/output_dir
-    ```
-
-* Start `bash` in the DB container to run import commands:
+* Create a directory to store post-processed output:
 
     ```bash
-    docker exec -it <CONTAINER_ID> bash
+    mkdir -p output_dir/processed_output
     ```
 
 ### SQL
@@ -212,63 +227,99 @@ An example config file:
 * De-duplicate data:
 
     ```bash
-    sort -u output_dir/statediff.sql -o output_dir/statediff.sql
+    sort -u output_dir/statediff.sql -o output_dir/processed_output/deduped-statediff.sql
     ```
+
+* Copy over the post-processed output files to the DB server (say in `/output_dir`).
 
 * Run the following to import data:
 
     ```bash
-    psql -U <DATABASE_USER> <DATABASE_NAME> --set ON_ERROR_STOP=on -f /output_dir/statediff.sql
+    psql -U <DATABASE_USER> -h <DATABASE_HOSTNAME> -p <DATABASE_PORT> <DATABASE_NAME> --set ON_ERROR_STOP=on -f /output_dir/processed_output/deduped-statediff.sql
     ```
 
 ### CSV
 
-- De-duplicate data:
+* De-duplicate data and copy to post-processed output directory:
 
     ```bash
     # public.blocks
-    sort -u output_dir/public.blocks.csv -o output_dir/public.blocks.csv
+    sort -u output_dir/public.blocks.csv -o output_dir/processed_output/deduped-public.blocks.csv
+
+    # eth.header_cids
+    sort -u output_dir/eth.header_cids.csv -o output_dir/processed_output/deduped-eth.header_cids.csv
+
+    # eth.uncle_cids
+    sort -u output_dir/eth.uncle_cids.csv -o output_dir/processed_output/deduped-eth.uncle_cids.csv
+
+    # eth.transaction_cids
+    sort -u output_dir/eth.transaction_cids.csv -o output_dir/processed_output/deduped-eth.transaction_cids.csv
+
+    # eth.access_list_elements
+    sort -u output_dir/eth.access_list_elements.csv -o output_dir/processed_output/deduped-eth.access_list_elements.csv
+
+    # eth.receipt_cids
+    sort -u output_dir/eth.receipt_cids.csv -o output_dir/processed_output/deduped-eth.receipt_cids.csv
+
+    # eth.log_cids
+    sort -u output_dir/eth.log_cids.csv -o output_dir/processed_output/deduped-eth.log_cids.csv
+
+    # eth.state_cids
+    sort -u output_dir/eth.state_cids.csv -o output_dir/processed_output/deduped-eth.state_cids.csv
+
+    # eth.storage_cids
+    sort -u output_dir/eth.storage_cids.csv -o output_dir/processed_output/deduped-eth.storage_cids.csv
+
+    # eth.state_accounts
+    sort -u output_dir/eth.state_accounts.csv -o output_dir/processed_output/deduped-eth.state_accounts.csv
+
+    # public.nodes
+    cp output_dir/public.nodes.csv output_dir/processed_output/public.nodes.csv
     ```
 
-* Run `psql`:
+* Copy over the post-processed output files to the DB server (say in `/output_dir`).
+
+* Start `psql` to run the import commands:
 
     ```bash
-    psql -U <DATABASE_USER> <DATABASE_NAME>
+    psql -U <DATABASE_USER> -h <DATABASE_HOSTNAME> -p <DATABASE_PORT> <DATABASE_NAME>
     ```
 
 * Run the following to import data:
 
     ```bash
     # public.nodes
-    COPY public.nodes FROM '/output_dir/public.nodes.csv' CSV;
+    COPY public.nodes FROM '/output_dir/processed_output/public.nodes.csv' CSV;
 
     # public.nodes
-    COPY public.blocks FROM '/output_dir/public.blocks.csv' CSV;
+    COPY public.blocks FROM '/output_dir/processed_output/deduped-public.blocks.csv' CSV;
 
     # eth.header_cids
-    COPY eth.header_cids FROM '/output_dir/eth.header_cids.csv' CSV;
+    COPY eth.header_cids FROM '/output_dir/processed_output/deduped-eth.header_cids.csv' CSV;
 
     # eth.uncle_cids
-    COPY eth.uncle_cids FROM '/output_dir/eth.uncle_cids.csv' CSV;
+    COPY eth.uncle_cids FROM '/output_dir/processed_output/deduped-eth.uncle_cids.csv' CSV;
 
     # eth.transaction_cids
-    COPY eth.transaction_cids FROM '/output_dir/eth.transaction_cids.csv' CSV FORCE NOT NULL dst;
+    COPY eth.transaction_cids FROM '/output_dir/processed_output/deduped-eth.transaction_cids.csv' CSV FORCE NOT NULL dst;
 
     # eth.access_list_elements
-    COPY eth.access_list_elements FROM '/output_dir/eth.access_list_elements.csv' CSV;
+    COPY eth.access_list_elements FROM '/output_dir/processed_output/deduped-eth.access_list_elements.csv' CSV;
 
     # eth.receipt_cids
-    COPY eth.receipt_cids FROM '/output_dir/eth.receipt_cids.csv' CSV FORCE NOT NULL post_state, contract, contract_hash;
+    COPY eth.receipt_cids FROM '/output_dir/processed_output/deduped-eth.receipt_cids.csv' CSV FORCE NOT NULL post_state, contract, contract_hash;
 
     # eth.log_cids
-    COPY eth.log_cids FROM '/output_dir/eth.log_cids.csv' CSV FORCE NOT NULL topic0, topic1, topic2, topic3;
+    COPY eth.log_cids FROM '/output_dir/processed_output/deduped-eth.log_cids.csv' CSV FORCE NOT NULL topic0, topic1, topic2, topic3;
 
     # eth.state_cids
-    COPY eth.state_cids FROM '/output_dir/eth.state_cids.csv' CSV FORCE NOT NULL state_leaf_key;
+    COPY eth.state_cids FROM '/output_dir/processed_output/deduped-eth.state_cids.csv' CSV FORCE NOT NULL state_leaf_key;
 
     # eth.storage_cids
-    COPY eth.storage_cids FROM '/output_dir/eth.storage_cids.csv' CSV FORCE NOT NULL storage_leaf_key;
+    COPY eth.storage_cids FROM '/output_dir/processed_output/deduped-eth.storage_cids.csv' CSV FORCE NOT NULL storage_leaf_key;
 
     # eth.state_accounts
-    COPY eth.state_accounts FROM '/output_dir/eth.state_accounts.csv' CSV;
+    COPY eth.state_accounts FROM '/output_dir/processed_output/deduped-eth.state_accounts.csv' CSV;
     ```
+
+* NOTE: `COPY` command on CSVs inserts empty strings as `NULL` in the DB. Passing `FORCE_NOT_NULL <COLUMN_NAME>` forces it to insert empty strings instead. This is required to maintain compatibility of the imported statediff data with the data generated in `postgres` mode. Reference: https://www.postgresql.org/docs/14/sql-copy.html
