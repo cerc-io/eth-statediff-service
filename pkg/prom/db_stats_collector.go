@@ -17,9 +17,9 @@
 package prom
 
 import (
-	"database/sql"
-
 	"github.com/prometheus/client_golang/prometheus"
+
+	"github.com/ethereum/go-ethereum/statediff/indexer/database/sql"
 )
 
 const (
@@ -29,7 +29,7 @@ const (
 
 // DBStatsGetter is an interface that gets sql.DBStats.
 type DBStatsGetter interface {
-	Stats() sql.DBStats
+	Stats() sql.Stats
 }
 
 // DBStatsCollector implements the prometheus.Collector interface.
@@ -122,41 +122,41 @@ func (c DBStatsCollector) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(
 		c.maxOpenDesc,
 		prometheus.GaugeValue,
-		float64(stats.MaxOpenConnections),
+		float64(stats.MaxOpen()),
 	)
 	ch <- prometheus.MustNewConstMetric(
 		c.openDesc,
 		prometheus.GaugeValue,
-		float64(stats.OpenConnections),
+		float64(stats.Open()),
 	)
 	ch <- prometheus.MustNewConstMetric(
 		c.inUseDesc,
 		prometheus.GaugeValue,
-		float64(stats.InUse),
+		float64(stats.InUse()),
 	)
 	ch <- prometheus.MustNewConstMetric(
 		c.idleDesc,
 		prometheus.GaugeValue,
-		float64(stats.Idle),
+		float64(stats.Idle()),
 	)
 	ch <- prometheus.MustNewConstMetric(
 		c.waitedForDesc,
 		prometheus.CounterValue,
-		float64(stats.WaitCount),
+		float64(stats.WaitCount()),
 	)
 	ch <- prometheus.MustNewConstMetric(
 		c.blockedSecondsDesc,
 		prometheus.CounterValue,
-		stats.WaitDuration.Seconds(),
+		stats.WaitDuration().Seconds(),
 	)
 	ch <- prometheus.MustNewConstMetric(
 		c.closedMaxIdleDesc,
 		prometheus.CounterValue,
-		float64(stats.MaxIdleClosed),
+		float64(stats.MaxIdleClosed()),
 	)
 	ch <- prometheus.MustNewConstMetric(
 		c.closedMaxLifetimeDesc,
 		prometheus.CounterValue,
-		float64(stats.MaxLifetimeClosed),
+		float64(stats.MaxLifetimeClosed()),
 	)
 }

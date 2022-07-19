@@ -19,7 +19,6 @@ package prom
 import (
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -123,7 +122,7 @@ func Init() {
 }
 
 // RegisterDBCollector create metric collector for given connection
-func RegisterDBCollector(name string, db *sqlx.DB) {
+func RegisterDBCollector(name string, db DBStatsGetter) {
 	if metrics {
 		prometheus.Register(NewDBStatsCollector(name, db))
 	}

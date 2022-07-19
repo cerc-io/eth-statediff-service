@@ -6,12 +6,13 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/statediff"
-	gethsd "github.com/ethereum/go-ethereum/statediff"
 	ind "github.com/ethereum/go-ethereum/statediff/indexer"
+	"github.com/ethereum/go-ethereum/statediff/indexer/shared"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/spf13/viper"
 
 	sd "github.com/vulcanize/eth-statediff-service/pkg"
+	"github.com/vulcanize/eth-statediff-service/pkg/prom"
 )
 
 type blockRange [2]uint64
@@ -78,11 +79,16 @@ func createStateDiffService() (sd.StateDiffService, error) {
 	if err != nil {
 		logWithCommand.Fatal(err)
 	}
+
 	logWithCommand.Info("Creating statediff indexer")
-	_, indexer, err := ind.NewStateDiffIndexer(context.Background(), chainConf, nodeInfo, conf)
+	db, indexer, err := ind.NewStateDiffIndexer(context.Background(), chainConf, nodeInfo, conf)
 	if err != nil {
 		logWithCommand.Fatal(err)
 	}
+	if conf.Type() == shared.POSTGRES && viper.GetBool("prom.dbStats") {
+		prom.RegisterDBCollector(viper.GetString("database.name"), db)
+	}
+
 	logWithCommand.Info("Creating statediff service")
 	sdConf := sd.Config{
 		ServiceWorkers:  viper.GetUint("statediff.serviceWorkers"),
@@ -97,7 +103,7 @@ func setupPreRunRanges() []sd.RangeRequest {
 	if !viper.GetBool("statediff.prerun") {
 		return nil
 	}
-	preRunParams := gethsd.Params{
+	preRunParams := statediff.Params{
 		IntermediateStateNodes:   viper.GetBool("prerun.params.intermediateStateNodes"),
 		IntermediateStorageNodes: viper.GetBool("prerun.params.intermediateStorageNodes"),
 		IncludeBlock:             viper.GetBool("prerun.params.includeBlock"),

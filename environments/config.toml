@@ -47,6 +47,7 @@
     http = true
     httpAddr = "0.0.0.0"
     httpPort = 9100
+    dbStats = false
 
 [ethereum]
     nodeID = ""

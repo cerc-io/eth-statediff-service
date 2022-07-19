@@ -109,6 +109,7 @@ An example config file:
     http     = true         # PROM_HTTP
     httpAddr = "localhost"  # PROM_HTTP_ADDR
     httpPort = "8889"       # PROM_HTTP_PORT
+    dbStats = true          # PROM_DB_STATS
 
 [ethereum]
     # node info
@@ -155,7 +156,7 @@ An example config file:
 
 ### `serve`
 
-* To serve state diffs over RPC:
+* To serve the statediff RPC API:
 
     ```bash
     ./eth-statediff-service serve --config=<config path>
@@ -167,7 +168,7 @@ An example config file:
     ./eth-statediff-service serve --config environments/config.toml
     ```
 
-* Available RPC methods are:
+* Available RPC methods:
     * `statediff_stateTrieAt()`
     * `statediff_streamCodeAndCodeHash()`
     * `statediff_stateDiffAt()`
@@ -185,7 +186,8 @@ An example config file:
     * This is done by turning "prerun" on in the config (`statediff.prerun = true`) and defining ranges and params in the
 `prerun` section of the config.
     * Set the range using `prerun.start` and `prerun.stop`. Use `prerun.ranges` if prerun on more than one range is required.
-    * Currently, `prerun.params.includeTD` must be set to `true`.
+
+* NOTE: Currently, `params.includeTD` must be set to / passed as `true`.
 
 ## Monitoring
 
