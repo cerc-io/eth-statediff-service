@@ -133,6 +133,7 @@ func (sds *Service) Run(rngs []RangeRequest, parallel bool) error {
 			wg := new(sync.WaitGroup)
 			for i := 0; i < int(sds.workers); i++ {
 				blockRange := RangeRequest{
+					// TODO(dboreham): check this math doesn't leave gaps (are start/stop inclusive?)
 					Start:  preRun.Start + uint64(i)*chunkSize,
 					Stop:   preRun.Start + uint64(i)*chunkSize + chunkSize - 1,
 					Params: preRun.Params,
