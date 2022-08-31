@@ -57,7 +57,8 @@ func serve() {
 
 	// short circuit if we only want to perform prerun
 	if viper.GetBool("prerun.only") {
-		if err := statediffService.Run(nil); err != nil {
+		parallel := viper.GetBool("prerun.parallel")
+		if err := statediffService.Run(nil, parallel); err != nil {
 			logWithCommand.Fatal("unable to perform prerun: %v", err)
 		}
 		return

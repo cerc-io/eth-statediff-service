@@ -50,6 +50,7 @@ const (
 	PROM_DB_STATS  = "PROM_DB_STATS"
 
 	PRERUN_ONLY                       = "PRERUN_ONLY"
+	PRERUN_PARALLEL                   = "PRERUN_PARALLEL"
 	PRERUN_RANGE_START                = "PRERUN_RANGE_START"
 	PRERUN_RANGE_STOP                 = "PRERUN_RANGE_STOP"
 	PRERUN_INTERMEDIATE_STATE_NODES   = "PRERUN_INTERMEDIATE_STATE_NODES"
@@ -135,6 +136,7 @@ func init() {
 
 	viper.BindEnv("statediff.prerun", STATEDIFF_PRERUN)
 	viper.BindEnv("prerun.only", PRERUN_ONLY)
+	viper.BindEnv("prerun.only", PRERUN_PARALLEL)
 	viper.BindEnv("prerun.start", PRERUN_RANGE_START)
 	viper.BindEnv("prerun.stop", PRERUN_RANGE_STOP)
 	viper.BindEnv("prerun.params.intermediateStateNodes", PRERUN_INTERMEDIATE_STATE_NODES)

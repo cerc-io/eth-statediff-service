@@ -47,7 +47,8 @@ An example config file:
     trieWorkers     = 4     # STATEDIFF_TRIE_WORKERS
 
 [prerun]
-    only = false    # PRERUN_ONLY
+    only = false     # PRERUN_ONLY
+    parallel = false # PRERUN_PARALLEL
 
     # to perform prerun in a specific range (optional)
     start = 0   # PRERUN_RANGE_START

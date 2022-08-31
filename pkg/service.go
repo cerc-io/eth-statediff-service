@@ -48,7 +48,7 @@ type StateDiffService interface {
 	// Loop is the main event loop for processing state diffs
 	Loop(wg *sync.WaitGroup) error
 	// Run is a one-off command to run on a predefined set of ranges
-	Run(ranges []RangeRequest) error
+	Run(ranges []RangeRequest, parallel bool) error
 	// StateDiffAt method to get state diff object at specific block
 	StateDiffAt(blockNumber uint64, params sd.Params) (*sd.Payload, error)
 	// StateDiffFor method to get state diff object at specific block
@@ -118,18 +118,55 @@ func (sds *Service) APIs() []rpc.API {
 }
 
 // Run does a one-off processing run on the provided RangeRequests + any pre-runs, exiting afterwards
-func (sds *Service) Run(rngs []RangeRequest) error {
+func (sds *Service) Run(rngs []RangeRequest, parallel bool) error {
 	for _, preRun := range sds.preruns {
-		logrus.Infof("processing prerun range (%d, %d)", preRun.Start, preRun.Stop)
-		for i := preRun.Start; i <= preRun.Stop; i++ {
-			if err := sds.WriteStateDiffAt(i, preRun.Params); err != nil {
-				return fmt.Errorf("error writing statediff at height %d in range (%d, %d) : %v", i, preRun.Start, preRun.Stop, err)
+		if parallel {
+			// Chunk overall range into N subranges for workers
+			chunkSize := (preRun.Stop - preRun.Start) / uint64(sds.workers)
+			logrus.Infof("parallel processing prerun range (%d, %d) (%d blocks) divided into %d sized chunks with %d workers", preRun.Start, preRun.Stop,
+				preRun.Stop-preRun.Start, chunkSize, sds.workers)
+			// Sanity floor the chunk size
+			if chunkSize < 100 {
+				chunkSize = 100
+				logrus.Infof("Computed range chunk size for each worker is too small, defaulting to 100")
+			}
+			wg := new(sync.WaitGroup)
+			for i := 0; i < int(sds.workers); i++ {
+				blockRange := RangeRequest{
+					Start:  preRun.Start + uint64(i)*chunkSize,
+					Stop:   preRun.Start + uint64(i)*chunkSize + chunkSize - 1,
+					Params: preRun.Params,
+				}
+				// TODO(hack) this fixes quantization
+				if blockRange.Stop < preRun.Stop && preRun.Stop-blockRange.Stop < chunkSize {
+					blockRange.Stop = preRun.Stop
+				}
+				wg.Add(1)
+				go func(id int) {
+					defer wg.Done()
+					logrus.Infof("prerun worker %d processing range (%d, %d)", id, blockRange.Start, blockRange.Stop)
+					for j := blockRange.Start; j <= blockRange.Stop; j++ {
+						if err := sds.WriteStateDiffAt(j, blockRange.Params); err != nil {
+							logrus.Errorf("error writing statediff at height %d in range (%d, %d) : %v", i, blockRange.Start, blockRange.Stop, err)
+						}
+					}
+					logrus.Infof("prerun worker %d finished processing range (%d, %d)", id, blockRange.Start, blockRange.Stop)
+				}(i)
+			}
+			wg.Wait()
+		} else {
+			logrus.Infof("sequential processing prerun range (%d, %d)", preRun.Start, preRun.Stop)
+			for i := preRun.Start; i <= preRun.Stop; i++ {
+				if err := sds.WriteStateDiffAt(i, preRun.Params); err != nil {
+					return fmt.Errorf("error writing statediff at height %d in range (%d, %d) : %v", i, preRun.Start, preRun.Stop, err)
+				}
 			}
 		}
 	}
 	sds.preruns = nil
+	// TODO(dboreham): seems like this code is never called so we have not written the parallel version
 	for _, rng := range rngs {
-		logrus.Infof("processing prerun range (%d, %d)", rng.Start, rng.Stop)
+		logrus.Infof("processing requested range (%d, %d)", rng.Start, rng.Stop)
 		for i := rng.Start; i <= rng.Stop; i++ {
 			if err := sds.WriteStateDiffAt(i, rng.Params); err != nil {
 				return fmt.Errorf("error writing statediff at height %d in range (%d, %d) : %v", i, rng.Start, rng.Stop, err)
