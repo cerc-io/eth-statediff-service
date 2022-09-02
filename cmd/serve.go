@@ -59,6 +59,7 @@ func serve() {
 
 	// short circuit if we only want to perform prerun
 	if viper.GetBool("prerun.only") {
+		// TODO: make pprof optional
 		// See: https://www.farsightsecurity.com/blog/txt-record/go-remote-profiling-20161028/
 		// Do not use the default http multiplexor elsewhere in this process.
 		go func() {
