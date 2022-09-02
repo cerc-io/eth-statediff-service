@@ -20,6 +20,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
+	"runtime"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/rpc"
@@ -49,8 +50,18 @@ func init() {
 	rootCmd.AddCommand(serveCmd)
 }
 
+func maxParallelism() int {
+	maxProcs := runtime.GOMAXPROCS(0)
+	numCPU := runtime.NumCPU()
+	if maxProcs < numCPU {
+		return maxProcs
+	}
+	return numCPU
+}
+
 func serve() {
 	logWithCommand.Info("Running eth-statediff-service serve command")
+	logWithCommand.Infof("Parallelism: %d", maxParallelism())
 
 	statediffService, err := createStateDiffService()
 	if err != nil {
@@ -63,6 +74,7 @@ func serve() {
 		// See: https://www.farsightsecurity.com/blog/txt-record/go-remote-profiling-20161028/
 		// Do not use the default http multiplexor elsewhere in this process.
 		go func() {
+			logWithCommand.Info("Starting pprof listener on port 6060")
 			logWithCommand.Fatal(http.ListenAndServe("localhost:6060", nil))
 		}()
 		parallel := viper.GetBool("prerun.parallel")
