@@ -16,6 +16,8 @@
 package cmd
 
 import (
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"sync"
@@ -57,6 +59,11 @@ func serve() {
 
 	// short circuit if we only want to perform prerun
 	if viper.GetBool("prerun.only") {
+		// See: https://www.farsightsecurity.com/blog/txt-record/go-remote-profiling-20161028/
+		// Do not use the default http multiplexor elsewhere in this process.
+		go func() {
+			logWithCommand.Fatal(http.ListenAndServe("localhost:6060", nil))
+		}()
 		parallel := viper.GetBool("prerun.parallel")
 		if err := statediffService.Run(nil, parallel); err != nil {
 			logWithCommand.Fatal("unable to perform prerun: %v", err)
