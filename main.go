@@ -15,7 +15,7 @@
 
 package main
 
-import "github.com/vulcanize/eth-statediff-service/cmd"
+import "github.com/cerc-io/eth-statediff-service/cmd"
 
 func main() {
 	cmd.Execute()

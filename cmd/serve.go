@@ -25,8 +25,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	sd "github.com/vulcanize/eth-statediff-service/pkg"
-	srpc "github.com/vulcanize/eth-statediff-service/pkg/rpc"
+	sd "github.com/cerc-io/eth-statediff-service/pkg"
+	srpc "github.com/cerc-io/eth-statediff-service/pkg/rpc"
 )
 
 // serveCmd represents the serve command

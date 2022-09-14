@@ -1,4 +1,4 @@
-module github.com/vulcanize/eth-statediff-service
+module github.com/cerc-io/eth-statediff-service
 
 go 1.18
 
@@ -9,7 +9,7 @@ require (
 	github.com/sirupsen/logrus v1.7.0
 	github.com/spf13/cobra v1.3.0
 	github.com/spf13/viper v1.10.1
-	github.com/vulcanize/go-eth-state-node-iterator v1.1.5
+	github.com/cerc-io/go-eth-state-node-iterator v1.1.6
 	github.com/vulcanize/leveldb-ethdb-rpc v0.1.7
 )
 
@@ -135,4 +135,4 @@ require (
 	lukechampine.com/blake3 v1.1.6 // indirect
 )
 
-replace github.com/ethereum/go-ethereum v1.10.23 => github.com/vulcanize/go-ethereum v1.10.23-statediff-4.2.0-alpha
+replace github.com/ethereum/go-ethereum v1.10.23 => github.com/cerc-io/go-ethereum v1.10.23-statediff-4.2.0-alpha

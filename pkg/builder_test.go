@@ -30,7 +30,7 @@ import (
 	"github.com/ethereum/go-ethereum/statediff/test_helpers"
 	sdtypes "github.com/ethereum/go-ethereum/statediff/types"
 
-	pkg "github.com/vulcanize/eth-statediff-service/pkg"
+	pkg "github.com/cerc-io/eth-statediff-service/pkg"
 )
 
 var (
