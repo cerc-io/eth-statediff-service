@@ -11,8 +11,8 @@ import (
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/spf13/viper"
 
-	sd "github.com/vulcanize/eth-statediff-service/pkg"
-	"github.com/vulcanize/eth-statediff-service/pkg/prom"
+	sd "github.com/cerc-io/eth-statediff-service/pkg"
+	"github.com/cerc-io/eth-statediff-service/pkg/prom"
 )
 
 type blockRange [2]uint64

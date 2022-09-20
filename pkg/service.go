@@ -33,7 +33,7 @@ import (
 	sdtypes "github.com/ethereum/go-ethereum/statediff/types"
 	"github.com/sirupsen/logrus"
 
-	"github.com/vulcanize/eth-statediff-service/pkg/prom"
+	"github.com/cerc-io/eth-statediff-service/pkg/prom"
 )
 
 const defaultQueueSize = 1024
