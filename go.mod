@@ -3,13 +3,13 @@ module github.com/cerc-io/eth-statediff-service
 go 1.18
 
 require (
+	github.com/cerc-io/go-eth-state-node-iterator v1.1.7
 	github.com/ethereum/go-ethereum v1.10.23
 	github.com/jmoiron/sqlx v1.2.0 // indirect
 	github.com/prometheus/client_golang v1.4.0
-	github.com/sirupsen/logrus v1.7.0
+	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.3.0
 	github.com/spf13/viper v1.10.1
-	github.com/cerc-io/go-eth-state-node-iterator v1.1.6
 	github.com/vulcanize/leveldb-ethdb-rpc v0.1.7
 )
 
@@ -124,7 +124,7 @@ require (
 	golang.org/x/crypto v0.0.0-20220829220503-c86fa9a7ed90 // indirect
 	golang.org/x/net v0.0.0-20220607020251-c690dde0001d // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
+	golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
