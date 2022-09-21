@@ -44,7 +44,7 @@ jobs:
       - name: Tag docker image TAG
         run: docker tag git.vdb.to/cerc-io/eth-statediff-service/eth-statediff-service:${{steps.vars.outputs.sha}} git.vdb.to/cerc-io/eth-statediff-service/eth-statediff-service:${{steps.vars.outputs.tag}}
       - name: Docker Login
-          run: echo ${{ secrets.GITEA_TOKEN }} | docker login https://git.vdb.to -u cerccicd --password-stdin
+        run: echo ${{ secrets.GITEA_TOKEN }} | docker login https://git.vdb.to -u cerccicd --password-stdin
       - name: Docker Push
         run: docker push docker.pkg.github.com/cerc-io/eth-statediff-service/eth-statediff-service:${{steps.vars.outputs.sha}}
 #  push_to_registries:
