@@ -48,7 +48,7 @@ An example config file:
 
 [prerun]
     only = false     # PRERUN_ONLY
-    parallel = false # PRERUN_PARALLEL
+    parallel = true  # PRERUN_PARALLEL
 
     # to perform prerun in a specific range (optional)
     start = 0   # PRERUN_RANGE_START
