@@ -123,6 +123,9 @@ An example config file:
     # path to custom chain config file (optional)
     # keep chainID same as that in chain config file
     chainConfig  = "./chain.json"           # ETH_CHAIN_CONFIG
+
+[debug]
+    pprof = false                           # Enable pprof agent listener on port 6060
 ```
 
 ### Local Setup

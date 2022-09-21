@@ -133,7 +133,6 @@ func (sds *Service) Run(rngs []RangeRequest, parallel bool) error {
 			wg := new(sync.WaitGroup)
 			for i := 0; i < int(sds.workers); i++ {
 				blockRange := RangeRequest{
-					// TODO(dboreham): check this math doesn't leave gaps (are start/stop inclusive?)
 					Start:  preRun.Start + uint64(i)*chunkSize,
 					Stop:   preRun.Start + uint64(i)*chunkSize + chunkSize - 1,
 					Params: preRun.Params,
@@ -165,7 +164,7 @@ func (sds *Service) Run(rngs []RangeRequest, parallel bool) error {
 		}
 	}
 	sds.preruns = nil
-	// TODO(dboreham): seems like this code is never called so we have not written the parallel version
+	// At present this code is never called so we have not written the parallel version:
 	for _, rng := range rngs {
 		logrus.Infof("processing requested range (%d, %d)", rng.Start, rng.Stop)
 		for i := rng.Start; i <= rng.Stop; i++ {

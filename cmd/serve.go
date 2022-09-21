@@ -68,15 +68,18 @@ func serve() {
 		logWithCommand.Fatal(err)
 	}
 
-	// short circuit if we only want to perform prerun
-	if viper.GetBool("prerun.only") {
-		// TODO: make pprof optional
+	// Enable the pprof agent if configured
+	if viper.GetBool("debug.pprof") {
 		// See: https://www.farsightsecurity.com/blog/txt-record/go-remote-profiling-20161028/
-		// Do not use the default http multiplexor elsewhere in this process.
+		// For security reasons: do not use the default http multiplexor elsewhere in this process.
 		go func() {
 			logWithCommand.Info("Starting pprof listener on port 6060")
 			logWithCommand.Fatal(http.ListenAndServe("localhost:6060", nil))
 		}()
+	}
+
+	// short circuit if we only want to perform prerun
+	if viper.GetBool("prerun.only") {
 		parallel := viper.GetBool("prerun.parallel")
 		if err := statediffService.Run(nil, parallel); err != nil {
 			logWithCommand.Fatal("unable to perform prerun: %v", err)
