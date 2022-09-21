@@ -29,7 +29,7 @@ import (
 	sdtypes "github.com/ethereum/go-ethereum/statediff/types"
 	"github.com/sirupsen/logrus"
 
-	iter "github.com/vulcanize/go-eth-state-node-iterator"
+	iter "github.com/cerc-io/go-eth-state-node-iterator"
 )
 
 type builder struct {

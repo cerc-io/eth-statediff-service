@@ -1,7 +1,7 @@
 ## Build docker image
 .PHONY: docker-build
 docker-build:
-	docker build -t vulcanize/eth-statediff-service .
+	docker build -t cerc-io/eth-statediff-service .
 
 .PHONY: test
 test: | $(GOOSE)

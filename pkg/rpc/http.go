@@ -24,7 +24,7 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/vulcanize/eth-statediff-service/pkg/prom"
+	"github.com/cerc-io/eth-statediff-service/pkg/prom"
 )
 
 // StartHTTPEndpoint starts the HTTP RPC endpoint, configured with cors/vhosts/modules.

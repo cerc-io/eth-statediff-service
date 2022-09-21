@@ -8,7 +8,7 @@ Purpose:
 
 Stand up a statediffing service directly on top of a go-ethereum LevelDB instance.
 This service can serve historical state data over the same rpc interface as
-[statediffing geth](https://github.com/vulcanize/go-ethereum) without needing to run a full node.
+[statediffing geth](https://github.com/cerc-io/go-ethereum) without needing to run a full node.
 
 ## Setup
 
