@@ -270,6 +270,21 @@ An example config file:
 
     Check the output logs for any rows detected with unexpected number of columns.
 
+    Example:
+
+    ```bash
+    # log
+    eth.header_cids
+    Start: Wednesday 21 September 2022 06:00:38 PM IST
+    Time taken: 00:00:05
+    End: Wednesday 21 September 2022 06:00:43 PM IST
+    Total bad rows: 1 ./check-columns/eth.header_cids.txt
+
+    # bad row output
+    # line number, num. of columns, data
+    23 17 22,xxxxxx,0x07f5ea5c94aa8dea60b28f6b6315d92f2b6d78ca4b74ea409adeb191b5a114f2,0x5918487321aa57dd0c50977856c6231e7c4ee79e95b694c7c8830227d77a1ecc,bagiacgzaa726uxeuvkg6uyfsr5vwgfozf4vw26gkjn2ouqe232yzdnnbctza,45,geth,0,0xad8fa8df61b98dbda7acd6ca76d5ce4cbba663d5f608cc940957adcdb94cee8d,0xc621412320a20b4aaff5363bdf063b9d13e394ef82e55689ab703aae5db08e26,0x71ec1c7d81269ce115be81c81f13e1cc2601c292a7f20440a77257ecfdc69940,0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347,\x2000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000,1658408419,/blocks/DMQAP5PKLSKKVDPKMCZI623DCXMS6K3NPDFEW5HKICNN5MMRWWQRJ4Q,1,0x0000000000000000000000000000000000000000
+    ```
+
 * Import data using `timescaledb-parallel-copy`:  
   (requires [`timescaledb-parallel-copy`](https://github.com/timescale/timescaledb-parallel-copy) installation; readily comes with TimescaleDB docker image)
 
