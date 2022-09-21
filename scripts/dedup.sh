@@ -30,3 +30,6 @@ echo
 
 difference=$(($(date +%s)-start_timestamp))
 echo Time taken: $((${difference}/86400)):$(date -d@${difference} -u +%H:%M:%S)
+
+# NOTE: This script currently only dedups public.blocks output file.
+# If the output contains blocks that were statediffed more than once, output files for other tables will have to be deduped as well.

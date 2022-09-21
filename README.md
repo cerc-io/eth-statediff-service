@@ -216,6 +216,8 @@ An example config file:
 
 * When `eth-statediff-service` is run in file mode (`database.type`) the output is in form of a SQL file or multiple CSV files.
 
+### SQL
+
 * Assuming the output files are located in host's `./output_dir` directory.
 
 * Create a directory to store post-processed output:
@@ -224,7 +226,11 @@ An example config file:
     mkdir -p output_dir/processed_output
     ```
 
-### SQL
+* (Optional) Get row counts in the output:
+
+    ```bash
+    wc -l output_dir/statediff.sql > output_stats.txt
+    ```
 
 * De-duplicate data:
 
@@ -242,86 +248,33 @@ An example config file:
 
 ### CSV
 
-* De-duplicate data and copy to post-processed output directory:
+* Create an env file with the required variables. Refer [.sample.env](./scripts/.sample.env).
+
+* (Optional) Get row counts in the output:
 
     ```bash
-    # public.blocks
-    sort -u output_dir/public.blocks.csv -o output_dir/processed_output/deduped-public.blocks.csv
-
-    # eth.header_cids
-    sort -u output_dir/eth.header_cids.csv -o output_dir/processed_output/deduped-eth.header_cids.csv
-
-    # eth.uncle_cids
-    sort -u output_dir/eth.uncle_cids.csv -o output_dir/processed_output/deduped-eth.uncle_cids.csv
-
-    # eth.transaction_cids
-    sort -u output_dir/eth.transaction_cids.csv -o output_dir/processed_output/deduped-eth.transaction_cids.csv
-
-    # eth.access_list_elements
-    sort -u output_dir/eth.access_list_elements.csv -o output_dir/processed_output/deduped-eth.access_list_elements.csv
-
-    # eth.receipt_cids
-    sort -u output_dir/eth.receipt_cids.csv -o output_dir/processed_output/deduped-eth.receipt_cids.csv
-
-    # eth.log_cids
-    sort -u output_dir/eth.log_cids.csv -o output_dir/processed_output/deduped-eth.log_cids.csv
-
-    # eth.state_cids
-    sort -u output_dir/eth.state_cids.csv -o output_dir/processed_output/deduped-eth.state_cids.csv
-
-    # eth.storage_cids
-    sort -u output_dir/eth.storage_cids.csv -o output_dir/processed_output/deduped-eth.storage_cids.csv
-
-    # eth.state_accounts
-    sort -u output_dir/eth.state_accounts.csv -o output_dir/processed_output/deduped-eth.state_accounts.csv
-
-    # public.nodes
-    cp output_dir/public.nodes.csv output_dir/processed_output/public.nodes.csv
+    ./scripts/count-lines.sh <ENV_FILE_PATH>
     ```
 
-* Copy over the post-processed output files to the DB server (say in `/output_dir`).
-
-* Start `psql` to run the import commands:
+* De-duplicate data:
 
     ```bash
-    psql -U <DATABASE_USER> -h <DATABASE_HOSTNAME> -p <DATABASE_PORT> <DATABASE_NAME>
+    ./scripts/dedup.sh <ENV_FILE_PATH>
     ```
 
-* Run the following to import data:
+* Perform column checks:
 
     ```bash
-    # public.nodes
-    COPY public.nodes FROM '/output_dir/processed_output/public.nodes.csv' CSV;
+    ./scripts/check-columns.sh <ENV_FILE_PATH>
+    ```
 
-    # public.nodes
-    COPY public.blocks FROM '/output_dir/processed_output/deduped-public.blocks.csv' CSV;
+    Check the output logs for any rows detected with unexpected number of columns.
 
-    # eth.header_cids
-    COPY eth.header_cids FROM '/output_dir/processed_output/deduped-eth.header_cids.csv' CSV;
+* Import data using `timescaledb-parallel-copy`:  
+  (requires [`timescaledb-parallel-copy`](https://github.com/timescale/timescaledb-parallel-copy) installation; readily comes with TimescaleDB docker image)
 
-    # eth.uncle_cids
-    COPY eth.uncle_cids FROM '/output_dir/processed_output/deduped-eth.uncle_cids.csv' CSV;
-
-    # eth.transaction_cids
-    COPY eth.transaction_cids FROM '/output_dir/processed_output/deduped-eth.transaction_cids.csv' CSV FORCE NOT NULL dst;
-
-    # eth.access_list_elements
-    COPY eth.access_list_elements FROM '/output_dir/processed_output/deduped-eth.access_list_elements.csv' CSV;
-
-    # eth.receipt_cids
-    COPY eth.receipt_cids FROM '/output_dir/processed_output/deduped-eth.receipt_cids.csv' CSV FORCE NOT NULL post_state, contract, contract_hash;
-
-    # eth.log_cids
-    COPY eth.log_cids FROM '/output_dir/processed_output/deduped-eth.log_cids.csv' CSV FORCE NOT NULL topic0, topic1, topic2, topic3;
-
-    # eth.state_cids
-    COPY eth.state_cids FROM '/output_dir/processed_output/deduped-eth.state_cids.csv' CSV FORCE NOT NULL state_leaf_key;
-
-    # eth.storage_cids
-    COPY eth.storage_cids FROM '/output_dir/processed_output/deduped-eth.storage_cids.csv' CSV FORCE NOT NULL storage_leaf_key;
-
-    # eth.state_accounts
-    COPY eth.state_accounts FROM '/output_dir/processed_output/deduped-eth.state_accounts.csv' CSV;
+    ```bash
+    ./scripts/timescaledb-import.sh <ENV_FILE_PATH>
     ```
 
 * NOTE: `COPY` command on CSVs inserts empty strings as `NULL` in the DB. Passing `FORCE_NOT_NULL <COLUMN_NAME>` forces it to insert empty strings instead. This is required to maintain compatibility of the imported statediff data with the data generated in `postgres` mode. Reference: https://www.postgresql.org/docs/14/sql-copy.html
