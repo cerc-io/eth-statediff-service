@@ -124,7 +124,7 @@ func (sds *Service) Run(rngs []RangeRequest, parallel bool) error {
 			// Chunk overall range into N subranges for workers
 			chunkSize := (preRun.Stop - preRun.Start) / uint64(sds.workers)
 			logrus.Infof("parallel processing prerun range (%d, %d) (%d blocks) divided into %d sized chunks with %d workers", preRun.Start, preRun.Stop,
-				preRun.Stop-preRun.Start, chunkSize, sds.workers)
+				preRun.Stop-preRun.Start+1, chunkSize, sds.workers)
 			// Sanity floor the chunk size
 			if chunkSize < 100 {
 				chunkSize = 100
