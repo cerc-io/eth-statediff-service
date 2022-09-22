@@ -125,7 +125,7 @@ An example config file:
     chainConfig  = "./chain.json"           # ETH_CHAIN_CONFIG
 
 [debug]
-    pprof = false                           # Enable pprof agent listener on port 6060
+    pprof = false                           # DEBUG_PPROF
 ```
 
 ### Local Setup
