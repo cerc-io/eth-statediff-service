@@ -221,6 +221,7 @@ func init() {
 	viper.BindPFlag("prom.metrics", rootCmd.PersistentFlags().Lookup("prom-metrics"))
 
 	viper.BindPFlag("prerun.only", rootCmd.PersistentFlags().Lookup("prerun-only"))
+	viper.BindPFlag("prerun.parallel", rootCmd.PersistentFlags().Lookup("prerun-parallel"))
 	viper.BindPFlag("prerun.start", rootCmd.PersistentFlags().Lookup("prerun-start"))
 	viper.BindPFlag("prerun.stop", rootCmd.PersistentFlags().Lookup("prerun-stop"))
 	viper.BindPFlag("prerun.params.intermediateStateNodes", rootCmd.PersistentFlags().Lookup("prerun-intermediate-state-nodes"))
@@ -229,6 +230,8 @@ func init() {
 	viper.BindPFlag("prerun.params.includeReceipts", rootCmd.PersistentFlags().Lookup("prerun-include-receipts"))
 	viper.BindPFlag("prerun.params.includeTD", rootCmd.PersistentFlags().Lookup("prerun-include-td"))
 	viper.BindPFlag("prerun.params.includeCode", rootCmd.PersistentFlags().Lookup("prerun-include-code"))
+
+	viper.BindPFlag("debug.pprof", rootCmd.PersistentFlags().Lookup("debug-pprof"))
 
 	rand.Seed(time.Now().UnixNano())
 }

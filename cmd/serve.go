@@ -16,8 +16,11 @@
 package cmd
 
 import (
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
+	"runtime"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/rpc"
@@ -47,17 +50,38 @@ func init() {
 	rootCmd.AddCommand(serveCmd)
 }
 
+func maxParallelism() int {
+	maxProcs := runtime.GOMAXPROCS(0)
+	numCPU := runtime.NumCPU()
+	if maxProcs < numCPU {
+		return maxProcs
+	}
+	return numCPU
+}
+
 func serve() {
 	logWithCommand.Info("Running eth-statediff-service serve command")
+	logWithCommand.Infof("Parallelism: %d", maxParallelism())
 
 	statediffService, err := createStateDiffService()
 	if err != nil {
 		logWithCommand.Fatal(err)
 	}
 
+	// Enable the pprof agent if configured
+	if viper.GetBool("debug.pprof") {
+		// See: https://www.farsightsecurity.com/blog/txt-record/go-remote-profiling-20161028/
+		// For security reasons: do not use the default http multiplexor elsewhere in this process.
+		go func() {
+			logWithCommand.Info("Starting pprof listener on port 6060")
+			logWithCommand.Fatal(http.ListenAndServe("localhost:6060", nil))
+		}()
+	}
+
 	// short circuit if we only want to perform prerun
 	if viper.GetBool("prerun.only") {
-		if err := statediffService.Run(nil); err != nil {
+		parallel := viper.GetBool("prerun.parallel")
+		if err := statediffService.Run(nil, parallel); err != nil {
 			logWithCommand.Fatal("unable to perform prerun: %v", err)
 		}
 		return
