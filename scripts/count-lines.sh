@@ -10,7 +10,7 @@ ENV=$1
 echo "Using env file: ${ENV}"
 
 # read env file
-export $(grep -v '^#' ${ENV} | xargs -d '\n')
+export $(grep -v '^#' ${ENV} | xargs)
 
 # redirect stdout/stderr to a file
 exec >"${COUNT_LINES_LOG}" 2>&1

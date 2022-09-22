@@ -18,7 +18,7 @@ ENV=$1
 echo "Using env file: ${ENV}"
 
 # read env file
-export $(grep -v '^#' ${ENV} | xargs -d '\n')
+export $(grep -v '^#' ${ENV} | xargs)
 
 if [ "$TIMESCALEDB_WORKERS" = "" ]; then
 	TIMESCALEDB_WORKERS=$DEFAULT_TIMESCALEDB_WORKERS
@@ -51,9 +51,9 @@ do
 
 	if [ "${arr[0]}.${arr[1]}" = "public.blocks" ];
 	then
-		copy_command="/home/prathamesh/go/bin/timescaledb-parallel-copy --connection \"host=${DATABASE_HOSTNAME} port=${DATABASE_PORT} user=${DATABASE_USER} password=${DATABASE_PASSWORD} sslmode=disable\" --db-name ${DATABASE_NAME} --schema ${arr[0]} --table ${arr[1]} --file ${IMPORT_INPUT_DEDUP_DIR}/deduped-${arr[0]}.${arr[1]}.csv --workers ${TIMESCALEDB_WORKERS} --reporting-period 300s"
+		copy_command="timescaledb-parallel-copy --connection \"host=${DATABASE_HOSTNAME} port=${DATABASE_PORT} user=${DATABASE_USER} password=${DATABASE_PASSWORD} sslmode=disable\" --db-name ${DATABASE_NAME} --schema ${arr[0]} --table ${arr[1]} --file ${IMPORT_INPUT_DEDUP_DIR}/deduped-${arr[0]}.${arr[1]}.csv --workers ${TIMESCALEDB_WORKERS} --reporting-period 300s"
 	else
-		copy_command="/home/prathamesh/go/bin/timescaledb-parallel-copy --connection \"host=${DATABASE_HOSTNAME} port=${DATABASE_PORT} user=${DATABASE_USER} password=${DATABASE_PASSWORD} sslmode=disable\" --db-name ${DATABASE_NAME} --schema ${arr[0]} --table ${arr[1]} --file ${IMPORT_INPUT_DIR}/${arr[0]}.${arr[1]}.csv --workers ${TIMESCALEDB_WORKERS} --reporting-period 300s"
+		copy_command="timescaledb-parallel-copy --connection \"host=${DATABASE_HOSTNAME} port=${DATABASE_PORT} user=${DATABASE_USER} password=${DATABASE_PASSWORD} sslmode=disable\" --db-name ${DATABASE_NAME} --schema ${arr[0]} --table ${arr[1]} --file ${IMPORT_INPUT_DIR}/${arr[0]}.${arr[1]}.csv --workers ${TIMESCALEDB_WORKERS} --reporting-period 300s"
 	fi
 
 	if [ "${arr[2]}" != "" ];
