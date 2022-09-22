@@ -4,7 +4,7 @@ docker-build:
 	docker build -t cerc-io/eth-statediff-service .
 
 .PHONY: test
-test: | $(GOOSE)
+test:
 	go test -p 1 ./pkg/... -v
 
 build:
