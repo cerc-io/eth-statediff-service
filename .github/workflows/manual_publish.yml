@@ -6,7 +6,7 @@ on:
         description: 'Release TAG to publish TO on gitea; e.g. v4.1.5-alpha'
         required: true
       cercContainerTag:
-        description: 'Container (SHA) to release-tag FROM'
+        description: 'Container (truncated!!! SHA) to release-tag FROM'
         required: true
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
@@ -22,7 +22,7 @@ jobs:
         run: |
           echo ::set-output name=sha::$(echo ${cercContainerTag:0:7})
       - name: Pull docker image by SHA
-        run: docker pull git.vdb.to/cerc-io/eth-statediff-service/eth-statediff-service:${{github.event.inputs.cercContainerTag:0:7}}
+        run: docker pull git.vdb.to/cerc-io/eth-statediff-service/eth-statediff-service:${{github.event.inputs.cercContainerTag}}
       - name: Tag docker image TAG
         run: docker tag git.vdb.to/cerc-io/eth-statediff-service/eth-statediff-service:${{steps.vars.outputs.sha}} git.vdb.to/cerc-io/eth-statediff-service/eth-statediff-service:${{github.event.inputs.giteaPublishTag}}
       - name: Docker Login
