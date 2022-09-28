@@ -22,12 +22,12 @@ jobs:
         run: |
           echo ::set-output name=sha::$(echo ${cercContainerTag:0:7})
       - name: Pull docker image by SHA
-        run: docker pull git.vdb.to/cerc-io/eth-statediff-service/eth-statediff-service:${{steps.vars.outputs.sha}}
+        run: docker pull git.vdb.to/cerc-io/eth-statediff-service/eth-statediff-service:${{github.event.inputs.cercContainerTag}}
       - name: Tag docker image TAG
-        run: docker tag git.vdb.to/cerc-io/eth-statediff-service/eth-statediff-service:${{steps.vars.outputs.sha}} git.vdb.to/cerc-io/eth-statediff-service/eth-statediff-service:${{giteaPublishTag}}
+        run: docker tag git.vdb.to/cerc-io/eth-statediff-service/eth-statediff-service:${{steps.vars.outputs.sha}} git.vdb.to/cerc-io/eth-statediff-service/eth-statediff-service:${{github.event.inputs.giteaPublishTag}}
       - name: Docker Login
         run: echo ${{ secrets.GITEA_TOKEN }} | docker login https://git.vdb.to -u cerccicd --password-stdin
       - name: Docker Push Release Tag
-        run: docker push git.vdb.to/cerc-io/eth-statediff-service/eth-statediff-service:${{giteaPublishTag}}
+        run: docker push git.vdb.to/cerc-io/eth-statediff-service/eth-statediff-service:${{github.event.inputs.giteaPublishTag}}
       - name: Docker Push LATEST Tag
         run: docker push git.vdb.to/cerc-io/eth-statediff-service/eth-statediff-service:latest
