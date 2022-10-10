@@ -63,7 +63,19 @@ func serve() {
 	logWithCommand.Info("Running eth-statediff-service serve command")
 	logWithCommand.Infof("Parallelism: %d", maxParallelism())
 
-	statediffService, err := createStateDiffService()
+	reader, chainConf, nodeInfo := instantiateLevelDBReader()
+
+	// report latest block info
+	header, err := reader.GetLatestHeader()
+	if err != nil {
+		logWithCommand.Fatalf("Unable to determine latest header height and hash: %s", err.Error())
+	}
+	if header.Number == nil {
+		logWithCommand.Fatal("Latest header found in levelDB has a nil block height")
+	}
+	logWithCommand.Infof("Latest block found in the levelDB\r\nheight: %s, hash: %s", header.Number.String(), header.Hash().Hex())
+
+	statediffService, err := createStateDiffService(reader, chainConf, nodeInfo)
 	if err != nil {
 		logWithCommand.Fatal(err)
 	}
@@ -82,7 +94,7 @@ func serve() {
 	if viper.GetBool("prerun.only") {
 		parallel := viper.GetBool("prerun.parallel")
 		if err := statediffService.Run(nil, parallel); err != nil {
-			logWithCommand.Fatal("unable to perform prerun: %v", err)
+			logWithCommand.Fatal("Unable to perform prerun: %v", err)
 		}
 		return
 	}
@@ -112,17 +124,17 @@ func startServers(serv sd.StateDiffService) error {
 	ipcPath := viper.GetString("server.ipcPath")
 	httpPath := viper.GetString("server.httpPath")
 	if ipcPath == "" && httpPath == "" {
-		logWithCommand.Fatal("need an ipc path and/or an http path")
+		logWithCommand.Fatal("Need an ipc path and/or an http path")
 	}
 	if ipcPath != "" {
-		logWithCommand.Info("starting up IPC server")
+		logWithCommand.Info("Starting up IPC server")
 		_, _, err := srpc.StartIPCEndpoint(ipcPath, serv.APIs())
 		if err != nil {
 			return err
 		}
 	}
 	if httpPath != "" {
-		logWithCommand.Info("starting up HTTP server")
+		logWithCommand.Info("Starting up HTTP server")
 		_, err := srpc.StartHTTPEndpoint(httpPath, serv.APIs(), []string{"statediff"}, nil, []string{"*"}, rpc.HTTPTimeouts{})
 		if err != nil {
 			return err
