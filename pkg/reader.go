@@ -16,6 +16,7 @@
 package statediff
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -36,6 +37,7 @@ type Reader interface {
 	GetReceiptsByHash(hash common.Hash) (types.Receipts, error)
 	GetTdByHash(hash common.Hash) (*big.Int, error)
 	StateDB() state.Database
+	GetLatestHeader() (*types.Header, error)
 }
 
 // LvlDBReader exposes the necessary Reader methods on lvldb
@@ -128,4 +130,13 @@ func (ldr *LvlDBReader) GetTdByHash(hash common.Hash) (*big.Int, error) {
 // StateDB returns the underlying statedb
 func (ldr *LvlDBReader) StateDB() state.Database {
 	return ldr.stateDB
+}
+
+// GetLatestHeader gets the latest header from the levelDB
+func (ldr *LvlDBReader) GetLatestHeader() (*types.Header, error) {
+	header := rawdb.ReadHeadHeader(ldr.ethDB)
+	if header == nil {
+		return nil, errors.New("unable to read head header")
+	}
+	return header, nil
 }
