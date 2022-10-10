@@ -304,11 +304,11 @@ func getConfig(nodeInfo node.Info) (interfaces.Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	logWithCommand.Infof("configuring service for database type: %s", dbType)
+	logWithCommand.Infof("Configuring service for database type: %s", dbType)
 	var indexerConfig interfaces.Config
 	switch dbType {
 	case shared.FILE:
-		logWithCommand.Info("starting in sql file writing mode")
+		logWithCommand.Info("Starting in sql file writing mode")
 
 		fileModeStr := viper.GetString("database.fileMode")
 		fileMode, err := file.ResolveFileMode(fileModeStr)
@@ -318,12 +318,12 @@ func getConfig(nodeInfo node.Info) (interfaces.Config, error) {
 
 		filePathStr := viper.GetString("database.filePath")
 		if fileMode == file.SQL && filePathStr == "" {
-			logWithCommand.Fatal("when operating in sql file writing mode a file path must be provided")
+			logWithCommand.Fatal("When operating in sql file writing mode a file path must be provided")
 		}
 
 		fileCsvDirStr := viper.GetString("database.fileCsvDir")
 		if fileMode == file.CSV && fileCsvDirStr == "" {
-			logWithCommand.Fatal("when operating in csv file writing mode a directory path must be provided")
+			logWithCommand.Fatal("When operating in csv file writing mode a directory path must be provided")
 		}
 
 		indexerConfig = file.Config{
@@ -332,7 +332,7 @@ func getConfig(nodeInfo node.Info) (interfaces.Config, error) {
 			FilePath:  filePathStr,
 		}
 	case shared.DUMP:
-		logWithCommand.Info("starting in data dump mode")
+		logWithCommand.Info("Starting in data dump mode")
 		dumpDstStr := viper.GetString("database.dumpDestination")
 		dumpDst, err := dump.ResolveDumpType(dumpDstStr)
 		if err != nil {
@@ -349,7 +349,7 @@ func getConfig(nodeInfo node.Info) (interfaces.Config, error) {
 			return nil, fmt.Errorf("unrecognized dump destination: %s", dumpDst)
 		}
 	case shared.POSTGRES:
-		logWithCommand.Info("starting in postgres mode")
+		logWithCommand.Info("Starting in postgres mode")
 		driverTypeStr := viper.GetString("database.driver")
 		driverType, err := postgres.ResolveDriverType(driverTypeStr)
 		if err != nil {

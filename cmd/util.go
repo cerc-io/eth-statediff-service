@@ -120,7 +120,7 @@ func instantiateLevelDBReader() (sd.Reader, *params.ChainConfig, node.Info) {
 	}
 
 	if err != nil {
-		logWithCommand.Fatalf("unable to instantiate chain config: %s", err.Error())
+		logWithCommand.Fatalf("Unable to instantiate chain config: %s", err.Error())
 	}
 
 	// create LevelDB reader
@@ -140,7 +140,7 @@ func instantiateLevelDBReader() (sd.Reader, *params.ChainConfig, node.Info) {
 	}
 	reader, err := sd.NewLvlDBReader(readerConf)
 	if err != nil {
-		logWithCommand.Fatalf("unable to instantiate levelDB reader: %s", err.Error())
+		logWithCommand.Fatalf("Unable to instantiate levelDB reader: %s", err.Error())
 	}
 	return reader, chainConf, nodeInfo
 }
