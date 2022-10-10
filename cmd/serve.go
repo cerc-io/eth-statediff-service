@@ -63,7 +63,19 @@ func serve() {
 	logWithCommand.Info("Running eth-statediff-service serve command")
 	logWithCommand.Infof("Parallelism: %d", maxParallelism())
 
-	statediffService, err := createStateDiffService()
+	reader, chainConf, nodeInfo := instantiateLevelDBReader()
+
+	// report latest block info
+	header, err := reader.GetLatestHeader()
+	if err != nil {
+		logWithCommand.Fatalf("unable to determine latest header height and hash: %s", err.Error())
+	}
+	if header.Number == nil {
+		logWithCommand.Fatal("latest header found in levelDB has a nil block height")
+	}
+	logWithCommand.Infof("latest block found in the levelDB\r\nheight: %s, hash: %s", header.Number.String(), header.Hash().Hex())
+
+	statediffService, err := createStateDiffService(reader, chainConf, nodeInfo)
 	if err != nil {
 		logWithCommand.Fatal(err)
 	}
