@@ -297,3 +297,12 @@ An example config file:
     ```
 
 * NOTE: `COPY` command on CSVs inserts empty strings as `NULL` in the DB. Passing `FORCE_NOT_NULL <COLUMN_NAME>` forces it to insert empty strings instead. This is required to maintain compatibility of the imported statediff data with the data generated in `postgres` mode. Reference: https://www.postgresql.org/docs/14/sql-copy.html
+
+### Stats
+
+The binary includes a `stats` command which reports stats for the offline or remote levelDB.
+
+At this time, the only stat supported is to return the latest/highest block height and hash found the levelDB, this is
+useful for determining what the upper limit is for a standalone statediffing process on a given levelDB.
+
+`./eth-statediff-service stats --config={path to toml config file}`
