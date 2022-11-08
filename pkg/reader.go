@@ -27,7 +27,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/trie"
-	"github.com/vulcanize/leveldb-ethdb-rpc/pkg/client"
+	"github.com/cerc-io/leveldb-ethdb-rpc/pkg/client"
 )
 
 // Reader interface required by the statediffing service
