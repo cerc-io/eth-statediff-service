@@ -443,7 +443,7 @@ func (sds *Service) writeStateDiff(block *types.Block, parentRoot common.Hash, p
 	}
 	prom.SetTimeMetric(prom.T_BLOCK_PROCESSING, time.Now().Sub(t))
 	t = time.Now()
-	err = sds.Builder.WriteStateDiffObject(sdtypes.StateRoots{
+	err = sds.Builder.WriteStateDiffObject(sd.Args{
 		NewStateRoot: block.Root(),
 		OldStateRoot: parentRoot,
 	}, params, output, codeOutput)

@@ -19,7 +19,7 @@ package prom
 import (
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/ethereum/go-ethereum/statediff/indexer/database/sql"
+	dbmetrics "github.com/ethereum/go-ethereum/statediff/indexer/database/metrics"
 )
 
 const (
@@ -29,7 +29,7 @@ const (
 
 // DBStatsGetter is an interface that gets sql.DBStats.
 type DBStatsGetter interface {
-	Stats() sql.Stats
+	DbStats() dbmetrics.DbStats
 }
 
 // DBStatsCollector implements the prometheus.Collector interface.
@@ -117,7 +117,7 @@ func (c DBStatsCollector) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect implements the prometheus.Collector interface.
 func (c DBStatsCollector) Collect(ch chan<- prometheus.Metric) {
-	stats := c.sg.Stats()
+	stats := c.sg.DbStats()
 
 	ch <- prometheus.MustNewConstMetric(
 		c.maxOpenDesc,

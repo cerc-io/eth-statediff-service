@@ -25,6 +25,7 @@ import (
 	"sync"
 
 	"github.com/ethereum/go-ethereum/core/state"
+	"github.com/ethereum/go-ethereum/log"
 	sd "github.com/ethereum/go-ethereum/statediff"
 	sdtypes "github.com/ethereum/go-ethereum/statediff/types"
 	"github.com/sirupsen/logrus"
@@ -58,7 +59,7 @@ func (sdb *builder) BuildStateDiffObject(args sd.Args, params sd.Params) (sdtype
 	var stateNodes []sdtypes.StateNode
 	var codeAndCodeHashes []sdtypes.CodeAndCodeHash
 	err := sdb.WriteStateDiffObject(
-		sdtypes.StateRoots{OldStateRoot: args.OldStateRoot, NewStateRoot: args.NewStateRoot},
+		args,
 		params, sd.StateNodeAppender(&stateNodes), sd.CodeMappingAppender(&codeAndCodeHashes))
 	if err != nil {
 		return sdtypes.StateObject{}, err
@@ -72,7 +73,7 @@ func (sdb *builder) BuildStateDiffObject(args sd.Args, params sd.Params) (sdtype
 }
 
 // WriteStateDiffObject writes a statediff object to output callback
-func (sdb *builder) WriteStateDiffObject(args sdtypes.StateRoots, params sd.Params, output sdtypes.StateNodeSink, codeOutput sdtypes.CodeSink) error {
+func (sdb *builder) WriteStateDiffObject(args sd.Args, params sd.Params, output sdtypes.StateNodeSink, codeOutput sdtypes.CodeSink) error {
 	// Load tries for old and new states
 	oldTrie, err := sdb.StateCache.OpenTrie(args.OldStateRoot)
 	if err != nil {
@@ -114,10 +115,11 @@ func (sdb *builder) WriteStateDiffObject(args sdtypes.StateRoots, params sd.Para
 			go func(worker uint) {
 				defer wg.Done()
 				var err error
+				logger := log.New("hash", args.BlockHash.Hex(), "number", args.BlockNumber)
 				if !params.IntermediateStateNodes {
-					err = sdb.BuildStateDiffWithoutIntermediateStateNodes(iterPairs[worker], params, nodeSender, codeSender)
+					err = sdb.BuildStateDiffWithoutIntermediateStateNodes(iterPairs[worker], params, nodeSender, codeSender, logger)
 				} else {
-					err = sdb.BuildStateDiffWithIntermediateStateNodes(iterPairs[worker], params, nodeSender, codeSender)
+					err = sdb.BuildStateDiffWithIntermediateStateNodes(iterPairs[worker], params, nodeSender, codeSender, logger)
 				}
 
 				if err != nil {

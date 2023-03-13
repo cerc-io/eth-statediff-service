@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/cerc-io/leveldb-ethdb-rpc/pkg/client"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
@@ -27,7 +28,6 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/trie"
-	"github.com/cerc-io/leveldb-ethdb-rpc/pkg/client"
 )
 
 // Reader interface required by the statediffing service
@@ -62,7 +62,8 @@ func NewLvlDBReader(conf LvLDBReaderConfig) (*LvlDBReader, error) {
 	var err error
 
 	if conf.Mode == "local" {
-		edb, err = rawdb.NewLevelDBDatabaseWithFreezer(conf.Path, conf.DBCacheSize, 256, conf.AncientPath, "eth-statediff-service", true)
+		kvdb, _ := rawdb.NewLevelDBDatabase(conf.Path, conf.DBCacheSize, 256, "eth-statediff-service", true)
+		edb, err = rawdb.NewDatabaseWithFreezer(kvdb, conf.AncientPath, "eth-statediff-service", true)
 	}
 
 	if conf.Mode == "remote" {
