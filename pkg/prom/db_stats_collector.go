@@ -29,7 +29,7 @@ const (
 
 // DBStatsGetter is an interface that gets sql.DBStats.
 type DBStatsGetter interface {
-	DbStats() dbmetrics.DbStats
+	Stats() dbmetrics.DbStats
 }
 
 // DBStatsCollector implements the prometheus.Collector interface.
@@ -117,7 +117,7 @@ func (c DBStatsCollector) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect implements the prometheus.Collector interface.
 func (c DBStatsCollector) Collect(ch chan<- prometheus.Metric) {
-	stats := c.sg.DbStats()
+	stats := c.sg.Stats()
 
 	ch <- prometheus.MustNewConstMetric(
 		c.maxOpenDesc,
