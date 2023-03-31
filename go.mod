@@ -3,7 +3,6 @@ module github.com/cerc-io/eth-statediff-service
 go 1.18
 
 require (
-	github.com/cerc-io/go-eth-state-node-iterator v1.1.11
 	github.com/cerc-io/leveldb-ethdb-rpc v1.1.12
 	github.com/ethereum/go-ethereum v1.11.5
 	github.com/jmoiron/sqlx v1.3.5 // indirect
