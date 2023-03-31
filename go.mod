@@ -3,7 +3,7 @@ module github.com/cerc-io/eth-statediff-service
 go 1.18
 
 require (
-	github.com/cerc-io/leveldb-ethdb-rpc v1.1.12
+	github.com/cerc-io/leveldb-ethdb-rpc v1.1.13
 	github.com/ethereum/go-ethereum v1.11.5
 	github.com/jmoiron/sqlx v1.3.5 // indirect
 	github.com/prometheus/client_golang v1.14.0
@@ -32,7 +32,7 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/gballet/go-libpcsclite v0.0.0-20190607065134-2772fd86a8ff // indirect
 	github.com/georgysavva/scany v1.2.1 // indirect
-	github.com/getsentry/sentry-go v0.17.0 // indirect
+	github.com/getsentry/sentry-go v0.18.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/gofrs/flock v0.8.1 // indirect
@@ -102,7 +102,7 @@ require (
 	github.com/pganalyze/pg_query_go/v2 v2.2.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
-	github.com/prometheus/common v0.37.1 // indirect
+	github.com/prometheus/common v0.39.0 // indirect
 	github.com/prometheus/procfs v0.9.0 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/rs/cors v1.7.0 // indirect
