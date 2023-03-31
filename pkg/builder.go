@@ -28,9 +28,8 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	sd "github.com/ethereum/go-ethereum/statediff"
 	sdtypes "github.com/ethereum/go-ethereum/statediff/types"
+	iter "github.com/ethereum/go-ethereum/trie/concurrent_iterator"
 	"github.com/sirupsen/logrus"
-
-	iter "github.com/cerc-io/go-eth-state-node-iterator"
 )
 
 type builder struct {

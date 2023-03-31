@@ -97,10 +97,8 @@ github.com/btcsuite/btcd/chaincfg/chainhash v1.0.1 h1:q0rUy8C/TYNBQS1+CGKw68tLOF
 github.com/c-bata/go-prompt v0.2.2/go.mod h1:VzqtzE2ksDBcdln8G7mk2RX9QyGjH+OVqOCSiVIqS34=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/census-instrumentation/opencensus-proto v0.3.0/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
-github.com/cerc-io/go-eth-state-node-iterator v1.1.11 h1:KrrmEO4byx37sZmq4QmJ8PxU6bfUeH48nQOiZBzPcdw=
-github.com/cerc-io/go-eth-state-node-iterator v1.1.11/go.mod h1:te4Jw+t3Rpykj/ZdCTXkKItA/8oZyZHjV7UpOaneV8o=
-github.com/cerc-io/go-ethereum v1.11.4-statediff-4.3.9-alpha h1:6sUU9DD33TK3eOeDd9NuCmDXNYLOd9FsgHWyn/tmtwc=
-github.com/cerc-io/go-ethereum v1.11.4-statediff-4.3.9-alpha/go.mod h1:Q4LXiMcJCctVW1uoIuF59VRCW1W+zrc5GkewoARwAmk=
+github.com/cerc-io/go-ethereum v1.11.5-statediff-4.3.9-alpha h1:nzy/bUmzq8ImRIxchClNoO7Bytom8ETDuOFHzuHFBXs=
+github.com/cerc-io/go-ethereum v1.11.5-statediff-4.3.9-alpha/go.mod h1:Q4LXiMcJCctVW1uoIuF59VRCW1W+zrc5GkewoARwAmk=
 github.com/cerc-io/leveldb-ethdb-rpc v1.1.12 h1:SZn1g64gYTS3xSF6R/wZat3GYm8BGl7M5PlVVXN0yns=
 github.com/cerc-io/leveldb-ethdb-rpc v1.1.12/go.mod h1:ra/wYVfEih/XU8TZosmeu0Y6vpQEl/V2gbiQH2WjFEM=
 github.com/cespare/cp v0.1.0 h1:SE+dxFebS7Iik5LK0tsi1k9ZCxEaFX4AjQmoyA+1dJk=
