@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/cerc-io/go-eth-state-node-iterator v1.1.11
 	github.com/cerc-io/leveldb-ethdb-rpc v1.1.12
-	github.com/ethereum/go-ethereum v1.11.4
+	github.com/ethereum/go-ethereum v1.11.5
 	github.com/jmoiron/sqlx v1.3.5 // indirect
 	github.com/prometheus/client_golang v1.14.0
 	github.com/sirupsen/logrus v1.9.0
@@ -141,4 +141,4 @@ require (
 	lukechampine.com/blake3 v1.1.6 // indirect
 )
 
-replace github.com/ethereum/go-ethereum v1.11.4 => github.com/cerc-io/go-ethereum v1.11.4-statediff-4.3.9-alpha
+replace github.com/ethereum/go-ethereum v1.11.5 => github.com/cerc-io/go-ethereum v1.11.5-statediff-4.3.9-alpha
