@@ -55,24 +55,24 @@ func NewBuilder(stateCache state.Database, workers uint) (sd.Builder, error) {
 
 // BuildStateDiffObject builds a statediff object from two blocks and the provided parameters
 func (sdb *builder) BuildStateDiffObject(args sd.Args, params sd.Params) (sdtypes.StateObject, error) {
-	var stateNodes []sdtypes.StateNode
-	var codeAndCodeHashes []sdtypes.CodeAndCodeHash
+	var stateNodes []sdtypes.StateLeafNode
+	var codeAndCodeHashes []sdtypes.IPLD
 	err := sdb.WriteStateDiffObject(
 		args,
-		params, sd.StateNodeAppender(&stateNodes), sd.CodeMappingAppender(&codeAndCodeHashes))
+		params, sd.StateNodeAppender(&stateNodes), sd.IPLDMappingAppender(&codeAndCodeHashes))
 	if err != nil {
 		return sdtypes.StateObject{}, err
 	}
 	return sdtypes.StateObject{
-		BlockHash:         args.BlockHash,
-		BlockNumber:       args.BlockNumber,
-		Nodes:             stateNodes,
-		CodeAndCodeHashes: codeAndCodeHashes,
+		BlockHash:   args.BlockHash,
+		BlockNumber: args.BlockNumber,
+		Nodes:       stateNodes,
+		IPLDs:       codeAndCodeHashes,
 	}, nil
 }
 
 // WriteStateDiffObject writes a statediff object to output callback
-func (sdb *builder) WriteStateDiffObject(args sd.Args, params sd.Params, output sdtypes.StateNodeSink, codeOutput sdtypes.CodeSink) error {
+func (sdb *builder) WriteStateDiffObject(args sd.Args, params sd.Params, output sdtypes.StateNodeSink, codeOutput sdtypes.IPLDSink) error {
 	// Load tries for old and new states
 	oldTrie, err := sdb.StateCache.OpenTrie(args.OldStateRoot)
 	if err != nil {
@@ -101,12 +101,12 @@ func (sdb *builder) WriteStateDiffObject(args sd.Args, params sd.Params, output 
 	}
 
 	// Dispatch workers to process trie data; sync and collect results here via channels
-	nodeChan := make(chan sdtypes.StateNode)
-	codeChan := make(chan sdtypes.CodeAndCodeHash)
+	nodeChan := make(chan sdtypes.StateLeafNode)
+	codeChan := make(chan sdtypes.IPLD)
 
 	go func() {
-		nodeSender := func(node sdtypes.StateNode) error { nodeChan <- node; return nil }
-		codeSender := func(code sdtypes.CodeAndCodeHash) error { codeChan <- code; return nil }
+		nodeSender := func(node sdtypes.StateLeafNode) error { nodeChan <- node; return nil }
+		ipldSender := func(code sdtypes.IPLD) error { codeChan <- code; return nil }
 		var wg sync.WaitGroup
 
 		for w := uint(0); w < sdb.numWorkers; w++ {
@@ -115,12 +115,7 @@ func (sdb *builder) WriteStateDiffObject(args sd.Args, params sd.Params, output 
 				defer wg.Done()
 				var err error
 				logger := log.New("hash", args.BlockHash.Hex(), "number", args.BlockNumber)
-				if !params.IntermediateStateNodes {
-					err = sdb.BuildStateDiffWithoutIntermediateStateNodes(iterPairs[worker], params, nodeSender, codeSender, logger)
-				} else {
-					err = sdb.BuildStateDiffWithIntermediateStateNodes(iterPairs[worker], params, nodeSender, codeSender, logger)
-				}
-
+				err = sdb.BuildStateDiffWithIntermediateStateNodes(iterPairs[worker], params, nodeSender, ipldSender, logger)
 				if err != nil {
 					logrus.Errorf("buildStateDiff error for worker %d, params %+v", worker, params)
 				}
