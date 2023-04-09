@@ -53,8 +53,6 @@ type StateDiffService interface {
 	StateDiffAt(blockNumber uint64, params sd.Params) (*sd.Payload, error)
 	// StateDiffFor method to get state diff object at specific block
 	StateDiffFor(blockHash common.Hash, params sd.Params) (*sd.Payload, error)
-	// StateTrieAt method to get state trie object at specific block
-	StateTrieAt(blockNumber uint64, params sd.Params) (*sd.Payload, error)
 	// WriteStateDiffAt method to write state diff object directly to DB
 	WriteStateDiffAt(blockNumber uint64, params sd.Params) error
 	// WriteStateDiffFor method to get state trie object at specific block
@@ -344,34 +342,6 @@ func (sds *Service) newPayload(stateObject []byte, block *types.Block, params sd
 	return payload, nil
 }
 
-// StateTrieAt returns a state trie object payload at the specified blockheight
-// This operation cannot be performed back past the point of db pruning; it requires an archival node for historical data
-func (sds *Service) StateTrieAt(blockNumber uint64, params sd.Params) (*sd.Payload, error) {
-	currentBlock, err := sds.lvlDBReader.GetBlockByNumber(blockNumber)
-	if err != nil {
-		return nil, err
-	}
-	logrus.Infof("sending state trie at block %d", blockNumber)
-
-	// compute leaf paths of watched addresses in the params
-	params.ComputeWatchedAddressesLeafPaths()
-
-	return sds.processStateTrie(currentBlock, params)
-}
-
-func (sds *Service) processStateTrie(block *types.Block, params sd.Params) (*sd.Payload, error) {
-	stateNodes, err := sds.Builder.BuildStateTrieObject(block)
-	if err != nil {
-		return nil, err
-	}
-	stateTrieRlp, err := rlp.EncodeToBytes(&stateNodes)
-	if err != nil {
-		return nil, err
-	}
-	logrus.Infof("state trie object at block %d is %d bytes in length", block.Number().Uint64(), len(stateTrieRlp))
-	return sds.newPayload(stateTrieRlp, block, params)
-}
-
 // Start is used to begin the service
 func (sds *Service) Start() error {
 	logrus.Info("starting statediff service")
@@ -461,11 +431,11 @@ func (sds *Service) writeStateDiff(block *types.Block, parentRoot common.Hash, p
 		return err
 	}
 	// defer handling of commit/rollback for any return case
-	output := func(node sdtypes.StateNode) error {
+	output := func(node sdtypes.StateLeafNode) error {
 		return sds.indexer.PushStateNode(tx, node, block.Hash().String())
 	}
-	codeOutput := func(c sdtypes.CodeAndCodeHash) error {
-		return sds.indexer.PushCodeAndCodeHash(tx, c)
+	codeOutput := func(c sdtypes.IPLD) error {
+		return sds.indexer.PushIPLD(tx, c)
 	}
 	prom.SetTimeMetric(prom.T_BLOCK_PROCESSING, time.Now().Sub(t))
 	t = time.Now()

@@ -50,12 +50,10 @@ func setupPreRunRanges() []sd.RangeRequest {
 		return nil
 	}
 	preRunParams := statediff.Params{
-		IntermediateStateNodes:   viper.GetBool("prerun.params.intermediateStateNodes"),
-		IntermediateStorageNodes: viper.GetBool("prerun.params.intermediateStorageNodes"),
-		IncludeBlock:             viper.GetBool("prerun.params.includeBlock"),
-		IncludeReceipts:          viper.GetBool("prerun.params.includeReceipts"),
-		IncludeTD:                viper.GetBool("prerun.params.includeTD"),
-		IncludeCode:              viper.GetBool("prerun.params.includeCode"),
+		IncludeBlock:    viper.GetBool("prerun.params.includeBlock"),
+		IncludeReceipts: viper.GetBool("prerun.params.includeReceipts"),
+		IncludeTD:       viper.GetBool("prerun.params.includeTD"),
+		IncludeCode:     viper.GetBool("prerun.params.includeCode"),
 	}
 	var addrStrs []string
 	viper.UnmarshalKey("prerun.params.watchedAddresses", &addrStrs)

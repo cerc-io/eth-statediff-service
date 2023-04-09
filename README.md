@@ -61,8 +61,6 @@ An example config file:
 
     # statediffing params for prerun
     [prerun.params]
-        intermediateStateNodes   = true # PRERUN_INTERMEDIATE_STATE_NODES
-        intermediateStorageNodes = true # PRERUN_INTERMEDIATE_STORAGE_NODES
         includeBlock             = true # PRERUN_INCLUDE_BLOCK
         includeReceipts          = true # PRERUN_INCLUDE_RECEIPTS
         includeTD                = true # PRERUN_INCLUDE_TD
