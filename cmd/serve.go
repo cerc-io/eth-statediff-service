@@ -22,7 +22,6 @@ import (
 	"os/signal"
 	"runtime"
 	"sync"
-	"syscall"
 
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/sirupsen/logrus"
@@ -114,7 +113,7 @@ func serve() {
 
 	// clean shutdown
 	shutdown := make(chan os.Signal)
-	signal.Notify(shutdown, syscall.SIGINT)
+	signal.Notify(shutdown, os.Interrupt)
 	<-shutdown
 	logWithCommand.Info("Received interrupt signal, shutting down")
 	statediffService.Stop()
