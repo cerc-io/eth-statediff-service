@@ -20,8 +20,6 @@
         [0, 1000]
     ]
     [prerun.params]
-        intermediateStateNodes = true
-        intermediateStorageNodes = true
         includeBlock = true
         includeReceipts = true
         includeTD = true

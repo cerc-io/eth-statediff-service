@@ -17,8 +17,6 @@
     only = true
     ranges = []
     [prerun.params]
-        intermediateStateNodes = true
-        intermediateStorageNodes = true
         includeBlock = true
         includeReceipts = true
         includeTD = true
