@@ -19,9 +19,7 @@ package statediff_test
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"math/big"
-	"os"
 	"sort"
 	"testing"
 
@@ -497,13 +495,6 @@ var (
 		[]byte{},
 	})
 )
-
-func init() {
-	if os.Getenv("MODE") != "statediff" {
-		fmt.Println("Skipping statediff test")
-		os.Exit(0)
-	}
-}
 
 func TestBuilder(t *testing.T) {
 	blocks, chain := test_helpers.MakeChain(3, test_helpers.Genesis, test_helpers.TestChainGen)
