@@ -19,7 +19,7 @@ ARG CONFIG_FILE="./environments/config.toml"
 ARG EXPOSE_PORT=8545
 
 RUN adduser -Du 5000 $USER adm
-RUN adduser $USER adm; apk --no-cache add sudo; echo '%adm ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+RUN adduser $USER adm; apk --no-cache add sudo bash; echo '%adm ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 WORKDIR /app
 RUN chown $USER /app
