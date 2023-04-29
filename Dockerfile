@@ -14,22 +14,18 @@ RUN GO111MODULE=on GCO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldfl
 # app container
 FROM alpine
 
-ARG USER="vdm"
 ARG CONFIG_FILE="./environments/config.toml"
 ARG EXPOSE_PORT=8545
 
-RUN adduser -Du 5000 $USER adm
-RUN adduser $USER adm; apk --no-cache add sudo bash; echo '%adm ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+RUN apk --no-cache add su-exec bash
 
 WORKDIR /app
-RUN chown $USER /app
-USER $USER
 
 # chown first so dir is writable
 # note: using $USER is merged, but not in the stable release yet
-COPY --chown=5000:5000 --from=builder /go/src/github.com/cerc-io/eth-statediff-service/$CONFIG_FILE config.toml
-COPY --chown=5000:5000 --from=builder /go/src/github.com/cerc-io/eth-statediff-service/startup_script.sh .
-COPY --chown=5000:5000 --from=builder /go/src/github.com/cerc-io/eth-statediff-service/environments environments
+COPY --from=builder /go/src/github.com/cerc-io/eth-statediff-service/$CONFIG_FILE config.toml
+COPY --from=builder /go/src/github.com/cerc-io/eth-statediff-service/startup_script.sh .
+COPY --from=builder /go/src/github.com/cerc-io/eth-statediff-service/environments environments
 
 # keep binaries immutable
 COPY --from=builder /go/src/github.com/cerc-io/eth-statediff-service/eth-statediff-service eth-statediff-service
