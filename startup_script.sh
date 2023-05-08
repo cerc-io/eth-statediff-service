@@ -40,9 +40,10 @@ else
 fi
 STOP_TIME=`date -u +"%Y-%m-%dT%H:%M:%SZ"`
 
-if [ $rc -eq 0 ] && [ "$PRERUN_ONLY" == "true" ] && [ ! -z "$PRERUN_RANGE_START" ] && [ ! -z "$PRERUN_RANGE_STOP" ] && [ ! -z "$DATABASE_FILE_CSV_DIR" ] && [ "$DATABASE_FILE_MODE" == "csv" ]; then
+if [ $rc -eq 0 ] && [ "$VDB_COMMAND" == "serve" ] && [ "$PRERUN_ONLY" == "true" ] && [ ! -z "$PRERUN_RANGE_START" ] && [ ! -z "$PRERUN_RANGE_STOP" ] && [ ! -z "$DATABASE_FILE_CSV_DIR" ] && [ "$DATABASE_FILE_MODE" == "csv" ]; then
   cat >metadata.json <<EOF
 {
+  "type": "statediff",
   "range": { "start": $PRERUN_RANGE_START, "stop": $PRERUN_RANGE_STOP },
   "nodeId": "$ETH_NODE_ID",
   "genesisBlock": "$ETH_GENESIS_BLOCK",
