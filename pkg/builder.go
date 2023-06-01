@@ -84,10 +84,10 @@ func (sdb *builder) WriteStateDiffObject(args sd.Args, params sd.Params, output 
 	}
 
 	// Split old and new tries into corresponding subtrie iterators
-	oldIters1 := iter.SubtrieIterators(oldTrie, sdb.numWorkers)
-	oldIters2 := iter.SubtrieIterators(oldTrie, sdb.numWorkers)
-	newIters1 := iter.SubtrieIterators(newTrie, sdb.numWorkers)
-	newIters2 := iter.SubtrieIterators(newTrie, sdb.numWorkers)
+	oldIters1 := iter.SubtrieIterators(oldTrie.NodeIterator, sdb.numWorkers)
+	oldIters2 := iter.SubtrieIterators(oldTrie.NodeIterator, sdb.numWorkers)
+	newIters1 := iter.SubtrieIterators(newTrie.NodeIterator, sdb.numWorkers)
+	newIters2 := iter.SubtrieIterators(newTrie.NodeIterator, sdb.numWorkers)
 
 	// Create iterators ahead of time to avoid race condition in state.Trie access
 	// We do two state iterations per subtrie: one for new/updated nodes,
@@ -115,7 +115,7 @@ func (sdb *builder) WriteStateDiffObject(args sd.Args, params sd.Params, output 
 				defer wg.Done()
 				var err error
 				logger := log.New("hash", args.BlockHash.Hex(), "number", args.BlockNumber)
-				err = sdb.BuildStateDiffWithIntermediateStateNodes(iterPairs[worker], params, nodeSender, ipldSender, logger)
+				err = sdb.BuildStateDiffWithIntermediateStateNodes(iterPairs[worker], params, nodeSender, ipldSender, logger, nil)
 				if err != nil {
 					logrus.Errorf("buildStateDiff error for worker %d, params %+v", worker, params)
 				}
