@@ -127,4 +127,4 @@ require (
 	lukechampine.com/blake3 v1.1.6 // indirect
 )
 
-replace github.com/ethereum/go-ethereum v1.11.6 => github.com/cerc-io/go-ethereum v1.11.6-statediff-5.0.6
+replace github.com/ethereum/go-ethereum v1.11.6 => github.com/cerc-io/go-ethereum v1.11.6-statediff-5.0.7
