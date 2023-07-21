@@ -28,7 +28,7 @@ jobs:
       - name: Tag docker image TAG
         run: docker tag git.vdb.to/cerc-io/eth-statediff-service/eth-statediff-service:${{github.event.inputs.cercContainerTag}} git.vdb.to/cerc-io/eth-statediff-service/eth-statediff-service:latest
       - name: Docker Login
-        run: echo ${{ secrets.GITEA_TOKEN }} | docker login https://git.vdb.to -u cerccicd --password-stdin
+        run: echo ${{ secrets.GITEA_PUBLISH_TOKEN }} | docker login https://git.vdb.to -u cerccicd --password-stdin
       - name: Docker Push Release Tag
         run: docker push git.vdb.to/cerc-io/eth-statediff-service/eth-statediff-service:${{github.event.inputs.giteaPublishTag}}
       - name: Docker Push LATEST Tag
