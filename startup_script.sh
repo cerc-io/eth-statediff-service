@@ -10,8 +10,8 @@ fi
 # Check the database variables are set
 test "$VDB_COMMAND"
 
-# docker must be run in privilaged mode for mounts to work
-echo "Setting up /app/geth-rw overlayed /app/geth-ro"
+# docker must be run in privileged mode for mounts to work
+echo "Setting up /app/geth-rw overlayed onto /app/geth-ro"
 mkdir -p /tmp/overlay
 mount -t tmpfs tmpfs /tmp/overlay
 mkdir -p /tmp/overlay/upper
@@ -31,8 +31,8 @@ fi
 
 START_TIME=`date -u +"%Y-%m-%dT%H:%M:%SZ"`
 echo "Running the statediff service" && \
-if [[ ! -z "$LOG_FILE_PATH" ]]; then
-  $SETUID /app/eth-statediff-service "$VDB_COMMAND" --config=/app/config.toml $* |& $SETUID tee ${LOG_FILE_PATH}.console
+if [[ ! -z "$LOG_FILE" ]]; then
+  $SETUID /app/eth-statediff-service "$VDB_COMMAND" --config=/app/config.toml $* |& $SETUID tee ${LOG_FILE}.console
   rc=$?
 else
   $SETUID /app/eth-statediff-service "$VDB_COMMAND" --config=/app/config.toml $*

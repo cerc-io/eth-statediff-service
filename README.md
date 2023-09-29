@@ -1,130 +1,26 @@
 # eth-statediff-service
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/vulcanize/eth-statediff-service)](https://goreportcard.com/report/github.com/vulcanize/eth-statediff-service)
+[![Go Report Card](https://goreportcard.com/badge/github.com/cerc-io/eth-statediff-service)](https://goreportcard.com/report/github.com/cerc-io/eth-statediff-service)
 
->> standalone statediffing service on top of LevelDB
-
-Purpose:
-
-Stand up a statediffing service directly on top of a go-ethereum LevelDB instance.
+A standalone statediffing service which runs directly on top of a `go-ethereum` LevelDB instance.
 This service can serve historical state data over the same rpc interface as
 [statediffing geth](https://github.com/cerc-io/go-ethereum) without needing to run a full node.
 
 ## Setup
 
-Build the binary:
+Configure access to the private Git server at `git.vdb.to`, then build the executable:
 
 ```bash
-make build
+go build .
 ```
 
 ## Configuration
 
-An example config file:
+See [./environments/example.toml](./environments/example.toml) for an annotated example config file.
 
-```toml
-[leveldb]
-    # LevelDB access mode <local | remote>
-    mode = "local"  # LVLDB_MODE
-
-    # in local mode
-    # LevelDB paths
-    path    = "/Users/user/Library/Ethereum/geth/chaindata"         # LVLDB_PATH
-    ancient = "/Users/user/Library/Ethereum/geth/chaindata/ancient" # LVLDB_ANCIENT
-
-    # in remote mode
-    # URL for leveldb-ethdb-rpc endpoint
-    url = "http://127.0.0.1:8082/"  # LVLDB_URL
-
-[server]
-    ipcPath  = ".ipc"           # SERVICE_IPC_PATH
-    httpPath = "127.0.0.1:8545" # SERVICE_HTTP_PATH
-
-[statediff]
-    prerun          = true  # STATEDIFF_PRERUN
-    serviceWorkers  = 1     # STATEDIFF_SERVICE_WORKERS
-    workerQueueSize = 1024  # STATEDIFF_WORKER_QUEUE_SIZE
-    trieWorkers     = 4     # STATEDIFF_TRIE_WORKERS
-
-[prerun]
-    only = false     # PRERUN_ONLY
-    parallel = true  # PRERUN_PARALLEL
-
-    # to perform prerun in a specific range (optional)
-    start = 0   # PRERUN_RANGE_START
-    stop  = 100 # PRERUN_RANGE_STOP
-
-    # to perform prerun over multiple ranges (optional)
-    ranges = [
-        [101, 1000]
-    ]
-
-    # statediffing params for prerun
-    [prerun.params]
-        includeBlock             = true # PRERUN_INCLUDE_BLOCK
-        includeReceipts          = true # PRERUN_INCLUDE_RECEIPTS
-        includeTD                = true # PRERUN_INCLUDE_TD
-        includeCode              = true # PRERUN_INCLUDE_CODE
-        watchedAddresses         = []
-
-[log]
-    file  = ""      # LOG_FILE_PATH
-    level = "info"  # LOG_LEVEL
-
-[database]
-    # output type <postgres | file | dump>
-    type = "postgres"
-
-    # with postgres type
-    # db credentials
-    name     = "vulcanize_test" # DATABASE_NAME
-    hostname = "localhost"      # DATABASE_HOSTNAME
-    port     = 5432             # DATABASE_PORT
-    user     = "vulcanize"      # DATABASE_USER
-    password = "..."            # DATABASE_PASSWORD
-    driver   = "sqlx"           # DATABASE_DRIVER_TYPE <sqlx | pgx>
-
-    # with file type
-    # file mode <sql | csv>
-    fileMode = "csv"    # DATABASE_FILE_MODE
-
-    # with SQL file mode
-    filePath = ""   # DATABASE_FILE_PATH
-
-    # with CSV file mode
-    fileCsvDir = "output_dir" # DATABASE_FILE_CSV_DIR
-
-    # with dump type
-    # <stdout | stderr | discard>
-    dumpDestination = ""    # DATABASE_DUMP_DST
-
-[cache]
-    database = 1024 # DB_CACHE_SIZE_MB
-    trie     = 1024 # TRIE_CACHE_SIZE_MB
-
-[prom]
-    # prometheus metrics
-    metrics  = true         # PROM_METRICS
-    http     = true         # PROM_HTTP
-    httpAddr = "localhost"  # PROM_HTTP_ADDR
-    httpPort = "8889"       # PROM_HTTP_PORT
-    dbStats = true          # PROM_DB_STATS
-
-[ethereum]
-    # node info
-    nodeID       = ""                       # ETH_NODE_ID
-    clientName   = "eth-statediff-service"  # ETH_CLIENT_NAME
-    networkID    = 1                        # ETH_NETWORK_ID
-    chainID      = 1                        # ETH_CHAIN_ID
-    genesisBlock = "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3" # ETH_GENESIS_BLOCK
-
-    # path to custom chain config file (optional)
-    # keep chainID same as that in chain config file
-    chainConfig  = "./chain.json"           # ETH_CHAIN_CONFIG
-
-[debug]
-    pprof = false                           # DEBUG_PPROF
-```
+> **Note:** previous versions of this service used different variable names. To update, change the following:
+> * `LVLDB_MODE`, `LVLDB_PATH`, `LVLDB_ANCIENT`, `LVLDB_URL` => `LEVELDB_*`
+> * `LOG_FILE_PATH` => `LOG_FILE`
 
 ### Local Setup
 
@@ -180,14 +76,27 @@ An example config file:
     Example:
 
     ```bash
-    curl -X POST -H 'Content-Type: application/json' --data '{"jsonrpc":"2.0","method":"statediff_writeStateDiffsInRange","params":['"$BEGIN"', '"$END"', {"intermediateStateNodes":true,"intermediateStorageNodes":true,"includeBlock":true,"includeReceipts":true,"includeTD":true,"includeCode":true}],"id":1}' "$HOST":"$PORT"
+    curl -X POST -H 'Content-Type: application/json' --data '{
+      "jsonrpc": "2.0",
+      "method": "statediff_writeStateDiffsInRange",
+      "params": [0, 1, {
+          "ncludeBlock": true,
+          "includeReceipts": true,
+          "includeTD": true,
+          "includeCode": true
+        }
+      ],
+      "id": 1
+    }' "$HOST":"$PORT"
     ```
 
 * Prerun:
-    * The process can be configured locally with sets of ranges to process as a "prerun" to processing directed by the server endpoints.
-    * This is done by turning "prerun" on in the config (`statediff.prerun = true`) and defining ranges and params in the
-`prerun` section of the config.
-    * Set the range using `prerun.start` and `prerun.stop`. Use `prerun.ranges` if prerun on more than one range is required.
+    * The process can be configured locally with sets of ranges to process as a "prerun" to
+      processing directed by the server endpoints.
+    * This is done by turning "prerun" on in the config (`statediff.prerun = true`) and defining
+ranges and params in the `prerun` section of the config.
+    * Set the range using `prerun.start` and `prerun.stop`. Use `prerun.ranges` if prerun on more
+      than one range is required.
 
 * NOTE: Currently, `params.includeTD` must be set to / passed as `true`.
 
@@ -216,7 +125,8 @@ An example config file:
 
 ## Import output data in file mode into a database
 
-* When `eth-statediff-service` is run in file mode (`database.type`) the output is in form of a SQL file or multiple CSV files.
+* When `eth-statediff-service` is run in file mode (`database.type`: `file`) the output is in form of a SQL
+  file or multiple CSV files.
 
 ### SQL
 

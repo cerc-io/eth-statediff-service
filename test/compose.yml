@@ -1,0 +1,23 @@
+services:
+  migrations:
+    restart: on-failure
+    depends_on:
+      - ipld-eth-db
+    image: git.vdb.to/cerc-io/ipld-eth-db/ipld-eth-db:v5.0.5-alpha
+    environment:
+      DATABASE_USER: "vdbm"
+      DATABASE_NAME: "cerc_testing"
+      DATABASE_PASSWORD: "password"
+      DATABASE_HOSTNAME: "ipld-eth-db"
+      DATABASE_PORT: 5432
+
+  ipld-eth-db:
+    image: timescale/timescaledb:latest-pg14
+    restart: always
+    command: ["postgres", "-c", "log_statement=all"]
+    environment:
+      POSTGRES_USER: "vdbm"
+      POSTGRES_DB: "cerc_testing"
+      POSTGRES_PASSWORD: "password"
+    ports:
+      - 127.0.0.1:8077:5432

@@ -19,7 +19,7 @@ package prom
 import (
 	"github.com/prometheus/client_golang/prometheus"
 
-	dbmetrics "github.com/ethereum/go-ethereum/statediff/indexer/database/metrics"
+	dbmetrics "github.com/cerc-io/plugeth-statediff/indexer/database/metrics"
 )
 
 const (

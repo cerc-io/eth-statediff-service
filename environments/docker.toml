@@ -1,36 +1,23 @@
 [leveldb]
-    # LevelDB access mode <local | remote>
-    mode = "local"  # LEVELDB_MODE
-
-    # LevelDB paths (local mode)
-    path    = "/Users/user/Library/Ethereum/geth/chaindata"         # LEVELDB_PATH
-    ancient = "/Users/user/Library/Ethereum/geth/chaindata/ancient" # LEVELDB_ANCIENT
-
-    # URL for leveldb-ethdb-rpc endpoint (remote mode)
-    url = "http://127.0.0.1:8082/"  # LEVELDB_URL
+    mode    = "local"                          # LEVELDB_MODE
+    path    = "/app/geth-rw/chaindata"         # LEVELDB_PATH
+    ancient = "/app/geth-rw/chaindata/ancient" # LEVELDB_ANCIENT
+    url     = "http://127.0.0.1:8082/"         # LEVELDB_URL
 
 [server]
     ipcPath  = ".ipc"           # SERVICE_IPC_PATH
-    httpPath = "127.0.0.1:8545" # SERVICE_HTTP_PATH
+    httpPath = "0.0.0.0:8545" # SERVICE_HTTP_PATH
 
 [statediff]
     prerun          = true  # STATEDIFF_PRERUN
     serviceWorkers  = 1     # STATEDIFF_SERVICE_WORKERS
     workerQueueSize = 1024  # STATEDIFF_WORKER_QUEUE_SIZE
-    trieWorkers     = 4     # STATEDIFF_TRIE_WORKERS
+    trieWorkers     = 16     # STATEDIFF_TRIE_WORKERS
 
 [prerun]
-    only = false     # PRERUN_ONLY
+    only = true     # PRERUN_ONLY
     parallel = true  # PRERUN_PARALLEL
-
-    # to perform prerun in a specific range (optional)
-    start = 0   # PRERUN_RANGE_START
-    stop  = 100 # PRERUN_RANGE_STOP
-
-    # to perform prerun over multiple ranges (optional)
-    ranges = [
-        [101, 1000]
-    ]
+    ranges = []
 
     # statediffing params for prerun
     [prerun.params]
@@ -43,31 +30,27 @@
 [log]
     # Leave empty to output to stdout
     file  = ""      # LOG_FILE
-    level = "info"  # LOG_LEVEL
+    level = "debug" # LOG_LEVEL
 
 [database]
     # output type <postgres | file | dump>
     type = "postgres"
-
-    # with postgres type
-    # db credentials
-    name     = "vulcanize_test" # DATABASE_NAME
-    hostname = "localhost"      # DATABASE_HOSTNAME
-    port     = 5432             # DATABASE_PORT
-    user     = "vulcanize"      # DATABASE_USER
-    password = "..."            # DATABASE_PASSWORD
-    # SQL backend to use: <sqlx | pgx>
-    driver   = "sqlx"           # DATABASE_DRIVER_TYPE
+    name     = ""      # DATABASE_NAME
+    hostname = ""      # DATABASE_HOSTNAME
+    port     = 5432    # DATABASE_PORT
+    user     = ""      # DATABASE_USER
+    password = ""      # DATABASE_PASSWORD
+    driver   = ""      # DATABASE_DRIVER_TYPE
 
     # with file type
     # file mode <sql | csv>
-    fileMode = "csv"    # DATABASE_FILE_MODE
+    fileMode = "csv"   # DATABASE_FILE_MODE
 
     # with SQL file mode
     filePath = ""   # DATABASE_FILE_PATH
 
     # with CSV file mode
-    fileCsvDir = "output_dir" # DATABASE_FILE_CSV_DIR
+    fileCsvDir = "" # DATABASE_FILE_CSV_DIR
 
     # with dump type
     # <stdout | stderr | discard>
@@ -76,7 +59,7 @@
 [cache]
     # settings for geth internal caches
     database = 1024 # DB_CACHE_SIZE_MB
-    trie     = 1024 # TRIE_CACHE_SIZE_MB
+    trie     = 4096 # TRIE_CACHE_SIZE_MB
 
 [prom]
     # prometheus metrics
@@ -92,11 +75,8 @@
     clientName   = "eth-statediff-service"  # ETH_CLIENT_NAME
     networkID    = 1                        # ETH_NETWORK_ID
     chainID      = 1                        # ETH_CHAIN_ID
-    genesisBlock = "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3" # ETH_GENESIS_BLOCK
-
-    # Path to custom chain config file (optional)
-    # chainID should match that in this config file
-    chainConfig  = "chain.json"           # ETH_CHAIN_CONFIG
+    genesisBlock = ""                       # ETH_GENESIS_BLOCK
+    chainConfig  = ""                       # ETH_CHAIN_CONFIG
 
 [debug]
     pprof = false                           # DEBUG_PPROF

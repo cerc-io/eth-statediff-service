@@ -1,0 +1,28 @@
+name: Publish Docker image
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  docker-build:
+    name: Run docker build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - id: vars
+        name: Output SHA and version tag
+        run: |
+          echo "sha=${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
+          echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      - name: Build and tag image
+        run: |
+          docker build . \
+          -t cerc-io/eth-statediff-service \
+          -t git.vdb.to/cerc-io/eth-statediff-service/eth-statediff-service:${{steps.vars.outputs.sha}} \
+          -t git.vdb.to/cerc-io/eth-statediff-service/eth-statediff-service:${{steps.vars.outputs.tag}}
+      - name: Push image tags
+        run: |
+          echo ${{ secrets.GITEA_PUBLISH_TOKEN }} | docker login https://git.vdb.to -u cerccicd --password-stdin
+          docker push git.vdb.to/cerc-io/eth-statediff-service/eth-statediff-service:${{steps.vars.outputs.sha}}
+          docker push git.vdb.to/cerc-io/eth-statediff-service/eth-statediff-service:${{steps.vars.outputs.tag}}

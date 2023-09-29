@@ -1,0 +1,37 @@
+# Config file for service in compose.yml
+
+[leveldb]
+    mode = "local"
+    url = "http://127.0.0.1:8082/"
+
+[server]
+    ipcPath = ".ipc"
+    httpPath = "0.0.0.0:8545"
+
+[statediff]
+    serviceWorkers = 1
+    workerQueueSize = 1024
+    trieWorkers = 4
+
+[log]
+    level = "debug"
+
+[database]
+    name            = "cerc_testing"
+    hostname        = "localhost"
+    port            = 8077
+    user            = "vdbm"
+    password        = "password"
+    type            = "postgres"
+    driver          = "sqlx"
+
+[cache]
+    database = 1024
+    trie = 1024
+
+[ethereum]
+    chainConfig = "test/ci-chain.json"
+    nodeID = "test-node"
+    clientName = "test-eth-statediff-service"
+    networkID = "test-network"
+    chainID = 41337

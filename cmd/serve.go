@@ -28,7 +28,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	sd "github.com/cerc-io/eth-statediff-service/pkg"
+	pkg "github.com/cerc-io/eth-statediff-service/pkg"
 	srpc "github.com/cerc-io/eth-statediff-service/pkg/rpc"
 )
 
@@ -60,22 +60,14 @@ func maxParallelism() int {
 }
 
 func serve() {
-	logWithCommand.Info("Running eth-statediff-service serve command")
-	logWithCommand.Infof("Parallelism: %d", maxParallelism())
+	logWithCommand.Debug("Running eth-statediff-service serve command")
+	logWithCommand.Debugf("Parallelism: %d", maxParallelism())
 
 	reader, chainConf, nodeInfo := instantiateLevelDBReader()
 
-	// report latest block info
-	header, err := reader.GetLatestHeader()
-	if err != nil {
-		logWithCommand.Fatalf("Unable to determine latest header height and hash: %s", err.Error())
-	}
-	if header.Number == nil {
-		logWithCommand.Fatal("Latest header found in levelDB has a nil block height")
-	}
-	logWithCommand.Infof("Latest block found in the levelDB\r\nheight: %s, hash: %s", header.Number.String(), header.Hash().Hex())
+	reportLatestBlock(reader)
 
-	statediffService, err := createStateDiffService(reader, chainConf, nodeInfo)
+	service, err := createStateDiffService(reader, chainConf, nodeInfo)
 	if err != nil {
 		logWithCommand.Fatal(err)
 	}
@@ -93,48 +85,45 @@ func serve() {
 	// short circuit if we only want to perform prerun
 	if viper.GetBool("prerun.only") {
 		parallel := viper.GetBool("prerun.parallel")
-		if err := statediffService.Run(nil, parallel); err != nil {
-			logWithCommand.Fatal("Unable to perform prerun: %v", err)
+		if err := service.Run(nil, parallel); err != nil {
+			logWithCommand.Fatalf("Unable to perform prerun: %v", err)
 		}
 		return
 	}
 
 	// start service and servers
-	logWithCommand.Info("Starting statediff service")
-	wg := new(sync.WaitGroup)
-	if err := statediffService.Loop(wg); err != nil {
+	var wg sync.WaitGroup
+	if err := service.Loop(&wg); err != nil {
 		logWithCommand.Fatalf("unable to start statediff service: %v", err)
 	}
-	logWithCommand.Info("Starting RPC servers")
-	if err := startServers(statediffService); err != nil {
+
+	if err := startServers(service); err != nil {
 		logWithCommand.Fatal(err)
 	}
-	logWithCommand.Info("RPC servers successfully spun up; awaiting requests")
+	logWithCommand.Debug("RPC servers successfully spun up; awaiting requests")
 
 	// clean shutdown
 	shutdown := make(chan os.Signal)
 	signal.Notify(shutdown, os.Interrupt)
 	<-shutdown
 	logWithCommand.Info("Received interrupt signal, shutting down")
-	statediffService.Stop()
+	service.Stop()
 	wg.Wait()
 }
 
-func startServers(serv sd.StateDiffService) error {
+func startServers(serv *pkg.Service) error {
 	ipcPath := viper.GetString("server.ipcPath")
 	httpPath := viper.GetString("server.httpPath")
 	if ipcPath == "" && httpPath == "" {
-		logWithCommand.Fatal("Need an ipc path and/or an http path")
+		logWithCommand.Fatal("Need an IPC path and/or an HTTP path")
 	}
 	if ipcPath != "" {
-		logWithCommand.Info("Starting up IPC server")
 		_, _, err := srpc.StartIPCEndpoint(ipcPath, serv.APIs())
 		if err != nil {
 			return err
 		}
 	}
 	if httpPath != "" {
-		logWithCommand.Info("Starting up HTTP server")
 		_, err := srpc.StartHTTPEndpoint(httpPath, serv.APIs(), []string{"statediff"}, nil, []string{"*"}, rpc.HTTPTimeouts{})
 		if err != nil {
 			return err

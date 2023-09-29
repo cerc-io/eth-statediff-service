@@ -56,23 +56,29 @@ type LvLDBReaderConfig struct {
 	DBCacheSize            int
 }
 
-// NewLvlDBReader creates a new Read using LevelDB
+// NewLvlDBReader creates a new Reader using LevelDB
 func NewLvlDBReader(conf LvLDBReaderConfig) (*LvlDBReader, error) {
 	var edb ethdb.Database
 	var err error
 
-	if conf.Mode == "local" {
-		kvdb, _ := rawdb.NewLevelDBDatabase(conf.Path, conf.DBCacheSize, 256, "eth-statediff-service", true)
-		edb, err = rawdb.NewDatabaseWithFreezer(kvdb, conf.AncientPath, "eth-statediff-service", true)
-	}
+	switch conf.Mode {
+	case "local":
+		edb, err = rawdb.NewLevelDBDatabase(conf.Path, conf.DBCacheSize, 256, "eth-statediff-service", true)
+		if err != nil {
+			return nil, err
+		}
 
-	if conf.Mode == "remote" {
+		edb, err = rawdb.NewDatabaseWithFreezer(edb, conf.AncientPath, "eth-statediff-service", true)
+		if err != nil {
+			return nil, err
+		}
+	case "remote":
 		edb, err = client.NewDatabaseClient(conf.Url)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	if err != nil {
-		return nil, err
-	}
 	return &LvlDBReader{
 		ethDB:       edb,
 		stateDB:     state.NewDatabaseWithConfig(edb, conf.TrieConfig),
@@ -84,11 +90,11 @@ func NewLvlDBReader(conf LvLDBReaderConfig) (*LvlDBReader, error) {
 func (ldr *LvlDBReader) GetBlockByHash(hash common.Hash) (*types.Block, error) {
 	height := rawdb.ReadHeaderNumber(ldr.ethDB, hash)
 	if height == nil {
-		return nil, fmt.Errorf("unable to read header height for header hash %s", hash.String())
+		return nil, fmt.Errorf("unable to read header height for header hash %s", hash)
 	}
 	block := rawdb.ReadBlock(ldr.ethDB, hash, *height)
 	if block == nil {
-		return nil, fmt.Errorf("unable to read block at height %d hash %s", *height, hash.String())
+		return nil, fmt.Errorf("unable to read block at height %d hash %s", *height, hash)
 	}
 	return block, nil
 }
@@ -97,7 +103,7 @@ func (ldr *LvlDBReader) GetBlockByNumber(number uint64) (*types.Block, error) {
 	hash := rawdb.ReadCanonicalHash(ldr.ethDB, number)
 	block := rawdb.ReadBlock(ldr.ethDB, hash, number)
 	if block == nil {
-		return nil, fmt.Errorf("unable to read block at height %d hash %s", number, hash.String())
+		return nil, fmt.Errorf("unable to read block at height %d hash %s", number, hash)
 	}
 	return block, nil
 }
@@ -106,11 +112,11 @@ func (ldr *LvlDBReader) GetBlockByNumber(number uint64) (*types.Block, error) {
 func (ldr *LvlDBReader) GetReceiptsByHash(hash common.Hash) (types.Receipts, error) {
 	number := rawdb.ReadHeaderNumber(ldr.ethDB, hash)
 	if number == nil {
-		return nil, fmt.Errorf("unable to read header height for header hash %s", hash.String())
+		return nil, fmt.Errorf("unable to read header height for header hash %s", hash)
 	}
 	receipts := rawdb.ReadReceipts(ldr.ethDB, hash, *number, ldr.chainConfig)
 	if receipts == nil {
-		return nil, fmt.Errorf("unable to read receipts at height %d hash %s", number, hash.String())
+		return nil, fmt.Errorf("unable to read receipts at height %d hash %s", number, hash)
 	}
 	return receipts, nil
 }
@@ -119,11 +125,11 @@ func (ldr *LvlDBReader) GetReceiptsByHash(hash common.Hash) (types.Receipts, err
 func (ldr *LvlDBReader) GetTdByHash(hash common.Hash) (*big.Int, error) {
 	number := rawdb.ReadHeaderNumber(ldr.ethDB, hash)
 	if number == nil {
-		return nil, fmt.Errorf("unable to read header height for header hash %s", hash.String())
+		return nil, fmt.Errorf("unable to read header height for header hash %s", hash)
 	}
 	td := rawdb.ReadTd(ldr.ethDB, hash, *number)
 	if td == nil {
-		return nil, fmt.Errorf("unable to read total difficulty at height %d hash %s", number, hash.String())
+		return nil, fmt.Errorf("unable to read total difficulty at height %d hash %s", number, hash)
 	}
 	return td, nil
 }

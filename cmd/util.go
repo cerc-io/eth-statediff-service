@@ -3,31 +3,32 @@ package cmd
 import (
 	"context"
 
+	statediff "github.com/cerc-io/plugeth-statediff"
+	"github.com/cerc-io/plugeth-statediff/indexer"
+	"github.com/cerc-io/plugeth-statediff/indexer/node"
+	"github.com/cerc-io/plugeth-statediff/indexer/shared"
+	"github.com/cerc-io/plugeth-statediff/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/statediff"
-	ind "github.com/ethereum/go-ethereum/statediff/indexer"
-	"github.com/ethereum/go-ethereum/statediff/indexer/node"
-	"github.com/ethereum/go-ethereum/statediff/indexer/shared"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/spf13/viper"
 
-	sd "github.com/cerc-io/eth-statediff-service/pkg"
+	pkg "github.com/cerc-io/eth-statediff-service/pkg"
 	"github.com/cerc-io/eth-statediff-service/pkg/prom"
 )
 
 type blockRange [2]uint64
 
-func createStateDiffService(lvlDBReader sd.Reader, chainConf *params.ChainConfig, nodeInfo node.Info) (sd.StateDiffService, error) {
+func createStateDiffService(lvlDBReader pkg.Reader, chainConf *params.ChainConfig, nodeInfo node.Info) (*pkg.Service, error) {
 	// create statediff service
-	logWithCommand.Info("Setting up database")
+	logWithCommand.Debug("Setting up database")
 	conf, err := getConfig(nodeInfo)
 	if err != nil {
 		logWithCommand.Fatal(err)
 	}
 
-	logWithCommand.Info("Creating statediff indexer")
-	db, indexer, err := ind.NewStateDiffIndexer(context.Background(), chainConf, nodeInfo, conf)
+	logWithCommand.Debug("Creating statediff indexer")
+	db, indexer, err := indexer.NewStateDiffIndexer(context.Background(), chainConf, nodeInfo, conf, true)
 	if err != nil {
 		logWithCommand.Fatal(err)
 	}
@@ -35,17 +36,17 @@ func createStateDiffService(lvlDBReader sd.Reader, chainConf *params.ChainConfig
 		prom.RegisterDBCollector(viper.GetString("database.name"), db)
 	}
 
-	logWithCommand.Info("Creating statediff service")
-	sdConf := sd.Config{
+	logWithCommand.Debug("Creating statediff service")
+	sdConf := pkg.ServiceConfig{
 		ServiceWorkers:  viper.GetUint("statediff.serviceWorkers"),
 		TrieWorkers:     viper.GetUint("statediff.trieWorkers"),
 		WorkerQueueSize: viper.GetUint("statediff.workerQueueSize"),
 		PreRuns:         setupPreRunRanges(),
 	}
-	return sd.NewStateDiffService(lvlDBReader, indexer, sdConf)
+	return pkg.NewStateDiffService(lvlDBReader, indexer, sdConf), nil
 }
 
-func setupPreRunRanges() []sd.RangeRequest {
+func setupPreRunRanges() []pkg.RangeRequest {
 	if !viper.GetBool("statediff.prerun") {
 		return nil
 	}
@@ -64,9 +65,9 @@ func setupPreRunRanges() []sd.RangeRequest {
 	preRunParams.WatchedAddresses = addrs
 	var rawRanges []blockRange
 	viper.UnmarshalKey("prerun.ranges", &rawRanges)
-	blockRanges := make([]sd.RangeRequest, len(rawRanges))
+	blockRanges := make([]pkg.RangeRequest, len(rawRanges))
 	for i, rawRange := range rawRanges {
-		blockRanges[i] = sd.RangeRequest{
+		blockRanges[i] = pkg.RangeRequest{
 			Start:  rawRange[0],
 			Stop:   rawRange[1],
 			Params: preRunParams,
@@ -75,7 +76,7 @@ func setupPreRunRanges() []sd.RangeRequest {
 	if viper.IsSet("prerun.start") && viper.IsSet("prerun.stop") {
 		hardStart := viper.GetInt("prerun.start")
 		hardStop := viper.GetInt("prerun.stop")
-		blockRanges = append(blockRanges, sd.RangeRequest{
+		blockRanges = append(blockRanges, pkg.RangeRequest{
 			Start:  uint64(hardStart),
 			Stop:   uint64(hardStop),
 			Params: preRunParams,
@@ -85,9 +86,9 @@ func setupPreRunRanges() []sd.RangeRequest {
 	return blockRanges
 }
 
-func instantiateLevelDBReader() (sd.Reader, *params.ChainConfig, node.Info) {
+func instantiateLevelDBReader() (pkg.Reader, *params.ChainConfig, node.Info) {
 	// load some necessary params
-	logWithCommand.Info("Loading statediff service parameters")
+	logWithCommand.Debug("Loading statediff service parameters")
 	mode := viper.GetString("leveldb.mode")
 	path := viper.GetString("leveldb.path")
 	ancientPath := viper.GetString("leveldb.ancient")
@@ -107,23 +108,15 @@ func instantiateLevelDBReader() (sd.Reader, *params.ChainConfig, node.Info) {
 
 	nodeInfo := getEthNodeInfo()
 
-	var chainConf *params.ChainConfig
-	var err error
 	chainConfigPath := viper.GetString("ethereum.chainConfig")
-
-	if chainConfigPath != "" {
-		chainConf, err = statediff.LoadConfig(chainConfigPath)
-	} else {
-		chainConf, err = statediff.ChainConfig(nodeInfo.ChainID)
-	}
-
+	chainConf, err := utils.LoadConfig(chainConfigPath)
 	if err != nil {
-		logWithCommand.Fatalf("Unable to instantiate chain config: %s", err.Error())
+		logWithCommand.Fatalf("Unable to instantiate chain config: %s", err)
 	}
 
 	// create LevelDB reader
-	logWithCommand.Info("Creating LevelDB reader")
-	readerConf := sd.LvLDBReaderConfig{
+	logWithCommand.Debug("Creating LevelDB reader")
+	readerConf := pkg.LvLDBReaderConfig{
 		TrieConfig: &trie.Config{
 			Cache:     viper.GetInt("cache.trie"),
 			Journal:   "",
@@ -136,9 +129,24 @@ func instantiateLevelDBReader() (sd.Reader, *params.ChainConfig, node.Info) {
 		Url:         url,
 		DBCacheSize: viper.GetInt("cache.database"),
 	}
-	reader, err := sd.NewLvlDBReader(readerConf)
+	reader, err := pkg.NewLvlDBReader(readerConf)
 	if err != nil {
-		logWithCommand.Fatalf("Unable to instantiate levelDB reader: %s", err.Error())
+		logWithCommand.Fatalf("Unable to instantiate levelDB reader: %s", err)
 	}
 	return reader, chainConf, nodeInfo
+}
+
+// report latest block info
+func reportLatestBlock(reader pkg.Reader) {
+	header, err := reader.GetLatestHeader()
+	if err != nil {
+		logWithCommand.Fatalf("Unable to determine latest header height and hash: %s", err.Error())
+	}
+	if header.Number == nil {
+		logWithCommand.Fatal("Latest header found in levelDB has a nil block height")
+	}
+	logWithCommand.
+		WithField("height", header.Number).
+		WithField("hash", header.Hash()).
+		Info("Latest block found in levelDB")
 }

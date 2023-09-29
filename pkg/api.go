@@ -18,7 +18,7 @@ package statediff
 import (
 	"context"
 
-	sd "github.com/ethereum/go-ethereum/statediff"
+	sd "github.com/cerc-io/plugeth-statediff"
 )
 
 // APIName is the namespace used for the state diffing service API
@@ -30,11 +30,11 @@ const APIVersion = "0.0.1"
 // PublicStateDiffAPI provides an RPC interface
 // that can be used to fetch historical diffs from LevelDB directly
 type PublicStateDiffAPI struct {
-	sds StateDiffService
+	sds *Service
 }
 
 // NewPublicStateDiffAPI creates an rpc interface for the underlying statediff service
-func NewPublicStateDiffAPI(sds StateDiffService) *PublicStateDiffAPI {
+func NewPublicStateDiffAPI(sds *Service) *PublicStateDiffAPI {
 	return &PublicStateDiffAPI{
 		sds: sds,
 	}

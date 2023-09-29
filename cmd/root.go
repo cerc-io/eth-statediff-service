@@ -23,13 +23,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cerc-io/plugeth-statediff/indexer/database/dump"
+	"github.com/cerc-io/plugeth-statediff/indexer/database/file"
+	"github.com/cerc-io/plugeth-statediff/indexer/database/sql/postgres"
+	"github.com/cerc-io/plugeth-statediff/indexer/interfaces"
+	"github.com/cerc-io/plugeth-statediff/indexer/node"
+	"github.com/cerc-io/plugeth-statediff/indexer/shared"
 	"github.com/ethereum/go-ethereum/cmd/utils"
-	"github.com/ethereum/go-ethereum/statediff/indexer/database/dump"
-	"github.com/ethereum/go-ethereum/statediff/indexer/database/file"
-	"github.com/ethereum/go-ethereum/statediff/indexer/database/sql/postgres"
-	"github.com/ethereum/go-ethereum/statediff/indexer/interfaces"
-	"github.com/ethereum/go-ethereum/statediff/indexer/node"
-	"github.com/ethereum/go-ethereum/statediff/indexer/shared"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -49,7 +49,6 @@ var rootCmd = &cobra.Command{
 }
 
 func Execute() {
-	log.Info("----- Starting vDB -----")
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatal(err)
 	}
@@ -122,11 +121,11 @@ func init() {
 	rootCmd.PersistentFlags().String("leveldb-url", "", "url to primary leveldb-ethdb-rpc server")
 
 	rootCmd.PersistentFlags().Bool("prerun", false, "turn on prerun of toml configured ranges")
-	rootCmd.PersistentFlags().Int("service-workers", 0, "number of range requests to process concurrently")
-	rootCmd.PersistentFlags().Int("trie-workers", 0, "number of workers to use for trie traversal and processing")
-	rootCmd.PersistentFlags().Int("worker-queue-size", 0, "size of the range request queue for service workers")
+	rootCmd.PersistentFlags().Int("service-workers", 1, "number of range requests to process concurrently")
+	rootCmd.PersistentFlags().Int("trie-workers", 1, "number of workers to use for trie traversal and processing")
+	rootCmd.PersistentFlags().Int("worker-queue-size", 1024, "size of the range request queue for service workers")
 
-	rootCmd.PersistentFlags().String("database-name", "vulcanize_public", "database name")
+	rootCmd.PersistentFlags().String("database-name", "cerc_public", "database name")
 	rootCmd.PersistentFlags().Int("database-port", 5432, "database port")
 	rootCmd.PersistentFlags().String("database-hostname", "localhost", "database hostname")
 	rootCmd.PersistentFlags().String("database-user", "", "database user")
@@ -300,7 +299,7 @@ func getConfig(nodeInfo node.Info) (interfaces.Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	logWithCommand.Infof("Configuring service for database type: %s", dbType)
+	logWithCommand.Debugf("Configuring service for database type: %s", dbType)
 	var indexerConfig interfaces.Config
 	switch dbType {
 	case shared.FILE:
@@ -340,7 +339,7 @@ func getConfig(nodeInfo node.Info) (interfaces.Config, error) {
 		case dump.STDOUT:
 			indexerConfig = dump.Config{Dump: os.Stderr}
 		case dump.DISCARD:
-			indexerConfig = dump.Config{Dump: dump.NewDiscardWriterCloser()}
+			indexerConfig = dump.Config{Dump: dump.Discard}
 		default:
 			return nil, fmt.Errorf("unrecognized dump destination: %s", dumpDst)
 		}
@@ -357,8 +356,6 @@ func getConfig(nodeInfo node.Info) (interfaces.Config, error) {
 			DatabaseName: viper.GetString("database.name"),
 			Username:     viper.GetString("database.user"),
 			Password:     viper.GetString("database.password"),
-			ID:           nodeInfo.ID,
-			ClientName:   nodeInfo.ClientName,
 			Driver:       driverType,
 		}
 		if viper.IsSet("database.maxIdle") {

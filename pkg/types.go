@@ -20,11 +20,17 @@
 package statediff
 
 import (
-	sd "github.com/ethereum/go-ethereum/statediff"
+	"fmt"
+
+	sd "github.com/cerc-io/plugeth-statediff"
 )
 
 // RangeRequest holds range quest work params
 type RangeRequest struct {
 	Start, Stop uint64
 	Params      sd.Params
+}
+
+func (r RangeRequest) String() string {
+	return fmt.Sprintf("[%d,%d]", r.Start, r.Stop)
 }

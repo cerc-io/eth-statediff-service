@@ -1,34 +1,36 @@
 FROM golang:1.19-alpine as builder
 
-RUN apk --update --no-cache add make git g++ linux-headers
+RUN apk add --no-cache git gcc musl-dev binutils-gold
 # DEBUG
 RUN apk add busybox-extras
 
-# Get and build ipfs-blockchain-watcher
-ADD . /go/src/github.com/cerc-io/eth-statediff-service
-#RUN git clone https://github.com/cerc-io/eth-statediff-service.git /go/src/github.com/vulcanize/eth-statediff-service
+WORKDIR /eth-statediff-service
 
-WORKDIR /go/src/github.com/cerc-io/eth-statediff-service
-RUN GO111MODULE=on GCO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags '-extldflags "-static"' -o eth-statediff-service .
+ARG GIT_VDBTO_TOKEN
 
-# app container
+COPY go.mod go.sum ./
+RUN if [ -n "$GIT_VDBTO_TOKEN" ]; then git config --global url."https://$GIT_VDBTO_TOKEN:@git.vdb.to/".insteadOf "https://git.vdb.to/"; fi && \
+    go mod download && \
+    rm -f ~/.gitconfig
+COPY . .
+
+RUN go build -ldflags '-extldflags "-static"' -o eth-statediff-service .
+
 FROM alpine
 
-ARG CONFIG_FILE="./environments/config.toml"
+ARG USER="vdbm"
 ARG EXPOSE_PORT=8545
+ARG CONFIG_FILE="./environments/docker.toml"
 
 RUN apk --no-cache add su-exec bash
 
 WORKDIR /app
 
-# chown first so dir is writable
-# note: using $USER is merged, but not in the stable release yet
-COPY --from=builder /go/src/github.com/cerc-io/eth-statediff-service/$CONFIG_FILE config.toml
-COPY --from=builder /go/src/github.com/cerc-io/eth-statediff-service/startup_script.sh .
-COPY --from=builder /go/src/github.com/cerc-io/eth-statediff-service/environments environments
+COPY --from=builder /eth-statediff-service/$CONFIG_FILE config.toml
+COPY --from=builder /eth-statediff-service/startup_script.sh .
 
 # keep binaries immutable
-COPY --from=builder /go/src/github.com/cerc-io/eth-statediff-service/eth-statediff-service eth-statediff-service
+COPY --from=builder /eth-statediff-service/eth-statediff-service eth-statediff-service
 
 EXPOSE $EXPOSE_PORT
 

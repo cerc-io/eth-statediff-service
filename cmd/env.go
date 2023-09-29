@@ -30,10 +30,10 @@ const (
 
 	DB_CACHE_SIZE_MB   = "DB_CACHE_SIZE_MB"
 	TRIE_CACHE_SIZE_MB = "TRIE_CACHE_SIZE_MB"
-	LVLDB_MODE         = "LVLDB_MODE"
-	LVLDB_PATH         = "LVLDB_PATH"
-	LVLDB_ANCIENT      = "LVLDB_ANCIENT"
-	LVLDB_URL          = "LVLDB_URL"
+	LEVELDB_MODE       = "LEVELDB_MODE"
+	LEVELDB_PATH       = "LEVELDB_PATH"
+	LEVELDB_ANCIENT    = "LEVELDB_ANCIENT"
+	LEVELDB_URL        = "LEVELDB_URL"
 
 	STATEDIFF_PRERUN            = "STATEDIFF_PRERUN"
 	STATEDIFF_TRIE_WORKERS      = "STATEDIFF_TRIE_WORKERS"
@@ -58,8 +58,8 @@ const (
 	PRERUN_INCLUDE_TD       = "PRERUN_INCLUDE_TD"
 	PRERUN_INCLUDE_CODE     = "PRERUN_INCLUDE_CODE"
 
-	LOG_LEVEL     = "LOG_LEVEL"
-	LOG_FILE_PATH = "LOG_FILE_PATH"
+	LOG_LEVEL = "LOG_LEVEL"
+	LOG_FILE  = "LOG_FILE"
 
 	DATABASE_NAME     = "DATABASE_NAME"
 	DATABASE_HOSTNAME = "DATABASE_HOSTNAME"
@@ -119,10 +119,10 @@ func init() {
 	viper.BindEnv("cache.database", DB_CACHE_SIZE_MB)
 	viper.BindEnv("cache.trie", TRIE_CACHE_SIZE_MB)
 
-	viper.BindEnv("leveldb.mode", LVLDB_MODE)
-	viper.BindEnv("leveldb.path", LVLDB_PATH)
-	viper.BindEnv("leveldb.ancient", LVLDB_ANCIENT)
-	viper.BindEnv("leveldb.url", LVLDB_URL)
+	viper.BindEnv("leveldb.mode", LEVELDB_MODE)
+	viper.BindEnv("leveldb.path", LEVELDB_PATH)
+	viper.BindEnv("leveldb.ancient", LEVELDB_ANCIENT)
+	viper.BindEnv("leveldb.url", LEVELDB_URL)
 
 	viper.BindEnv("prom.metrics", PROM_METRICS)
 	viper.BindEnv("prom.http", PROM_HTTP)
@@ -145,7 +145,7 @@ func init() {
 	viper.BindEnv("prerun.params.includeCode", PRERUN_INCLUDE_CODE)
 
 	viper.BindEnv("log.level", LOG_LEVEL)
-	viper.BindEnv("log.file", LOG_FILE_PATH)
+	viper.BindEnv("log.file", LOG_FILE)
 
 	viper.BindEnv("debug.pprof", DEBUG_PPROF)
 }

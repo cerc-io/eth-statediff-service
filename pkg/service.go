@@ -22,15 +22,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cerc-io/plugeth-statediff"
+	"github.com/cerc-io/plugeth-statediff/adapt"
+	"github.com/cerc-io/plugeth-statediff/indexer/interfaces"
+	sdtypes "github.com/cerc-io/plugeth-statediff/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/rpc"
-	sd "github.com/ethereum/go-ethereum/statediff"
-	"github.com/ethereum/go-ethereum/statediff/indexer/interfaces"
-	sdtypes "github.com/ethereum/go-ethereum/statediff/types"
 	"github.com/sirupsen/logrus"
 
 	"github.com/cerc-io/eth-statediff-service/pkg/prom"
@@ -38,33 +38,10 @@ import (
 
 const defaultQueueSize = 1024
 
-// StateDiffService is the state-diffing service interface
-type StateDiffService interface {
-	// Lifecycle Start() and Stop()
-	node.Lifecycle
-	// APIs and Protocols() interface for node service registration
-	APIs() []rpc.API
-	Protocols() []p2p.Protocol
-	// Loop is the main event loop for processing state diffs
-	Loop(wg *sync.WaitGroup) error
-	// Run is a one-off command to run on a predefined set of ranges
-	Run(ranges []RangeRequest, parallel bool) error
-	// StateDiffAt method to get state diff object at specific block
-	StateDiffAt(blockNumber uint64, params sd.Params) (*sd.Payload, error)
-	// StateDiffFor method to get state diff object at specific block
-	StateDiffFor(blockHash common.Hash, params sd.Params) (*sd.Payload, error)
-	// WriteStateDiffAt method to write state diff object directly to DB
-	WriteStateDiffAt(blockNumber uint64, params sd.Params) error
-	// WriteStateDiffFor method to get state trie object at specific block
-	WriteStateDiffFor(blockHash common.Hash, params sd.Params) error
-	// WriteStateDiffsInRange method to wrtie state diff objects within the range directly to the DB
-	WriteStateDiffsInRange(start, stop uint64, params sd.Params) error
-}
-
 // Service is the underlying struct for the state diffing service
 type Service struct {
 	// Used to build the state diff objects
-	Builder sd.Builder
+	builder statediff.Builder
 	// Used to read data from LevelDB
 	lvlDBReader Reader
 	// Used to signal shutdown of the service
@@ -80,22 +57,20 @@ type Service struct {
 }
 
 // NewStateDiffService creates a new Service
-func NewStateDiffService(lvlDBReader Reader, indexer interfaces.StateDiffIndexer, conf Config) (*Service, error) {
-	b, err := NewBuilder(lvlDBReader.StateDB(), conf.TrieWorkers)
-	if err != nil {
-		return nil, err
-	}
+func NewStateDiffService(lvlDBReader Reader, indexer interfaces.StateDiffIndexer, conf ServiceConfig) *Service {
+	builder := statediff.NewBuilder(adapt.GethStateView(lvlDBReader.StateDB()))
+	builder.SetSubtrieWorkers(conf.TrieWorkers)
 	if conf.WorkerQueueSize == 0 {
 		conf.WorkerQueueSize = defaultQueueSize
 	}
 	return &Service{
 		lvlDBReader: lvlDBReader,
-		Builder:     b,
+		builder:     builder,
 		indexer:     indexer,
 		workers:     conf.ServiceWorkers,
 		queue:       make(chan RangeRequest, conf.WorkerQueueSize),
 		preruns:     conf.PreRuns,
-	}, nil
+	}
 }
 
 // Protocols exports the services p2p protocols, this service has none
@@ -115,7 +90,7 @@ func (sds *Service) APIs() []rpc.API {
 	}
 }
 
-func segmentRange(workers, start, stop uint64, params sd.Params) []RangeRequest {
+func segmentRange(workers, start, stop uint64, params statediff.Params) []RangeRequest {
 	segmentSize := ((stop - start) + 1) / workers
 	remainder := ((stop - start) + 1) % workers
 	numOfSegments := workers
@@ -214,25 +189,24 @@ func (sds *Service) Loop(wg *sync.WaitGroup) error {
 			for {
 				select {
 				case blockRange := <-sds.queue:
-					logrus.Infof("service worker %d received range (%d, %d) off of work queue, beginning processing", id, blockRange.Start, blockRange.Stop)
+					log := logrus.WithField("range", blockRange).WithField("worker", id)
+					log.Debug("processing range")
 					prom.DecQueuedRanges()
 					for j := blockRange.Start; j <= blockRange.Stop; j++ {
 						if err := sds.WriteStateDiffAt(j, blockRange.Params); err != nil {
-							logrus.Errorf("service worker %d error writing statediff at height %d in range (%d, %d) : %v", id, j, blockRange.Start, blockRange.Stop, err)
+							log.Errorf("error writing statediff at block %d: %v", j, err)
 						}
 						select {
 						case <-sds.quitChan:
-							logrus.Infof("closing service worker %d\n"+
-								"working in range (%d, %d)\n"+
-								"last processed height: %d", id, blockRange.Start, blockRange.Stop, j)
+							log.Infof("closing service worker (last processed block: %d)", j)
 							return
 						default:
-							logrus.Infof("service worker %d finished processing statediff height %d in range (%d, %d)", id, j, blockRange.Start, blockRange.Stop)
+							log.Infof("Finished processing block %d", j)
 						}
 					}
-					logrus.Infof("service worker %d finished processing range (%d, %d)", id, blockRange.Start, blockRange.Stop)
+					log.Debugf("Finished processing range")
 				case <-sds.quitChan:
-					logrus.Infof("closing the statediff service loop worker %d", id)
+					logrus.Debugf("closing the statediff service loop worker %d", id)
 					return
 				}
 			}
@@ -249,7 +223,7 @@ func (sds *Service) Loop(wg *sync.WaitGroup) error {
 
 // StateDiffAt returns a state diff object payload at the specific blockheight
 // This operation cannot be performed back past the point of db pruning; it requires an archival node for historical data
-func (sds *Service) StateDiffAt(blockNumber uint64, params sd.Params) (*sd.Payload, error) {
+func (sds *Service) StateDiffAt(blockNumber uint64, params statediff.Params) (*statediff.Payload, error) {
 	currentBlock, err := sds.lvlDBReader.GetBlockByNumber(blockNumber)
 	if err != nil {
 		return nil, err
@@ -271,12 +245,12 @@ func (sds *Service) StateDiffAt(blockNumber uint64, params sd.Params) (*sd.Paylo
 
 // StateDiffFor returns a state diff object payload for the specific blockhash
 // This operation cannot be performed back past the point of db pruning; it requires an archival node for historical data
-func (sds *Service) StateDiffFor(blockHash common.Hash, params sd.Params) (*sd.Payload, error) {
+func (sds *Service) StateDiffFor(blockHash common.Hash, params statediff.Params) (*statediff.Payload, error) {
 	currentBlock, err := sds.lvlDBReader.GetBlockByHash(blockHash)
 	if err != nil {
 		return nil, err
 	}
-	logrus.Infof("sending state diff at block %s", blockHash.Hex())
+	logrus.Infof("sending state diff at block %s", blockHash)
 
 	// compute leaf paths of watched addresses in the params
 	params.ComputeWatchedAddressesLeafPaths()
@@ -292,8 +266,8 @@ func (sds *Service) StateDiffFor(blockHash common.Hash, params sd.Params) (*sd.P
 }
 
 // processStateDiff method builds the state diff payload from the current block, parent state root, and provided params
-func (sds *Service) processStateDiff(currentBlock *types.Block, parentRoot common.Hash, params sd.Params) (*sd.Payload, error) {
-	stateDiff, err := sds.Builder.BuildStateDiffObject(sd.Args{
+func (sds *Service) processStateDiff(currentBlock *types.Block, parentRoot common.Hash, params statediff.Params) (*statediff.Payload, error) {
+	stateDiff, err := sds.builder.BuildStateDiffObject(statediff.Args{
 		BlockHash:    currentBlock.Hash(),
 		BlockNumber:  currentBlock.Number(),
 		OldStateRoot: parentRoot,
@@ -310,8 +284,8 @@ func (sds *Service) processStateDiff(currentBlock *types.Block, parentRoot commo
 	return sds.newPayload(stateDiffRlp, currentBlock, params)
 }
 
-func (sds *Service) newPayload(stateObject []byte, block *types.Block, params sd.Params) (*sd.Payload, error) {
-	payload := &sd.Payload{
+func (sds *Service) newPayload(stateObject []byte, block *types.Block, params statediff.Params) (*statediff.Payload, error) {
+	payload := &statediff.Payload{
 		StateObjectRlp: stateObject,
 	}
 	if params.IncludeBlock {
@@ -358,7 +332,7 @@ func (sds *Service) Stop() error {
 // WriteStateDiffAt writes a state diff at the specific blockheight directly to the database
 // This operation cannot be performed back past the point of db pruning; it requires an archival node
 // for historical data
-func (sds *Service) WriteStateDiffAt(blockNumber uint64, params sd.Params) error {
+func (sds *Service) WriteStateDiffAt(blockNumber uint64, params statediff.Params) error {
 	logrus.Infof("Writing state diff at block %d", blockNumber)
 	t := time.Now()
 	currentBlock, err := sds.lvlDBReader.GetBlockByNumber(blockNumber)
@@ -383,8 +357,8 @@ func (sds *Service) WriteStateDiffAt(blockNumber uint64, params sd.Params) error
 // WriteStateDiffFor writes a state diff for the specific blockHash directly to the database
 // This operation cannot be performed back past the point of db pruning; it requires an archival node
 // for historical data
-func (sds *Service) WriteStateDiffFor(blockHash common.Hash, params sd.Params) error {
-	logrus.Infof("Writing state diff for block %s", blockHash.Hex())
+func (sds *Service) WriteStateDiffFor(blockHash common.Hash, params statediff.Params) error {
+	logrus.Infof("Writing state diff for block %s", blockHash)
 	t := time.Now()
 	currentBlock, err := sds.lvlDBReader.GetBlockByHash(blockHash)
 	if err != nil {
@@ -406,7 +380,7 @@ func (sds *Service) WriteStateDiffFor(blockHash common.Hash, params sd.Params) e
 }
 
 // Writes a state diff from the current block, parent state root, and provided params
-func (sds *Service) writeStateDiff(block *types.Block, parentRoot common.Hash, params sd.Params, t time.Time) error {
+func (sds *Service) writeStateDiff(block *types.Block, parentRoot common.Hash, params statediff.Params, t time.Time) error {
 	var totalDifficulty *big.Int
 	var receipts types.Receipts
 	var err error
@@ -439,20 +413,22 @@ func (sds *Service) writeStateDiff(block *types.Block, parentRoot common.Hash, p
 	}
 	prom.SetTimeMetric(prom.T_BLOCK_PROCESSING, time.Now().Sub(t))
 	t = time.Now()
-	err = sds.Builder.WriteStateDiffObject(sd.Args{
+	err = sds.builder.WriteStateDiff(statediff.Args{
 		NewStateRoot: block.Root(),
 		OldStateRoot: parentRoot,
+		BlockNumber:  block.Number(),
+		BlockHash:    block.Hash(),
 	}, params, output, codeOutput)
 	prom.SetTimeMetric(prom.T_STATE_PROCESSING, time.Now().Sub(t))
 	t = time.Now()
-	err = tx.Submit(err)
+	err = tx.Submit()
 	prom.SetLastProcessedHeight(height)
 	prom.SetTimeMetric(prom.T_POSTGRES_TX_COMMIT, time.Now().Sub(t))
 	return err
 }
 
 // WriteStateDiffsInRange adds a RangeRequest to the work queue
-func (sds *Service) WriteStateDiffsInRange(start, stop uint64, params sd.Params) error {
+func (sds *Service) WriteStateDiffsInRange(start, stop uint64, params statediff.Params) error {
 	if stop < start {
 		return fmt.Errorf("invalid block range (%d, %d): stop height must be greater or equal to start height", start, stop)
 	}
@@ -460,7 +436,7 @@ func (sds *Service) WriteStateDiffsInRange(start, stop uint64, params sd.Params)
 	select {
 	case sds.queue <- RangeRequest{Start: start, Stop: stop, Params: params}:
 		prom.IncQueuedRanges()
-		logrus.Infof("added range (%d, %d) to the worker queue", start, stop)
+		logrus.Infof("Added range (%d, %d) to the worker queue", start, stop)
 		return nil
 	case <-blocked.C:
 		return fmt.Errorf("unable to add range (%d, %d) to the worker queue", start, stop)

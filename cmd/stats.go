@@ -42,13 +42,5 @@ func stats() {
 	logWithCommand.Info("Running eth-statediff-service stats command")
 
 	reader, _, _ := instantiateLevelDBReader()
-
-	header, err := reader.GetLatestHeader()
-	if err != nil {
-		logWithCommand.Fatalf("Unable to determine latest header height and hash: %s", err.Error())
-	}
-	if header.Number == nil {
-		logWithCommand.Fatal("Latest header found in levelDB has a nil block height")
-	}
-	logWithCommand.Infof("Latest block found in the levelDB\r\nheight: %s, hash: %s", header.Number.String(), header.Hash().Hex())
+	reportLatestBlock(reader)
 }

@@ -1,0 +1,133 @@
+name: Tests
+
+on:
+  pull_request:
+    branches: '*'
+  push:
+    branches:
+      - main
+      - ci-test
+  workflow_call:
+
+# Needed until we can incorporate docker startup into the executor container
+env:
+  DOCKER_HOST: unix:///var/run/dind.sock
+
+jobs:
+  integration-tests:
+    name: Run integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version-file: go.mod
+          check-latest: true
+      - name: Run dockerd
+        run: |
+          dockerd -H $DOCKER_HOST --userland-proxy=false &
+          sleep 5
+      - name: Run DB container
+        run: docker compose -f test/compose.yml up --wait
+      - name: Configure Gitea access
+        env:
+          TOKEN: ${{ secrets.CICD_REPO_TOKEN }}
+        run: |
+          git config --global url."https://$TOKEN:@git.vdb.to/".insteadOf "https://git.vdb.to/"
+
+      - name: Build package
+        run: go build .
+      - name: Install test fixtures
+        uses: actions/checkout@v3
+        with:
+          repository: cerc-io/eth-testing
+          path: ./fixtures
+          ref: v0.3.1
+        # Run a sanity test against the fixture data
+        # Complete integration tests are TODO
+      - name: Run basic integration test
+        env:
+          DATABASE_TYPE: postgres
+          LEVELDB_PATH: ./fixtures/chaindata/_data/small
+          LEVELDB_ANCIENT: ./fixtures/chaindata/_data/small/ancient
+          LOG_FILE: ./server-log
+          ETH_GENESIS_BLOCK: "0x37cbb63c7150a7b60f2878433963ed8ba7e5f82fb2683ec7a945c974e1cf4e05"
+        timeout-minutes: 30
+        run: |
+          ./eth-statediff-service --config ./test/ci-config.toml serve &
+          sleep 10
+
+          ./scripts/request-range.sh 0 32 || (E=$?; cat $LOG_FILE; exit $E)
+
+          until grep "Finished processing block 32" $LOG_FILE
+          do sleep 1; done
+
+          count_results() {
+              query="select count(*) from $1;"
+              docker exec -e PGPASSWORD=password test-ipld-eth-db-1 \
+                  psql -tA cerc_testing -U vdbm -c "$query"
+          }
+          set -x
+          [[ "$(count_results eth.header_cids)" = 33 ]]
+          [[ "$(count_results eth.state_cids)" = 21 ]]
+          [[ "$(count_results eth.storage_cids)" = 18 ]]
+
+  compliance-test:
+    name: Run compliance tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          path: ./eth-statediff-service
+      - uses: actions/setup-go@v3
+        with:
+          go-version-file: ./eth-statediff-service/go.mod
+          check-latest: true
+      - name: Install test fixtures
+        uses: actions/checkout@v3
+        with:
+          repository: cerc-io/eth-testing
+          path: ./fixtures
+          ref: v0.3.1
+      - name: Configure Gitea access
+        env:
+          TOKEN: ${{ secrets.CICD_REPO_TOKEN }}
+        run: |
+          git config --global url."https://$TOKEN:@git.vdb.to/".insteadOf https://git.vdb.to/
+      - name: Build current version
+        working-directory: ./eth-statediff-service
+        run: go build -o ../service-current .
+
+      - name: Checkout canonical version
+        uses: actions/checkout@v3
+        with:
+          path: ./eth-statediff-service-canonical
+          ref: ${{ env.CANONICAL_VERSION }}
+      - name: Build canonical version
+        working-directory: ./eth-statediff-service-canonical
+        run: go build -o ../service-canonical .
+
+      - name: Run dockerd
+        run: |
+          dockerd -H $DOCKER_HOST --userland-proxy=false &
+          sleep 5
+      - name: Run DB container
+        working-directory: ./eth-statediff-service
+        run: docker compose -f test/compose.yml up --wait
+      - name: Compare statediff output
+        timeout-minutes: 10
+        env:
+          LEVELDB_PATH: ./fixtures/chaindata/_data/small2
+          LEVELDB_ANCIENT: ./fixtures/chaindata/_data/small2/ancient
+          ETH_GENESIS_BLOCK: "0x8a3c7cddacbd1ab4ec1b03805fa2a287f3a75e43d87f4f987fcc399f5c042614"
+          ETH_CHAIN_CONFIG: ./eth-statediff-service/test/ci-chain.json
+        run: |
+          until
+              ready_query='select max(version_id) from goose_db_version;'
+              version=$(docker exec -e PGPASSWORD=password test-ipld-eth-db-1 \
+                  psql -tA cerc_testing -U vdbm -c "$ready_query")
+              [[ "$version" -ge 18 ]]
+          do sleep 1; done
+
+          ./eth-statediff-service/scripts/compare-statediffs.sh \
+            ./service-canonical ./service-current
