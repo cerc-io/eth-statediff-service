@@ -48,18 +48,18 @@ jobs:
       - name: Run basic integration test
         env:
           DATABASE_TYPE: postgres
-          LEVELDB_PATH: ./fixtures/chaindata/_data/small
-          LEVELDB_ANCIENT: ./fixtures/chaindata/_data/small/ancient
+          LEVELDB_PATH: ./fixtures/chaindata/_data/small2
+          LEVELDB_ANCIENT: ./fixtures/chaindata/_data/small2/ancient
           LOG_FILE: ./server-log
-          ETH_GENESIS_BLOCK: "0x37cbb63c7150a7b60f2878433963ed8ba7e5f82fb2683ec7a945c974e1cf4e05"
-        timeout-minutes: 30
+          ETH_GENESIS_BLOCK: "0x8a3c7cddacbd1ab4ec1b03805fa2a287f3a75e43d87f4f987fcc399f5c042614"
+        timeout-minutes: 20
         run: |
           ./eth-statediff-service --config ./test/ci-config.toml serve &
           sleep 10
 
-          ./scripts/request-range.sh 0 32 || (E=$?; cat $LOG_FILE; exit $E)
+          ./scripts/request-range.sh 0 10 || (E=$?; cat $LOG_FILE; exit $E)
 
-          until grep "Finished processing block 32" $LOG_FILE
+          until grep "Finished processing block 10" $LOG_FILE
           do sleep 1; done
 
           count_results() {
@@ -68,9 +68,11 @@ jobs:
                   psql -tA cerc_testing -U vdbm -c "$query"
           }
           set -x
-          [[ "$(count_results eth.header_cids)" = 33 ]]
-          [[ "$(count_results eth.state_cids)" = 21 ]]
-          [[ "$(count_results eth.storage_cids)" = 18 ]]
+          [[ "$(count_results eth.header_cids)" = 11 ]]
+          [[ "$(count_results eth.state_cids)" = 287 ]]
+          [[ "$(count_results eth.storage_cids)" = 31 ]]
+          [[ "$(count_results eth.transaction_cids)" = 144 ]]
+          [[ "$(count_results eth.receipt_cids)" = 144 ]]
 
   compliance-test:
     name: Run compliance tests

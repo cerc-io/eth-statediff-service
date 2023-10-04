@@ -405,10 +405,17 @@ func (sds *Service) writeStateDiff(block *types.Block, parentRoot common.Hash, p
 		return err
 	}
 	// defer handling of commit/rollback for any return case
+	defer tx.RollbackOnFailure(err)
+
+	var nodeMtx, ipldMtx sync.Mutex
 	output := func(node sdtypes.StateLeafNode) error {
+		nodeMtx.Lock()
+		defer nodeMtx.Unlock()
 		return sds.indexer.PushStateNode(tx, node, block.Hash().String())
 	}
-	codeOutput := func(c sdtypes.IPLD) error {
+	ipldOutput := func(c sdtypes.IPLD) error {
+		ipldMtx.Lock()
+		defer ipldMtx.Unlock()
 		return sds.indexer.PushIPLD(tx, c)
 	}
 	prom.SetTimeMetric(prom.T_BLOCK_PROCESSING, time.Now().Sub(t))
@@ -418,7 +425,7 @@ func (sds *Service) writeStateDiff(block *types.Block, parentRoot common.Hash, p
 		OldStateRoot: parentRoot,
 		BlockNumber:  block.Number(),
 		BlockHash:    block.Hash(),
-	}, params, output, codeOutput)
+	}, params, output, ipldOutput)
 	prom.SetTimeMetric(prom.T_STATE_PROCESSING, time.Now().Sub(t))
 	t = time.Now()
 	err = tx.Submit()

@@ -48,7 +48,6 @@ export DATABASE_PASSWORD="password"
 export ETH_NODE_ID=test-node
 export ETH_CLIENT_NAME=test-client
 export ETH_NETWORK_ID=test-network
-export ETH_CHAIN_ID=4242
 
 export SERVICE_HTTP_PATH='127.0.0.1:8545'
 export LOG_LEVEL=debug
@@ -65,6 +64,7 @@ clear_table() {
 }
 
 tables=(
+  eth.header_cids
   eth.log_cids
   eth.receipt_cids
   eth.state_cids
@@ -86,6 +86,7 @@ run_service() {
   service_binary=$1
   service_output_dir=$2
 
+  mkdir -p $service_output_dir
   $service_binary serve &
 
   until grep "HTTP endpoint opened" $LOG_FILE
