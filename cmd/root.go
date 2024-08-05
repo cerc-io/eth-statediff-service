@@ -115,10 +115,9 @@ func init() {
 	rootCmd.PersistentFlags().String("log-level", log.InfoLevel.String(),
 		"log level (trace, debug, info, warn, error, fatal, panic")
 
-	rootCmd.PersistentFlags().String("leveldb-mode", "local", "LevelDB access mode (local, remote)")
-	rootCmd.PersistentFlags().String("leveldb-path", "", "path to primary datastore")
+	// rootCmd.PersistentFlags().String("ethdb-engine", "local", "Ethdb engine type (leveldb, pebble)")
+	rootCmd.PersistentFlags().String("ethdb-path", "", "path to primary datastore")
 	rootCmd.PersistentFlags().String("ancient-path", "", "path to ancient datastore")
-	rootCmd.PersistentFlags().String("leveldb-url", "", "url to primary leveldb-ethdb-rpc server")
 
 	rootCmd.PersistentFlags().Bool("prerun", false, "turn on prerun of toml configured ranges")
 	rootCmd.PersistentFlags().Int("service-workers", 1, "number of range requests to process concurrently")
@@ -178,10 +177,10 @@ func init() {
 	viper.BindPFlag("statediff.trieWorkers", rootCmd.PersistentFlags().Lookup("trie-workers"))
 	viper.BindPFlag("statediff.workerQueueSize", rootCmd.PersistentFlags().Lookup("worker-queue-size"))
 
-	viper.BindPFlag("leveldb.mode", rootCmd.PersistentFlags().Lookup("leveldb-mode"))
-	viper.BindPFlag("leveldb.path", rootCmd.PersistentFlags().Lookup("leveldb-path"))
-	viper.BindPFlag("leveldb.ancient", rootCmd.PersistentFlags().Lookup("ancient-path"))
-	viper.BindPFlag("leveldb.url", rootCmd.PersistentFlags().Lookup("leveldb-url"))
+	// viper.BindPFlag("ethdb.engine", rootCmd.PersistentFlags().Lookup("ethdb-engine"))
+	viper.BindPFlag("ethdb.path", rootCmd.PersistentFlags().Lookup("ethdb-path"))
+	viper.BindPFlag("ethdb.ancient", rootCmd.PersistentFlags().Lookup("ancient-path"))
+	viper.BindPFlag("ethdb.url", rootCmd.PersistentFlags().Lookup("ethdb-url"))
 
 	viper.BindPFlag("database.name", rootCmd.PersistentFlags().Lookup("database-name"))
 	viper.BindPFlag("database.port", rootCmd.PersistentFlags().Lookup("database-port"))
@@ -235,7 +234,7 @@ func initConfig() {
 	if cfgFile != "" {
 		viper.SetConfigFile(cfgFile)
 		if err := viper.ReadInConfig(); err == nil {
-			log.Printf("Using config file: %s", viper.ConfigFileUsed())
+			log.Infof("Using config file: %s", viper.ConfigFileUsed())
 		} else {
 			log.Fatal(fmt.Sprintf("Couldn't read config file: %s", err.Error()))
 		}

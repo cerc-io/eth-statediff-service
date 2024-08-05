@@ -23,7 +23,7 @@ import (
 // statsCmd represents the serve command
 var statsCmd = &cobra.Command{
 	Use:   "stats",
-	Short: "Report stats for cold levelDB",
+	Short: "Report stats for cold DB",
 	Long: `Usage
 
 ./eth-statediff-service stats --config={path to toml config file}`,
@@ -41,6 +41,6 @@ func init() {
 func stats() {
 	logWithCommand.Info("Running eth-statediff-service stats command")
 
-	reader, _, _ := instantiateLevelDBReader()
+	reader, _, _ := createReader()
 	reportLatestBlock(reader)
 }

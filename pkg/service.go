@@ -43,7 +43,7 @@ type Service struct {
 	// Used to build the state diff objects
 	builder statediff.Builder
 	// Used to read data from LevelDB
-	lvlDBReader Reader
+	reader Reader
 	// Used to signal shutdown of the service
 	quitChan chan struct{}
 	// Interface for publishing statediffs as PG-IPLD objects
@@ -57,19 +57,19 @@ type Service struct {
 }
 
 // NewStateDiffService creates a new Service
-func NewStateDiffService(lvlDBReader Reader, indexer interfaces.StateDiffIndexer, conf ServiceConfig) *Service {
-	builder := statediff.NewBuilder(adapt.GethStateView(lvlDBReader.StateDB()))
+func NewStateDiffService(reader Reader, indexer interfaces.StateDiffIndexer, conf ServiceConfig) *Service {
+	builder := statediff.NewBuilder(adapt.GethStateView(reader.StateDB()))
 	builder.SetSubtrieWorkers(conf.TrieWorkers)
 	if conf.WorkerQueueSize == 0 {
 		conf.WorkerQueueSize = defaultQueueSize
 	}
 	return &Service{
-		lvlDBReader: lvlDBReader,
-		builder:     builder,
-		indexer:     indexer,
-		workers:     conf.ServiceWorkers,
-		queue:       make(chan RangeRequest, conf.WorkerQueueSize),
-		preruns:     conf.PreRuns,
+		reader:  reader,
+		builder: builder,
+		indexer: indexer,
+		workers: conf.ServiceWorkers,
+		queue:   make(chan RangeRequest, conf.WorkerQueueSize),
+		preruns: conf.PreRuns,
 	}
 }
 
@@ -224,7 +224,7 @@ func (sds *Service) Loop(wg *sync.WaitGroup) error {
 // StateDiffAt returns a state diff object payload at the specific blockheight
 // This operation cannot be performed back past the point of db pruning; it requires an archival node for historical data
 func (sds *Service) StateDiffAt(blockNumber uint64, params statediff.Params) (*statediff.Payload, error) {
-	currentBlock, err := sds.lvlDBReader.GetBlockByNumber(blockNumber)
+	currentBlock, err := sds.reader.GetBlockByNumber(blockNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -236,7 +236,7 @@ func (sds *Service) StateDiffAt(blockNumber uint64, params statediff.Params) (*s
 	if blockNumber == 0 {
 		return sds.processStateDiff(currentBlock, common.Hash{}, params)
 	}
-	parentBlock, err := sds.lvlDBReader.GetBlockByHash(currentBlock.ParentHash())
+	parentBlock, err := sds.reader.GetBlockByHash(currentBlock.ParentHash())
 	if err != nil {
 		return nil, err
 	}
@@ -246,7 +246,7 @@ func (sds *Service) StateDiffAt(blockNumber uint64, params statediff.Params) (*s
 // StateDiffFor returns a state diff object payload for the specific blockhash
 // This operation cannot be performed back past the point of db pruning; it requires an archival node for historical data
 func (sds *Service) StateDiffFor(blockHash common.Hash, params statediff.Params) (*statediff.Payload, error) {
-	currentBlock, err := sds.lvlDBReader.GetBlockByHash(blockHash)
+	currentBlock, err := sds.reader.GetBlockByHash(blockHash)
 	if err != nil {
 		return nil, err
 	}
@@ -258,7 +258,7 @@ func (sds *Service) StateDiffFor(blockHash common.Hash, params statediff.Params)
 	if currentBlock.NumberU64() == 0 {
 		return sds.processStateDiff(currentBlock, common.Hash{}, params)
 	}
-	parentBlock, err := sds.lvlDBReader.GetBlockByHash(currentBlock.ParentHash())
+	parentBlock, err := sds.reader.GetBlockByHash(currentBlock.ParentHash())
 	if err != nil {
 		return nil, err
 	}
@@ -297,14 +297,14 @@ func (sds *Service) newPayload(stateObject []byte, block *types.Block, params st
 	}
 	if params.IncludeTD {
 		var err error
-		payload.TotalDifficulty, err = sds.lvlDBReader.GetTdByHash(block.Hash())
+		payload.TotalDifficulty, err = sds.reader.GetTdByHash(block.Hash())
 		if err != nil {
 			return nil, err
 		}
 	}
 	if params.IncludeReceipts {
 		receiptBuff := new(bytes.Buffer)
-		receipts, err := sds.lvlDBReader.GetReceiptsByHash(block.Hash())
+		receipts, err := sds.reader.GetReceiptsByHash(block.Hash())
 		if err != nil {
 			return nil, err
 		}
@@ -335,7 +335,7 @@ func (sds *Service) Stop() error {
 func (sds *Service) WriteStateDiffAt(blockNumber uint64, params statediff.Params) error {
 	logrus.Infof("Writing state diff at block %d", blockNumber)
 	t := time.Now()
-	currentBlock, err := sds.lvlDBReader.GetBlockByNumber(blockNumber)
+	currentBlock, err := sds.reader.GetBlockByNumber(blockNumber)
 	if err != nil {
 		return err
 	}
@@ -345,7 +345,7 @@ func (sds *Service) WriteStateDiffAt(blockNumber uint64, params statediff.Params
 
 	parentRoot := common.Hash{}
 	if blockNumber != 0 {
-		parentBlock, err := sds.lvlDBReader.GetBlockByHash(currentBlock.ParentHash())
+		parentBlock, err := sds.reader.GetBlockByHash(currentBlock.ParentHash())
 		if err != nil {
 			return err
 		}
@@ -360,7 +360,7 @@ func (sds *Service) WriteStateDiffAt(blockNumber uint64, params statediff.Params
 func (sds *Service) WriteStateDiffFor(blockHash common.Hash, params statediff.Params) error {
 	logrus.Infof("Writing state diff for block %s", blockHash)
 	t := time.Now()
-	currentBlock, err := sds.lvlDBReader.GetBlockByHash(blockHash)
+	currentBlock, err := sds.reader.GetBlockByHash(blockHash)
 	if err != nil {
 		return err
 	}
@@ -370,7 +370,7 @@ func (sds *Service) WriteStateDiffFor(blockHash common.Hash, params statediff.Pa
 
 	parentRoot := common.Hash{}
 	if currentBlock.NumberU64() != 0 {
-		parentBlock, err := sds.lvlDBReader.GetBlockByHash(currentBlock.ParentHash())
+		parentBlock, err := sds.reader.GetBlockByHash(currentBlock.ParentHash())
 		if err != nil {
 			return err
 		}
@@ -385,13 +385,13 @@ func (sds *Service) writeStateDiff(block *types.Block, parentRoot common.Hash, p
 	var receipts types.Receipts
 	var err error
 	if params.IncludeTD {
-		totalDifficulty, err = sds.lvlDBReader.GetTdByHash(block.Hash())
+		totalDifficulty, err = sds.reader.GetTdByHash(block.Hash())
 	}
 	if err != nil {
 		return err
 	}
 	if params.IncludeReceipts {
-		receipts, err = sds.lvlDBReader.GetReceiptsByHash(block.Hash())
+		receipts, err = sds.reader.GetReceiptsByHash(block.Hash())
 	}
 	if err != nil {
 		return err

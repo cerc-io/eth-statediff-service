@@ -10,7 +10,8 @@ import (
 	"github.com/cerc-io/plugeth-statediff/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/trie"
+	"github.com/ethereum/go-ethereum/triedb"
+	"github.com/ethereum/go-ethereum/triedb/hashdb"
 	"github.com/spf13/viper"
 
 	pkg "github.com/cerc-io/eth-statediff-service/pkg"
@@ -86,24 +87,18 @@ func setupPreRunRanges() []pkg.RangeRequest {
 	return blockRanges
 }
 
-func instantiateLevelDBReader() (pkg.Reader, *params.ChainConfig, node.Info) {
+func createReader() (pkg.Reader, *params.ChainConfig, node.Info) {
 	// load some necessary params
 	logWithCommand.Debug("Loading statediff service parameters")
-	mode := viper.GetString("leveldb.mode")
-	path := viper.GetString("leveldb.path")
-	ancientPath := viper.GetString("leveldb.ancient")
-	url := viper.GetString("leveldb.url")
+	path := viper.GetString("ethdb.path")
+	ancientPath := viper.GetString("ethdb.ancient")
+	url := viper.GetString("ethdb.url")
 
-	if mode == "local" {
-		if path == "" || ancientPath == "" {
-			logWithCommand.Fatal("Require a valid eth LevelDB primary datastore path and ancient datastore path")
-		}
-	} else if mode == "remote" {
-		if url == "" {
-			logWithCommand.Fatal("Require a valid RPC url for accessing LevelDB")
-		}
-	} else {
-		logWithCommand.Fatal("Invalid mode provided for LevelDB access")
+	if path == "" {
+		logWithCommand.Fatal("Require a valid Ethereum chain data path")
+	}
+	if ancientPath == "" {
+		ancientPath = path + "/ancient"
 	}
 
 	nodeInfo := getEthNodeInfo()
@@ -114,24 +109,24 @@ func instantiateLevelDBReader() (pkg.Reader, *params.ChainConfig, node.Info) {
 		logWithCommand.Fatalf("Unable to instantiate chain config: %s", err)
 	}
 
-	// create LevelDB reader
-	logWithCommand.Debug("Creating LevelDB reader")
-	readerConf := pkg.LvLDBReaderConfig{
-		TrieConfig: &trie.Config{
-			Cache:     viper.GetInt("cache.trie"),
-			Journal:   "",
+	logWithCommand.Debug("Creating DB reader")
+	readerConf := pkg.EthDBReaderConfig{
+		TrieConfig: &triedb.Config{
 			Preimages: false,
+			IsVerkle:  false,
+			HashDB: &hashdb.Config{
+				CleanCacheSize: viper.GetInt("cache.trie"),
+			},
 		},
 		ChainConfig: chainConf,
-		Mode:        mode,
 		Path:        path,
 		AncientPath: ancientPath,
 		Url:         url,
 		DBCacheSize: viper.GetInt("cache.database"),
 	}
-	reader, err := pkg.NewLvlDBReader(readerConf)
+	reader, err := pkg.NewEthDBReader(readerConf)
 	if err != nil {
-		logWithCommand.Fatalf("Unable to instantiate levelDB reader: %s", err)
+		logWithCommand.Fatalf("Unable to instantiate DB reader: %s", err)
 	}
 	return reader, chainConf, nodeInfo
 }
@@ -143,10 +138,10 @@ func reportLatestBlock(reader pkg.Reader) {
 		logWithCommand.Fatalf("Unable to determine latest header height and hash: %s", err.Error())
 	}
 	if header.Number == nil {
-		logWithCommand.Fatal("Latest header found in levelDB has a nil block height")
+		logWithCommand.Fatal("Latest header found in DB has a nil block height")
 	}
 	logWithCommand.
 		WithField("height", header.Number).
 		WithField("hash", header.Hash()).
-		Info("Latest block found in levelDB")
+		Info("Latest block found in DB")
 }

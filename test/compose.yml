@@ -3,7 +3,7 @@ services:
     restart: on-failure
     depends_on:
       - ipld-eth-db
-    image: git.vdb.to/cerc-io/ipld-eth-db/ipld-eth-db:v5.0.5-alpha
+    image: git.vdb.to/cerc-io/ipld-eth-db/ipld-eth-db:v5.3.0-alpha
     environment:
       DATABASE_USER: "vdbm"
       DATABASE_NAME: "cerc_testing"

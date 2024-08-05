@@ -2,7 +2,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/cerc-io/eth-statediff-service)](https://goreportcard.com/report/github.com/cerc-io/eth-statediff-service)
 
-A standalone statediffing service which runs directly on top of a `go-ethereum` LevelDB instance.
+A standalone statediffing service which runs directly on top of a `go-ethereum` database instance.
 This service can serve historical state data over the same rpc interface as
 [statediffing geth](https://github.com/cerc-io/go-ethereum) without needing to run a full node.
 
@@ -19,7 +19,7 @@ go build .
 See [./environments/example.toml](./environments/example.toml) for an annotated example config file.
 
 > **Note:** previous versions of this service used different variable names. To update, change the following:
-> * `LVLDB_MODE`, `LVLDB_PATH`, `LVLDB_ANCIENT`, `LVLDB_URL` => `LEVELDB_*`
+> * `LVLDB_*`, `LEVELDB_*` => `ETHDB_*`
 > * `LOG_FILE_PATH` => `LOG_FILE`
 
 ### Local Setup
@@ -208,9 +208,9 @@ ranges and params in the `prerun` section of the config.
 
 ### Stats
 
-The binary includes a `stats` command which reports stats for the offline or remote levelDB.
+The binary includes a `stats` command which reports stats for the offline DB.
 
-At this time, the only stat supported is to return the latest/highest block height and hash found the levelDB, this is
-useful for determining what the upper limit is for a standalone statediffing process on a given levelDB.
+At this time, the only stat supported is to return the latest/highest block height and hash found in the EthDB. This is
+useful for determining what the upper limit is for a standalone statediffing process using a given EthDB.
 
 `./eth-statediff-service stats --config={path to toml config file}`

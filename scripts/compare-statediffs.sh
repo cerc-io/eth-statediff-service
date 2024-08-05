@@ -6,8 +6,8 @@
 # Configure the input data using environment vars.
 (
   set -u
-  : $LEVELDB_PATH
-  : $LEVELDB_ANCIENT
+  : $ETHDB_PATH
+  : $ETHDB_ANCIENT
   : $ETH_GENESIS_BLOCK
   : $ETH_CHAIN_CONFIG
 ) || exit 1

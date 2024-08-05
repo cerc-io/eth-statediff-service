@@ -9,9 +9,8 @@ on:
       - ci-test
   workflow_call:
 
-# Needed until we can incorporate docker startup into the executor container
 env:
-  DOCKER_HOST: unix:///var/run/dind.sock
+  ETH_TESTING_REF: v0.5.2
 
 jobs:
   integration-tests:
@@ -23,17 +22,8 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
-      - name: Run dockerd
-        run: |
-          dockerd -H $DOCKER_HOST --userland-proxy=false &
-          sleep 5
       - name: Run DB container
         run: docker compose -f test/compose.yml up --wait
-      - name: Configure Gitea access
-        env:
-          TOKEN: ${{ secrets.CICD_REPO_TOKEN }}
-        run: |
-          git config --global url."https://$TOKEN:@git.vdb.to/".insteadOf "https://git.vdb.to/"
 
       - name: Build package
         run: go build .
@@ -42,16 +32,15 @@ jobs:
         with:
           repository: cerc-io/eth-testing
           path: ./fixtures
-          ref: v0.3.1
+          ref: ${{ env.ETH_TESTING_REF }}
         # Run a sanity test against the fixture data
         # Complete integration tests are TODO
       - name: Run basic integration test
         env:
-          DATABASE_TYPE: postgres
-          LEVELDB_PATH: ./fixtures/chaindata/_data/small2
-          LEVELDB_ANCIENT: ./fixtures/chaindata/_data/small2/ancient
+          ETHDB_PATH: ./fixtures/chains/data/premerge2/geth/chaindata
+          ETH_CHAIN_CONFIG: ./fixtures/chains/data/premerge2/genesis.config.json
+          ETH_GENESIS_BLOCK: 0x8a3c7cddacbd1ab4ec1b03805fa2a287f3a75e43d87f4f987fcc399f5c042614
           LOG_FILE: ./server-log
-          ETH_GENESIS_BLOCK: "0x8a3c7cddacbd1ab4ec1b03805fa2a287f3a75e43d87f4f987fcc399f5c042614"
         timeout-minutes: 20
         run: |
           ./eth-statediff-service --config ./test/ci-config.toml serve &
@@ -85,17 +74,6 @@ jobs:
         with:
           go-version-file: ./eth-statediff-service/go.mod
           check-latest: true
-      - name: Install test fixtures
-        uses: actions/checkout@v3
-        with:
-          repository: cerc-io/eth-testing
-          path: ./fixtures
-          ref: v0.3.1
-      - name: Configure Gitea access
-        env:
-          TOKEN: ${{ secrets.CICD_REPO_TOKEN }}
-        run: |
-          git config --global url."https://$TOKEN:@git.vdb.to/".insteadOf https://git.vdb.to/
       - name: Build current version
         working-directory: ./eth-statediff-service
         run: go build -o ../service-current .
@@ -109,26 +87,28 @@ jobs:
         working-directory: ./eth-statediff-service-canonical
         run: go build -o ../service-canonical .
 
-      - name: Run dockerd
-        run: |
-          dockerd -H $DOCKER_HOST --userland-proxy=false &
-          sleep 5
+      - name: Install test fixtures
+        uses: actions/checkout@v3
+        with:
+          repository: cerc-io/eth-testing
+          path: ./fixtures
+          ref: ${{ env.ETH_TESTING_REF }}
       - name: Run DB container
         working-directory: ./eth-statediff-service
         run: docker compose -f test/compose.yml up --wait
       - name: Compare statediff output
         timeout-minutes: 10
         env:
-          LEVELDB_PATH: ./fixtures/chaindata/_data/small2
-          LEVELDB_ANCIENT: ./fixtures/chaindata/_data/small2/ancient
+          ETHDB_PATH: ./fixtures/chains/data/premerge2/geth/chaindata
+          ETHDB_ANCIENT: ./fixtures/chains/data/premerge2/geth/chaindata/ancient
+          ETH_CHAIN_CONFIG: ./fixtures/chains/data/premerge2/genesis.config.json
           ETH_GENESIS_BLOCK: "0x8a3c7cddacbd1ab4ec1b03805fa2a287f3a75e43d87f4f987fcc399f5c042614"
-          ETH_CHAIN_CONFIG: ./eth-statediff-service/test/ci-chain.json
         run: |
           until
               ready_query='select max(version_id) from goose_db_version;'
               version=$(docker exec -e PGPASSWORD=password test-ipld-eth-db-1 \
                   psql -tA cerc_testing -U vdbm -c "$ready_query")
-              [[ "$version" -ge 18 ]]
+              [[ "$version" -ge 21 ]]
           do sleep 1; done
 
           ./eth-statediff-service/scripts/compare-statediffs.sh \

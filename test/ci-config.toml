@@ -1,8 +1,4 @@
-# Config file for service in compose.yml
-
-[leveldb]
-    mode = "local"
-    url = "http://127.0.0.1:8082/"
+# Config file for github workflow
 
 [server]
     ipcPath = ".ipc"
@@ -30,7 +26,6 @@
     trie = 1024
 
 [ethereum]
-    chainConfig = "test/ci-chain.json"
     nodeID = "test-node"
     clientName = "test-eth-statediff-service"
     networkID = "test-network"

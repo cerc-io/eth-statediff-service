@@ -20,14 +20,13 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/cerc-io/leveldb-ethdb-rpc/pkg/client"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/trie"
+	"github.com/ethereum/go-ethereum/triedb"
 )
 
 // Reader interface required by the statediffing service
@@ -40,46 +39,36 @@ type Reader interface {
 	GetLatestHeader() (*types.Header, error)
 }
 
-// LvlDBReader exposes the necessary Reader methods on lvldb
-type LvlDBReader struct {
+// EthDBReader exposes the necessary Reader methods on an ethdb
+type EthDBReader struct {
 	ethDB       ethdb.Database
 	stateDB     state.Database
 	chainConfig *params.ChainConfig
 }
 
-// LvLDBReaderConfig struct for initializing a LvlDBReader
-type LvLDBReaderConfig struct {
-	TrieConfig             *trie.Config
+type EthDBReaderConfig struct {
+	TrieConfig             *triedb.Config
 	ChainConfig            *params.ChainConfig
-	Mode                   string
 	Path, AncientPath, Url string
 	DBCacheSize            int
 }
 
-// NewLvlDBReader creates a new Reader using LevelDB
-func NewLvlDBReader(conf LvLDBReaderConfig) (*LvlDBReader, error) {
-	var edb ethdb.Database
-	var err error
-
-	switch conf.Mode {
-	case "local":
-		edb, err = rawdb.NewLevelDBDatabase(conf.Path, conf.DBCacheSize, 256, "eth-statediff-service", true)
-		if err != nil {
-			return nil, err
-		}
-
-		edb, err = rawdb.NewDatabaseWithFreezer(edb, conf.AncientPath, "eth-statediff-service", true)
-		if err != nil {
-			return nil, err
-		}
-	case "remote":
-		edb, err = client.NewDatabaseClient(conf.Url)
-		if err != nil {
-			return nil, err
-		}
+// NewEthDBReader creates a new Reader using LevelDB
+func NewEthDBReader(conf EthDBReaderConfig) (*EthDBReader, error) {
+	opts := rawdb.OpenOptions{
+		Directory:         conf.Path,
+		AncientsDirectory: conf.AncientPath,
+		Namespace:         "eth-statediff-service",
+		Cache:             conf.DBCacheSize,
+		Handles:           256,
+		ReadOnly:          true,
+	}
+	edb, err := rawdb.Open(opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open DB: %w", err)
 	}
 
-	return &LvlDBReader{
+	return &EthDBReader{
 		ethDB:       edb,
 		stateDB:     state.NewDatabaseWithConfig(edb, conf.TrieConfig),
 		chainConfig: conf.ChainConfig,
@@ -87,7 +76,7 @@ func NewLvlDBReader(conf LvLDBReaderConfig) (*LvlDBReader, error) {
 }
 
 // GetBlockByHash gets block by hash
-func (ldr *LvlDBReader) GetBlockByHash(hash common.Hash) (*types.Block, error) {
+func (ldr *EthDBReader) GetBlockByHash(hash common.Hash) (*types.Block, error) {
 	height := rawdb.ReadHeaderNumber(ldr.ethDB, hash)
 	if height == nil {
 		return nil, fmt.Errorf("unable to read header height for header hash %s", hash)
@@ -99,7 +88,7 @@ func (ldr *LvlDBReader) GetBlockByHash(hash common.Hash) (*types.Block, error) {
 	return block, nil
 }
 
-func (ldr *LvlDBReader) GetBlockByNumber(number uint64) (*types.Block, error) {
+func (ldr *EthDBReader) GetBlockByNumber(number uint64) (*types.Block, error) {
 	hash := rawdb.ReadCanonicalHash(ldr.ethDB, number)
 	block := rawdb.ReadBlock(ldr.ethDB, hash, number)
 	if block == nil {
@@ -109,12 +98,16 @@ func (ldr *LvlDBReader) GetBlockByNumber(number uint64) (*types.Block, error) {
 }
 
 // GetReceiptsByHash gets receipt by hash
-func (ldr *LvlDBReader) GetReceiptsByHash(hash common.Hash) (types.Receipts, error) {
+func (ldr *EthDBReader) GetReceiptsByHash(hash common.Hash) (types.Receipts, error) {
 	number := rawdb.ReadHeaderNumber(ldr.ethDB, hash)
 	if number == nil {
 		return nil, fmt.Errorf("unable to read header height for header hash %s", hash)
 	}
-	receipts := rawdb.ReadReceipts(ldr.ethDB, hash, *number, ldr.chainConfig)
+	header := rawdb.ReadHeader(ldr.ethDB, hash, *number)
+	if header == nil {
+		return nil, fmt.Errorf("unable to read header for header hash %s", hash)
+	}
+	receipts := rawdb.ReadReceipts(ldr.ethDB, hash, *number, header.Time, ldr.chainConfig)
 	if receipts == nil {
 		return nil, fmt.Errorf("unable to read receipts at height %d hash %s", number, hash)
 	}
@@ -122,7 +115,7 @@ func (ldr *LvlDBReader) GetReceiptsByHash(hash common.Hash) (types.Receipts, err
 }
 
 // GetTdByHash gets td by hash
-func (ldr *LvlDBReader) GetTdByHash(hash common.Hash) (*big.Int, error) {
+func (ldr *EthDBReader) GetTdByHash(hash common.Hash) (*big.Int, error) {
 	number := rawdb.ReadHeaderNumber(ldr.ethDB, hash)
 	if number == nil {
 		return nil, fmt.Errorf("unable to read header height for header hash %s", hash)
@@ -135,12 +128,12 @@ func (ldr *LvlDBReader) GetTdByHash(hash common.Hash) (*big.Int, error) {
 }
 
 // StateDB returns the underlying statedb
-func (ldr *LvlDBReader) StateDB() state.Database {
+func (ldr *EthDBReader) StateDB() state.Database {
 	return ldr.stateDB
 }
 
 // GetLatestHeader gets the latest header from the levelDB
-func (ldr *LvlDBReader) GetLatestHeader() (*types.Header, error) {
+func (ldr *EthDBReader) GetLatestHeader() (*types.Header, error) {
 	header := rawdb.ReadHeadHeader(ldr.ethDB)
 	if header == nil {
 		return nil, errors.New("unable to read head header")

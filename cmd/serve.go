@@ -35,8 +35,8 @@ import (
 // serveCmd represents the serve command
 var serveCmd = &cobra.Command{
 	Use:   "serve",
-	Short: "Stand up a standalone statediffing RPC service on top of LevelDB",
-	Long: `Usage
+	Short: "Standalone statediffing RPC service on top of an Ethereum database",
+	Long: `Usage:
 
 ./eth-statediff-service serve --config={path to toml config file}`,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -63,7 +63,7 @@ func serve() {
 	logWithCommand.Debug("Running eth-statediff-service serve command")
 	logWithCommand.Debugf("Parallelism: %d", maxParallelism())
 
-	reader, chainConf, nodeInfo := instantiateLevelDBReader()
+	reader, chainConf, nodeInfo := createReader()
 
 	reportLatestBlock(reader)
 

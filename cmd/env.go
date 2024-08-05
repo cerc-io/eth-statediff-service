@@ -30,10 +30,9 @@ const (
 
 	DB_CACHE_SIZE_MB   = "DB_CACHE_SIZE_MB"
 	TRIE_CACHE_SIZE_MB = "TRIE_CACHE_SIZE_MB"
-	LEVELDB_MODE       = "LEVELDB_MODE"
-	LEVELDB_PATH       = "LEVELDB_PATH"
-	LEVELDB_ANCIENT    = "LEVELDB_ANCIENT"
-	LEVELDB_URL        = "LEVELDB_URL"
+	// ETHDB_ENGINE         = "ETHDB_ENGINE"
+	ETHDB_PATH    = "ETHDB_PATH"
+	ETHDB_ANCIENT = "ETHDB_ANCIENT"
 
 	STATEDIFF_PRERUN            = "STATEDIFF_PRERUN"
 	STATEDIFF_TRIE_WORKERS      = "STATEDIFF_TRIE_WORKERS"
@@ -119,10 +118,9 @@ func init() {
 	viper.BindEnv("cache.database", DB_CACHE_SIZE_MB)
 	viper.BindEnv("cache.trie", TRIE_CACHE_SIZE_MB)
 
-	viper.BindEnv("leveldb.mode", LEVELDB_MODE)
-	viper.BindEnv("leveldb.path", LEVELDB_PATH)
-	viper.BindEnv("leveldb.ancient", LEVELDB_ANCIENT)
-	viper.BindEnv("leveldb.url", LEVELDB_URL)
+	// viper.BindEnv("ethdb.engine", ETHDB_ENGINE)
+	viper.BindEnv("ethdb.path", ETHDB_PATH)
+	viper.BindEnv("ethdb.ancient", ETHDB_ANCIENT)
 
 	viper.BindEnv("prom.metrics", PROM_METRICS)
 	viper.BindEnv("prom.http", PROM_HTTP)

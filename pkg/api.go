@@ -28,7 +28,7 @@ const APIName = "statediff"
 const APIVersion = "0.0.1"
 
 // PublicStateDiffAPI provides an RPC interface
-// that can be used to fetch historical diffs from LevelDB directly
+// that can be used to fetch historical diffs from database directly
 type PublicStateDiffAPI struct {
 	sds *Service
 }

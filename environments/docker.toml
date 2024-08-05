@@ -1,8 +1,6 @@
-[leveldb]
-    mode    = "local"                          # LEVELDB_MODE
-    path    = "/app/geth-rw/chaindata"         # LEVELDB_PATH
-    ancient = "/app/geth-rw/chaindata/ancient" # LEVELDB_ANCIENT
-    url     = "http://127.0.0.1:8082/"         # LEVELDB_URL
+[ethdb]
+    path    = "/app/geth-rw/chaindata"         # ETHDB_PATH
+    ancient = "/app/geth-rw/chaindata/ancient" # ETHDB_ANCIENT
 
 [server]
     ipcPath  = ".ipc"           # SERVICE_IPC_PATH

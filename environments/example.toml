@@ -1,13 +1,10 @@
-[leveldb]
-    # LevelDB access mode <local | remote>
-    mode = "local"  # LEVELDB_MODE
+[ethdb]
+    # #  access mode <local | remote>
+    # mode = "local"  # ETHDB_MODE
 
-    # LevelDB paths (local mode)
-    path    = "/Users/user/Library/Ethereum/geth/chaindata"         # LEVELDB_PATH
-    ancient = "/Users/user/Library/Ethereum/geth/chaindata/ancient" # LEVELDB_ANCIENT
-
-    # URL for leveldb-ethdb-rpc endpoint (remote mode)
-    url = "http://127.0.0.1:8082/"  # LEVELDB_URL
+    # Ethdb paths (local mode)
+    path    = "/Users/user/Library/Ethereum/geth/chaindata"         # ETHDB_PATH
+    ancient = "/Users/user/Library/Ethereum/geth/chaindata/ancient" # ETHDB_ANCIENT
 
 [server]
     ipcPath  = ".ipc"           # SERVICE_IPC_PATH
